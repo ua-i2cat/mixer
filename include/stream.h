@@ -23,7 +23,7 @@ class Stream {
 		AVFrame *orig_frame, *curr_frame;
 		bool needs_displaying, orig_frame_ready, curr_frame_ready;
 		pthread_t *thread;
-		pthread_mutex_t orig_frame_ready_mutex, resize_mutex, values_mutex;
+		pthread_mutex_t orig_frame_ready_mutex, resize_mutex, merge_mutex;
 		pthread_cond_t  orig_frame_ready_cond;
 
 
@@ -63,7 +63,7 @@ class Stream {
 		pthread_mutex_t* get_orig_frame_ready_mutex();
 		pthread_cond_t*  get_orig_frame_ready_cond();
 		pthread_mutex_t* get_resize_mutex();
-		pthread_mutex_t* get_values_mutex();
+		pthread_mutex_t* get_merge_mutex();
 
 		void *resize(void);
 		static void *execute_resize(void *context);

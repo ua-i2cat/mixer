@@ -23,9 +23,21 @@ void* Stream::resize(void){
 	pthread_mutex_lock(&resize_mutex);
 	//Check if frame needs resizing
 	if (orig_w == curr_w, orig_h == curr_h, orig_cp == curr_cp){
-		curr_frame = orig_frame;  //Pointer curr_frame now points to orig_frame
+		if (curr_frame == NULL || curr_frame == orig_frame){
+			curr_frame = orig_frame;  //Pointer curr_frame now points to orig_frame
+		} else {
+			av_freep(curr_frame);
+			curr_frame = orig_frame;
+		}
 
 	}else{
+		if (curr_frame == orig_frame){
+			curr_frame = avcodec_alloc_frame();
+			int num_bytes = avpicture_get_size(curr_cp, curr_w, curr_h);
+			uint8_t *buffer = (uint8_t *) av_malloc(num_bytes * sizeof(uint8_t));
+			avpicture_fill((AVPicture *) curr_frame, buffer, curr_cp, curr_w, curr_h);
+		}
+
 		//Prepare context
 		ctx = sws_getContext(
 				orig_w,
@@ -52,7 +64,6 @@ void* Stream::resize(void){
 		);
 	}
 
-	curr_frame_ready = true;
 	pthread_mutex_unlock(&resize_mutex);
 
 	}
@@ -150,7 +161,7 @@ void Stream::set_orig_frame(AVFrame *set_orig_frame){
 }
 
 AVFrame* Stream::get_current_frame(){
-	return curr_frame;
+	return &curr_frame;
 }
 
 void Stream::set_current_frame(AVFrame *set_curr_frame){
@@ -201,8 +212,8 @@ pthread_mutex_t* Stream::get_resize_mutex(){
 	return &resize_mutex;
 }
 
-pthread_mutex_t* Stream::get_values_mutex(){
-	return &values_mutex;
+pthread_mutex_t* Stream::get_merge_mutex(){
+	return &merge_mutex;
 }
 
 

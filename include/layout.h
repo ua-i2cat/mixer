@@ -8,10 +8,12 @@
 #ifndef LAYOUT_H_
 #define LAYOUT_H_
 
-#include <libavcodec/avcodec.h>
-#include <libavformat/avformat.h>
-#include <libswscale/swscale.h>
-#include <libavutil/avutil.h>
+extern "C" {
+	#include <libavcodec/avcodec.h>
+	#include <libavformat/avformat.h>
+	#include <libswscale/swscale.h>
+	#include <libavutil/avutil.h>
+}
 #include <stream.h>
 #include <vector>
 
@@ -31,35 +33,19 @@ class Layout {
 	    bool overlap;
 	    pthread_mutex_t* merge_mutex;
 
+	    bool check_init_layout(int width, int height, enum AVPixelFormat colorspace, int max_streams);
     	int check_active_stream(int stream_id);
     	int print_frame(int x_pos, int y_pos, int width, int height, AVFrame *stream_frame, AVFrame *layout_frame);
-    	bool check_modify_stream_values(int width, int height, enum PixelFormat colorspace, int x_pos, int y_pos, int layer);
-    	bool check_introduce_stream_values (int orig_w, int orig_h, enum PixelFormat orig_cp, int new_w, int new_h, enum  PixelFormat new_cp, int x, int y);
-    	bool check_introduce_frame_values (int width, int height, enum PixelFormat colorspace);
-    	bool check_modify_layout (int width, int height, enum PixelFormat colorspace);
-    	bool check_init_layout(int width, int height, enum PixelFormat colorspace, int max_streams);
-    	int init_layout(int width, int height, enum PixelFormat colorspace, int max_str);
+    	bool check_modify_stream_values(int width, int height, enum AVPixelFormat colorspace, int x_pos, int y_pos, int layer);
+    	bool check_introduce_stream_values (int orig_w, int orig_h, enum AVPixelFormat orig_cp, int new_w, int new_h, enum  PixelFormat new_cp, int x, int y);
+    	bool check_introduce_frame_values (int width, int height, enum AVPixelFormat colorspace);
+    	bool check_modify_layout (int width, int height, enum AVPixelFormat colorspace);
+    	int init_layout(int width, int height, enum AVPixelFormat colorspace, int max_str);
     	bool check_frame_overlap(int x1, int y1, int w1, int h1, int x2, int y2, int w2, int h2);
     	bool check_overlap();
 
 
 	public:
-
-    	pthread_mutex_t currentlyIdleMutex;
-    	pthread_cond_t  currentlyIdleCond;
-    	int currentlyIdle;
-
-    	pthread_mutex_t workReadyMutex;
-    	pthread_cond_t  workReadyCond;
-    	int workReady;
-
-    	pthread_cond_t  currentlyWorkingCond;
-    	pthread_mutex_t currentlyWorkingMutex;
-    	int currentlyWorking;
-
-    	pthread_mutex_t canFinishMutex;
-    	pthread_cond_t  canFinishCond;
-    	int canFinish;
 
     	Layout(int width, int height, enum PixelFormat colorspace, int max_str);
     	int introduce_frame (int stream_id, int width, int height, enum PixelFormat colorspace, uint8_t *data_buffer);

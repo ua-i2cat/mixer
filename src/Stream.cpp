@@ -1,7 +1,10 @@
-#include <libavcodec/avcodec.h>
-#include <libavformat/avformat.h>
-#include <libswscale/swscale.h>
-#include <libavutil/avutil.h>
+
+extern "C" {
+	#include <libavcodec/avcodec.h>
+	#include <libavformat/avformat.h>
+	#include <libswscale/swscale.h>
+	#include <libavutil/avutil.h>
+}
 #include <stream.h>
 #include <iostream>
 
@@ -20,9 +23,13 @@ void* Stream::resize(void){
 	orig_frame_ready = false;
 	pthread_mutex_unlock(&orig_frame_ready_mutex);
 
+	#ifdef ENABLE_DEBUG
+		cout << "Stream " << id << " resizing thread has been waken up" << endl;
+	#endif
+
 	pthread_mutex_lock(&resize_mutex);
 	//Check if frame needs resizing
-	if (orig_w == curr_w, orig_h == curr_h, orig_cp == curr_cp){
+	if (orig_w == curr_w && orig_h == curr_h && orig_cp == curr_cp){
 		if (curr_frame == NULL || curr_frame == orig_frame){
 			curr_frame = orig_frame;  //Pointer curr_frame now points to orig_frame
 		} else {
@@ -69,7 +76,7 @@ void* Stream::resize(void){
 	}
 }
 
-static void *execute_resize(void *context){
+void* Stream::execute_resize(void *context){
 	return ((Stream *)context)->resize();
 }
 
@@ -161,7 +168,7 @@ void Stream::set_orig_frame(AVFrame *set_orig_frame){
 }
 
 AVFrame* Stream::get_current_frame(){
-	return &curr_frame;
+	return curr_frame;
 }
 
 void Stream::set_current_frame(AVFrame *set_curr_frame){
@@ -212,8 +219,8 @@ pthread_mutex_t* Stream::get_resize_mutex(){
 	return &resize_mutex;
 }
 
-pthread_mutex_t* Stream::get_merge_mutex(){
-	return &merge_mutex;
+pthread_mutex_t* Stream::get_needs_displaying_mutex(){
+	return &needs_displaying_mutex;
 }
 
 

@@ -6,25 +6,32 @@
 // Description :
 //============================================================================
 
-#include <libavcodec/avcodec.h>
-#include <libavutil/avutil.h>
-#include <libavformat/avformat.h>
-#include <libswscale/swscale.h>
-#include <stream.h>
-#include <layout.h>
-#include <mutex_object.h>
+extern "C" {
+	#include <libavcodec/avcodec.h>
+	#include <libavformat/avformat.h>
+	#include <libswscale/swscale.h>
+	#include <libavutil/avutil.h>
+}
+#include <pthread.h>
+#include "stream.h"
+#include "layout.h"
+#include "mutex_object.h"
 #include <math.h>
 #include <iostream>
 
 using namespace std;
 
-Layout::Layout(int width, int height, enum PixelFormat colorspace, int max_str){
+Layout::Layout(int width, int height, enum AVPixelFormat colorspace, int max_str){
 	init_layout(width, height, colorspace, max_str);
 }
 
 int Layout::init_layout(int width, int height, enum PixelFormat colorspace, int max_str){
+
 	//Check if width, height and color space are valid
-	if (!check_init_layout(width, height, colorspace, max_streams)){
+	if (!check_init_layout(width, height, colorspace, max_str)){
+		#ifdef ENABLE_DEBUG
+			printf("Layout initialization failed: introduced values not valid.\n");
+		#endif
 		return -1;
 	}
 
@@ -55,6 +62,7 @@ int Layout::init_layout(int width, int height, enum PixelFormat colorspace, int 
 		stream->set_orig_cp(PIX_FMT_YUV420P);
 		stream->set_curr_cp(PIX_FMT_RGB24);
 		stream->set_needs_displaying(true);
+		stream->set_orig_frame_ready(false);
 		stream->set_thread(thr);
 
 		streams[i] = stream;
@@ -62,21 +70,29 @@ int Layout::init_layout(int width, int height, enum PixelFormat colorspace, int 
 		//Thread creation
 		pthread_create(stream->get_thread(), NULL, Stream::execute_resize, stream);
 	}
+		#ifdef ENABLE_DEBUG
+			cout << "Layout initialization suceed." << endl;
+			cout << "Width:" << lay_width << endl;
+			cout << "Height:" << lay_height << endl;
+			cout << "Colorspace:" << lay_colorspace << endl;
+		#endif
 
 	return 0;
 }
 
-int Layout::modify_layout (int width, int height, enum PixelFormat colorspace, bool resize_streams){
+int Layout::modify_layout (int width, int height, enum AVPixelFormat colorspace, bool resize_streams){
 	MutexObject mutex(merge_mutex);
 
 	//Check if width, height and color space are valid
 	if (!check_modify_layout(width, height, colorspace)){
+		#ifdef ENABLE_DEBUG
+			cout << "Layout modification failed: introduced values not valid" << endl;
+		#endif
 		return -1;
 	}
 
 	//Check if we have to resize all the streams
 	if (resize_streams){
-
 		int i;
 		int delta_w = width/lay_width;
 		int delta_h = height/lay_height;
@@ -104,6 +120,10 @@ int Layout::modify_layout (int width, int height, enum PixelFormat colorspace, b
 		av_freep(layout_frame);
 		avpicture_alloc((AVPicture *) layout_frame, lay_colorspace, lay_width, lay_height);
 
+		#ifdef ENABLE_DEBUG
+			cout << "Resizing of streams and layout succeed" << endl;
+		#endif
+
 		return 0;
 
 	} else{
@@ -113,16 +133,23 @@ int Layout::modify_layout (int width, int height, enum PixelFormat colorspace, b
 		av_freep(layout_frame);
 		avpicture_alloc((AVPicture *) layout_frame, lay_colorspace, lay_width, lay_height);
 
+		#ifdef ENABLE_DEBUG
+			cout << "Resizing of layout succeed" << endl;
+		#endif
+
 		return 0;
 	}
 
 }
 
-int Layout::introduce_frame(int stream_id, int width, int height, enum PixelFormat colorspace, uint8_t *data_buffer){
+int Layout::introduce_frame(int stream_id, int width, int height, enum AVPixelFormat colorspace, uint8_t *data_buffer){
 	int id;
 	//Check if id is active
 	id = check_active_stream (stream_id);
 	if (id==-1){
+		#ifdef ENABLE_DEBUG
+			cout << "Stream " << stream_id << " in not active" << endl;
+		#endif
 		return -1; //selected stream is not active
 	}
 	//Check if width, height and color space are valid
@@ -150,13 +177,23 @@ int Layout::introduce_frame(int stream_id, int width, int height, enum PixelForm
 	//Fill AVFrame structure
 	avpicture_fill((AVPicture *)streams[id]->get_orig_frame(), data_buffer,
 			streams[id]->get_orig_cp(), streams[id]->get_orig_w(), streams[id]->get_orig_h());
-	streams[id]->set_needs_displaying(true);
+
 	pthread_mutex_unlock(streams[id]->get_resize_mutex());
+
+	#ifdef ENABLE_DEBUG
+		cout << "Stream " << stream_id << " has introduced a new frame" << endl;
+	#endif
+
+	pthread_mutex_lock(streams[id]->get_needs_displaying_mutex());
+		streams[id]->set_needs_displaying(true);
+	pthread_mutex_unlock(streams[id]->get_needs_displaying_mutex());
 
 	pthread_mutex_lock(streams[id]->get_orig_frame_ready_mutex());
 	streams[id]->set_orig_frame_ready(true);
 	pthread_cond_signal(streams[id]->get_orig_frame_ready_cond());
 	pthread_mutex_unlock(streams[id]->get_orig_frame_ready_mutex());
+
+
 
 	return 0;
 }
@@ -165,6 +202,9 @@ int Layout::merge_frames(){
 	pthread_mutex_lock(merge_mutex);
 
 	if(overlap){
+		#ifdef ENABLE_DEBUG
+			cout << "Overlap detected: we are printing every frame again" << endl;
+		#endif
 		//For every active stream, take resized AVFrames and merge them layer by layer
 		for (i=0; i<max_layers; i++){
 			for (j=0; j<=(int)active_streams_id.size(); j++){
@@ -175,12 +215,21 @@ int Layout::merge_frames(){
 					print_frame(streams[active_streams_id[j]]->get_x_pos(), streams[active_streams_id[j]]->get_y_pos(), streams[active_streams_id[j]]->get_curr_w(),
 							streams[active_streams_id[j]]->get_curr_h(), streams[active_streams_id[j]]->get_current_frame(), layout_frame);
 
+					#ifdef ENABLE_DEBUG
+						cout << "Stream " << stream_id << " frame has been printed into layout" << endl;
+					#endif
+
 					pthread_mutex_unlock(streams[active_streams_id[j]]->get_resize_mutex());
-					streams[active_streams_id[j]]->set_needs_displaying(false);
+					pthread_mutex_lock(streams[active_streams_id[j]]->get_needs_displaying_mutex());
+						streams[active_streams_id[j]]->set_needs_displaying(false);
+					pthread_mutex_lock(streams[active_streams_id[j]]->get_needs_displaying_mutex());
 				}
 			}
 		}
 	} else{
+		#ifdef ENABLE_DEBUG
+			cout << "There's no overlaping: we only update the frames that need it" << endl;
+		#endif
 		//For every active stream, check if needs to be desplayed and print it
 		for (i=0; i<max_layers; i++){
 			for (j=0; j<=(int)active_streams_id.size(); j++){
@@ -191,6 +240,10 @@ int Layout::merge_frames(){
 					print_frame(streams[active_streams_id[j]]->get_x_pos(), streams[active_streams_id[j]]->get_y_pos(), streams[active_streams_id[j]]->get_curr_w(),
 							streams[active_streams_id[j]]->get_curr_h(), streams[active_streams_id[j]]->get_current_frame(), layout_frame);
 
+					#ifdef ENABLE_DEBUG
+						cout << "Stream " << stream_id << " frame has been printed into layout" << endl;
+					#endif
+
 					pthread_mutex_unlock(streams[active_streams_id[j]]->get_resize_mutex());
 					streams[active_streams_id[j]]->set_needs_displaying(false);
 				}
@@ -200,19 +253,29 @@ int Layout::merge_frames(){
 
 	pthread_mutex_lock(merge_mutex);
 
+	#ifdef ENABLE_DEBUG
+		cout << "Frame merging finished" << endl;
+	#endif
+
 	return 0;
 }
 
-int Layout::introduce_stream (int orig_w, int orig_h, enum PixelFormat orig_cp, int new_w, int new_h, int x, int y, enum  PixelFormat new_cp){
+int Layout::introduce_stream (int orig_w, int orig_h, enum AVPixelFormat orig_cp, int new_w, int new_h, int x, int y, enum  PixelFormat new_cp){
 	MutexObject mutex(merge_mutex);
 
 	int id;
 	//Check if width, height and color space are valid
 	if (!check_introduce_stream_values(orig_w, orig_h, orig_cp, new_w, new_h, new_cp, x, y)){
+		#ifdef ENABLE_DEBUG
+			cout << "Stream introduction failed: introduced values not valid" << endl;
+		#endif
 		return -1;
 	}
 	//Check if there are available threads
 	if ((int)free_streams_id.size() == max_streams){
+		#ifdef ENABLE_DEBUG
+			cout << "Stream introduction failed: the maximum of streams are active" << endl;
+		#endif
 		return -1; //There are no free streams
 	}
 	//Update stream id arrays
@@ -251,10 +314,23 @@ int Layout::introduce_stream (int orig_w, int orig_h, enum PixelFormat orig_cp, 
 	//Check overlap
 	overlap = check_overlap();
 
+	#ifdef ENABLE_DEBUG
+		cout << "New stream introduced" << endl;
+		cout << "Id: " << id << endl;
+		cout << "Original width: " << streams[id]->get_orig_w() << endl;
+		cout << "Original height: " << streams[id]->get_orig_h() << endl;
+		cout << "Original colorspace: " << streams[id]->get_orig_cp() << endl;
+		cout << "Current width" << streams[id]->get_curr_w() << endl;
+		cout << "Current height" << streams[id]->get_curr_h() << endl;
+		cout << "Current colorspace" << streams[id]->get_curr_cp() << endl;
+		cout << "X Position" << streams[id]->get_x_pos() << endl;
+		cout << "Y Position" << streams[id]->get_y_pos()<< endl;
+	#endif
+
 	return 0;
 }
 
-int Layout::modify_stream (int stream_id, int width, int height, enum PixelFormat colorspace, int x_pos, int y_pos, int layer, bool keepAspectRatio){
+int Layout::modify_stream (int stream_id, int width, int height, enum AVPixelFormat colorspace, int x_pos, int y_pos, int layer, bool keepAspectRatio){
 
 	MutexObject mutex(merge_mutex);
 
@@ -262,6 +338,9 @@ int Layout::modify_stream (int stream_id, int width, int height, enum PixelForma
 	//Check if id is active
 	id = check_active_stream(stream_id);
 	if (id==-1){
+		#ifdef ENABLE_DEBUG
+			cout << "Stream " << stream_id << " in not active" << endl;
+		#endif
 		return -1; //selected stream is not active
 	}
 	//Check if width, height, color space, xpos, ypos, layer are valid
@@ -313,6 +392,19 @@ int Layout::modify_stream (int stream_id, int width, int height, enum PixelForma
 	//Check overlapping
 	overlap = check_overlap();
 
+	#ifdef ENABLE_DEBUG
+		cout << "Stream " << id << " modified" << endl;
+		cout << "Id: " << id << endl;
+		cout << "Original width: " << streams[id]->get_orig_w() << endl;
+		cout << "Original height: " << streams[id]->get_orig_h() << endl;
+		cout << "Original colorspace: " << streams[id]->get_orig_cp() << endl;
+		cout << "Current width" << streams[id]->get_curr_w() << endl;
+		cout << "Current height" << streams[id]->get_curr_h() << endl;
+		cout << "Current colorspace" << streams[id]->get_curr_cp() << endl;
+		cout << "X Position" << streams[id]->get_x_pos() << endl;
+		cout << "Y Position" << streams[id]->get_y_pos()<< endl;
+	#endif
+
 	return 0;
 }
 
@@ -322,6 +414,9 @@ int Layout::remove_stream (int stream_id){
 	//Check if id is active
 	id = check_active_stream (stream_id);
 	if (id==-1){
+		#ifdef ENABLE_DEBUG
+			cout << "Stream " << stream_id << " in not active" << endl;
+		#endif
 		return -1; //selected stream is not active
 	}
 
@@ -344,6 +439,10 @@ int Layout::remove_stream (int stream_id){
 
 	//Check overlapping
 	overlap = check_overlap();
+
+	#ifdef ENABLE_DEBUG
+		cout << "Stream " << id << " has been removed" << endl;
+	#endif
 
 	return 0;
 }
@@ -457,9 +556,7 @@ int Layout::print_frame(int x_pos, int y_pos, int width, int height, AVFrame *st
 	return 0;
 }
 
-
-
-bool check_init_layout(int width, int height, enum PixelFormat colorspace, int max_streams){
+bool Layout::check_init_layout(int width, int height, enum AVPixelFormat colorspace, int max_streams){
 	if (width <= 0 || height <= 0){
 		return false;
 	}
@@ -470,8 +567,7 @@ bool check_init_layout(int width, int height, enum PixelFormat colorspace, int m
 	return true;
 }
 
-
-bool Layout::check_modify_stream_values(int width, int height, enum PixelFormat colorspace, int x_pos, int y_pos, int layer){
+bool Layout::check_modify_stream_values(int width, int height, enum AVPixelFormat colorspace, int x_pos, int y_pos, int layer){
 	if (width != NULL && (width<=0 || width>lay_width)){
 		return false;
 	}
@@ -493,7 +589,7 @@ bool Layout::check_modify_stream_values(int width, int height, enum PixelFormat 
 	return true;
 }
 
-bool Layout::check_introduce_stream_values(int orig_w, int orig_h, enum PixelFormat orig_cp, int new_w, int new_h, enum  PixelFormat new_cp, int x, int y){
+bool Layout::check_introduce_stream_values(int orig_w, int orig_h, enum AVPixelFormat orig_cp, int new_w, int new_h, enum  PixelFormat new_cp, int x, int y){
 	if (orig_w <= 0 || orig_h <= 0){
 		return false;
 	}
@@ -514,7 +610,7 @@ bool Layout::check_introduce_stream_values(int orig_w, int orig_h, enum PixelFor
 	return true;
 }
 
-bool check_introduce_frame_values (int width, int height, enum PixelFormat colorspace){
+bool Layout::check_introduce_frame_values (int width, int height, enum AVPixelFormat colorspace){
 	if (width <= 0 || height <= 0){
 		return false;
 	}
@@ -522,7 +618,7 @@ bool check_introduce_frame_values (int width, int height, enum PixelFormat color
 	return true;
 }
 
-bool check_modify_layout (int width, int height, enum PixelFormat colorspace){
+bool Layout::check_modify_layout (int width, int height, enum AVPixelFormat colorspace){
 	if (width <= 0 || height <= 0){
 		return false;
 	}

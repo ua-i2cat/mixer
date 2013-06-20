@@ -5,8 +5,10 @@ extern "C" {
 	#include <libswscale/swscale.h>
 	#include <libavutil/avutil.h>
 }
+#include <pthread.h>
 #include <stream.h>
 #include <iostream>
+#include <stdio.h>
 
 using namespace std;
 
@@ -18,6 +20,9 @@ void* Stream::resize(void){
 	//Check if the original frame is ready
 	pthread_mutex_lock(&orig_frame_ready_mutex);
 	while (!orig_frame_ready) {
+		#ifdef ENABLE_DEBUG
+			printf("Stream %d resizing thread is in waiting loop\n", id);
+		#endif
 		pthread_cond_wait(&orig_frame_ready_cond, &orig_frame_ready_mutex);
 	}
 	orig_frame_ready = false;
@@ -183,11 +188,11 @@ void Stream::set_needs_displaying(bool set_needs_displaying){
 	needs_displaying = set_needs_displaying;
 }
 
-pthread_t* Stream::get_thread(){
+pthread_t Stream::get_thread(){
 	return thread;
 }
 
-void Stream::set_thread(pthread_t *thr){
+void Stream::set_thread(pthread_t thr){
 	thread = thr;
 }
 

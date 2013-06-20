@@ -21,11 +21,11 @@ extern "C" {
 
 using namespace std;
 
-Layout::Layout(int width, int height, enum AVPixelFormat colorspace, int max_str){
-	init_layout(width, height, colorspace, max_str);
-}
+int Layout::init(int width, int height, enum PixelFormat colorspace, int max_str){
 
-int Layout::init_layout(int width, int height, enum PixelFormat colorspace, int max_str){
+	#ifdef ENABLE_DEBUG
+		cout << "Layout initialization." << endl;
+	#endif
 
 	//Check if width, height and color space are valid
 	if (!check_init_layout(width, height, colorspace, max_str)){
@@ -41,15 +41,17 @@ int Layout::init_layout(int width, int height, enum PixelFormat colorspace, int 
 	max_streams = max_str;
 	n_streams = 0;
 	max_layers = max_str;
+	streams.reserve(max_streams);
 	active_streams_id.reserve(max_streams);
 	free_streams_id.reserve(max_streams);
 	lay_colorspace = colorspace;
 	avpicture_alloc((AVPicture *) layout_frame, lay_colorspace, lay_width, lay_height);
 	overlap = false;
 
+	pthread_t thr[max_streams];
+
 	for (i=0; i<max_streams; i++){
 		Stream* stream = new Stream();
-		pthread_t *thr;
 
 		stream->set_id(i);
 		stream->set_orig_w(0);
@@ -63,18 +65,18 @@ int Layout::init_layout(int width, int height, enum PixelFormat colorspace, int 
 		stream->set_curr_cp(PIX_FMT_RGB24);
 		stream->set_needs_displaying(true);
 		stream->set_orig_frame_ready(false);
-		stream->set_thread(thr);
+		stream->set_thread(thr[i]);
 
 		streams[i] = stream;
 
 		//Thread creation
-		pthread_create(stream->get_thread(), NULL, Stream::execute_resize, stream);
+		pthread_create(&thr[i], NULL, Stream::execute_resize, stream);
 	}
 		#ifdef ENABLE_DEBUG
-			cout << "Layout initialization suceed." << endl;
-			cout << "Width:" << lay_width << endl;
-			cout << "Height:" << lay_height << endl;
-			cout << "Colorspace:" << lay_colorspace << endl;
+			printf("Layout initialization suceed\n.");
+			printf("Width: %d\n", lay_width);
+			printf("Height: %d\n", lay_height);
+			printf("Colorspace: %d\n", lay_colorspace);
 		#endif
 
 	return 0;
@@ -216,7 +218,7 @@ int Layout::merge_frames(){
 							streams[active_streams_id[j]]->get_curr_h(), streams[active_streams_id[j]]->get_current_frame(), layout_frame);
 
 					#ifdef ENABLE_DEBUG
-						cout << "Stream " << stream_id << " frame has been printed into layout" << endl;
+						cout << "Stream " << streams[active_streams_id[j]]->get_id() << " frame has been printed into layout" << endl;
 					#endif
 
 					pthread_mutex_unlock(streams[active_streams_id[j]]->get_resize_mutex());
@@ -241,7 +243,7 @@ int Layout::merge_frames(){
 							streams[active_streams_id[j]]->get_curr_h(), streams[active_streams_id[j]]->get_current_frame(), layout_frame);
 
 					#ifdef ENABLE_DEBUG
-						cout << "Stream " << stream_id << " frame has been printed into layout" << endl;
+						cout << "Stream " << streams[active_streams_id[j]]->get_id() << " frame has been printed into layout" << endl;
 					#endif
 
 					pthread_mutex_unlock(streams[active_streams_id[j]]->get_resize_mutex());

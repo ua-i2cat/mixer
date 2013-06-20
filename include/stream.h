@@ -23,7 +23,7 @@ class Stream {
 		enum PixelFormat orig_cp, curr_cp;
 		AVFrame *orig_frame, *curr_frame;
 		bool needs_displaying, orig_frame_ready, curr_frame_ready;
-		pthread_t *thread;
+		pthread_t thread;
 		pthread_mutex_t orig_frame_ready_mutex, resize_mutex, needs_displaying_mutex;
 		pthread_cond_t  orig_frame_ready_cond;
 
@@ -55,8 +55,8 @@ class Stream {
 		void set_current_frame(AVFrame *set_curr_frame);
 		bool get_needs_displaying();
 		void set_needs_displaying(bool set_needs_displaying);
-		pthread_t* get_thread();
-		void set_thread(pthread_t *thr);
+		pthread_t get_thread();
+		void set_thread(pthread_t thr);
 		bool is_orig_frame_ready();
 		void set_orig_frame_ready(bool ready);
 		bool is_curr_frame_ready();

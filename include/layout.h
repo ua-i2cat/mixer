@@ -40,14 +40,12 @@ class Layout {
     	bool check_introduce_stream_values (int orig_w, int orig_h, enum AVPixelFormat orig_cp, int new_w, int new_h, enum  PixelFormat new_cp, int x, int y);
     	bool check_introduce_frame_values (int width, int height, enum AVPixelFormat colorspace);
     	bool check_modify_layout (int width, int height, enum AVPixelFormat colorspace);
-    	int init_layout(int width, int height, enum AVPixelFormat colorspace, int max_str);
     	bool check_frame_overlap(int x1, int y1, int w1, int h1, int x2, int y2, int w2, int h2);
     	bool check_overlap();
 
 
 	public:
 
-    	Layout(int width, int height, enum PixelFormat colorspace, int max_str);
     	int introduce_frame (int stream_id, int width, int height, enum PixelFormat colorspace, uint8_t *data_buffer);
     	int merge_frames();
     	int introduce_stream (int orig_w, int orig_h, enum PixelFormat orig_cp, int new_w, int new_h, int x, int y, enum PixelFormat new_cp);
@@ -55,6 +53,7 @@ class Layout {
     	int remove_stream (int stream_id);
     	uint8_t** get_layout_bytestream();
     	int modify_layout (int width, int height, enum PixelFormat colorspace, bool resize_streams);
+    	int init(int width, int height, enum AVPixelFormat colorspace, int max_str);
 
 };
 

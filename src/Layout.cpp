@@ -45,6 +45,7 @@ int Layout::init(int width, int height, enum PixelFormat colorspace, int max_str
 	active_streams_id.reserve(max_streams);
 	free_streams_id.reserve(max_streams);
 	lay_colorspace = colorspace;
+//	layout_frame = avcodec_alloc_frame();
 	avpicture_alloc((AVPicture *) layout_frame, lay_colorspace, lay_width, lay_height);
 	overlap = false;
 
@@ -53,6 +54,7 @@ int Layout::init(int width, int height, enum PixelFormat colorspace, int max_str
 	for (i=0; i<max_streams; i++){
 		Stream* stream = new Stream();
 
+		//TODO: create stream constructor
 		stream->set_id(i);
 		stream->set_orig_w(0);
 		stream->set_orig_h(0);
@@ -113,6 +115,8 @@ int Layout::modify_layout (int width, int height, enum AVPixelFormat colorspace,
 				streams[active_streams_id[i]]->get_curr_w(),
 				streams[active_streams_id[i]]->get_curr_h());
 
+//TODO:			//Wake up resize
+
 			pthread_mutex_unlock(streams[active_streams_id[i]]->get_resize_mutex());
 		}
 
@@ -126,7 +130,7 @@ int Layout::modify_layout (int width, int height, enum AVPixelFormat colorspace,
 			cout << "Resizing of streams and layout succeed" << endl;
 		#endif
 
-		return 0;
+
 
 	} else{
 		//Modify layout fields
@@ -139,8 +143,11 @@ int Layout::modify_layout (int width, int height, enum AVPixelFormat colorspace,
 			cout << "Resizing of layout succeed" << endl;
 		#endif
 
-		return 0;
 	}
+
+	//TODO: //Merge frames
+
+	return 0;
 
 }
 
@@ -154,12 +161,12 @@ int Layout::introduce_frame(int stream_id, int width, int height, enum AVPixelFo
 		#endif
 		return -1; //selected stream is not active
 	}
-	//Check if width, height and color space are valid
+//TODO: print debugs	//Check if width, height and color space are valid
 	if (!check_introduce_frame_values(width, height, colorspace)){
 		return -1; //Data introduced is not valid
 	}
 	//Check if *data_buffer is not null
-	if (!data_buffer){
+	if (data_buffer == NULL){
 		return -1; //data_buffer is empty
 	}
 
@@ -170,15 +177,16 @@ int Layout::introduce_frame(int stream_id, int width, int height, enum AVPixelFo
 		streams[id]->set_orig_w(width);
 	}
 	if (streams[id]->get_orig_h() != height){
-		streams[id]->set_orig_w(width);
+		streams[id]->set_orig_h(height);
 	}
 	if (streams[id]->get_orig_cp() != colorspace){
 		streams[id]->set_orig_cp(colorspace);
 	}
+//TODO: reallocate frame structures if original settings have been modified
 
 	//Fill AVFrame structure
 	avpicture_fill((AVPicture *)streams[id]->get_orig_frame(), data_buffer,
-			streams[id]->get_orig_cp(), streams[id]->get_orig_w(), streams[id]->get_orig_h());
+			colorspace, width, height);
 
 	pthread_mutex_unlock(streams[id]->get_resize_mutex());
 
@@ -194,8 +202,6 @@ int Layout::introduce_frame(int stream_id, int width, int height, enum AVPixelFo
 	streams[id]->set_orig_frame_ready(true);
 	pthread_cond_signal(streams[id]->get_orig_frame_ready_cond());
 	pthread_mutex_unlock(streams[id]->get_orig_frame_ready_mutex());
-
-
 
 	return 0;
 }
@@ -296,6 +302,7 @@ int Layout::introduce_stream (int orig_w, int orig_h, enum AVPixelFormat orig_cp
 	streams[id]->set_x_pos(x);
 	streams[id]->set_y_pos(y);
 
+	//TODO: Check memery allocation of AVFrame in this case
 	//Generate AVFrame structures
 	av_freep(streams[id]->get_orig_frame());
 	avpicture_alloc(
@@ -353,25 +360,27 @@ int Layout::modify_stream (int stream_id, int width, int height, enum AVPixelFor
 	pthread_mutex_lock(streams[id]->get_resize_mutex());
 
 	//Modify stream features (the ones which have changed)
-	if (width !=NULL){
+	if (width != -1){
 		streams[id]->set_curr_w(width);
 	}
-	if (height !=NULL){
+	if (height != -1){
 		streams[id]->set_curr_h(height);
 	}
-	if (colorspace !=NULL){
+	//TODO: check if -1 colorspace is or not valit for enum AVPixelFormat
+	if (colorspace != -1){
 		streams[id]->set_curr_cp(colorspace);
 	}
-	if (x_pos !=NULL){
+	if (x_pos != -1){
 		streams[id]->set_x_pos(x_pos);
 	}
-	if (y_pos !=NULL){
+	if (y_pos != -1){
 		streams[id]->set_y_pos(y_pos);
 	}
-	if (width !=NULL){
+	if (width != -1){
 		streams[id]->set_layer(layer);
 	}
 
+//TODO: contemplar diferents casos de keep aspect ratio (crop, no crop...)
 	if (keepAspectRatio){
 		//modify curr h in order to keep the same aspect ratio of orig_w and orig_h
 		float orig_aspect_ratio;
@@ -424,7 +433,7 @@ int Layout::remove_stream (int stream_id){
 
 	pthread_mutex_lock(streams[id]->get_resize_mutex());
 	pthread_mutex_lock(merge_mutex);
-
+//TODO: contemplar que els dos apuntin al mateix espai de memòria
 	av_freep(streams[id]->get_orig_frame());
 	av_freep(streams[id]->get_current_frame());
 
@@ -457,8 +466,7 @@ uint8_t** Layout::get_layout_bytestream(){
 
 bool Layout::check_overlap(){
 	for (i=0; i<=(int)active_streams_id.size(); i++){
-		for (j=0; j<=(int)active_streams_id.size(); j++){
-			if(i!=j){
+		for (j=i+1; j<=(int)active_streams_id.size(); j++){
 				pthread_mutex_lock(streams[active_streams_id[i]]->get_resize_mutex());
 				pthread_mutex_lock(streams[active_streams_id[j]]->get_resize_mutex());
 
@@ -479,7 +487,6 @@ bool Layout::check_overlap(){
 
 				pthread_mutex_unlock(streams[active_streams_id[i]]->get_resize_mutex());
 				pthread_mutex_unlock(streams[active_streams_id[j]]->get_resize_mutex());
-			}
 		}
 	}
 	return false;
@@ -570,10 +577,10 @@ bool Layout::check_init_layout(int width, int height, enum AVPixelFormat colorsp
 }
 
 bool Layout::check_modify_stream_values(int width, int height, enum AVPixelFormat colorspace, int x_pos, int y_pos, int layer){
-	if (width != NULL && (width<=0 || width>lay_width)){
+	if (width != -1 && (width<=0 || width>lay_width)){
 		return false;
 	}
-	if (height != NULL && (height<=0 || width>lay_height)){
+	if (height != -1 && (height<=0 || width>lay_height)){
 		return false;
 	}
 	//TODO		if (colorspace != NULL && (height<0 || width>lay_height)){

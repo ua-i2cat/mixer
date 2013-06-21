@@ -50,6 +50,8 @@ void* Stream::resize(void){
 			avpicture_fill((AVPicture *) curr_frame, buffer, curr_cp, curr_w, curr_h);
 		}
 
+		//TODO: check if fill has to change the AVFrame structure if parameters change
+
 		//Prepare context
 		ctx = sws_getContext(
 				orig_w,

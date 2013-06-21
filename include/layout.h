@@ -32,6 +32,8 @@ class Layout {
 	    AVFrame *layout_frame;
 	    bool overlap;
 	    pthread_mutex_t* merge_mutex;
+	    uint8_t *lay_buffer;
+	    unsigned int lay_buffsize;
 
 	    bool check_init_layout(int width, int height, enum AVPixelFormat colorspace, int max_streams);
     	int check_active_stream(int stream_id);

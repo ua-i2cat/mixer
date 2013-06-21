@@ -26,6 +26,9 @@ class Stream {
 		pthread_t thread;
 		pthread_mutex_t orig_frame_ready_mutex, resize_mutex, needs_displaying_mutex;
 		pthread_cond_t  orig_frame_ready_cond;
+		unsigned int buffsize;
+		uint8_t *buffer;
+
 
 
 	public:
@@ -45,6 +48,10 @@ class Stream {
 		void set_y_pos(int set_y_pos);
 		int get_layer();
 		void set_layer(int set_layer);
+		unsigned int* get_buffsize();
+		void set_buffsize(unsigned int bsize);
+		uint8_t* get_buffer();
+		void set_buffer(uint8_t *buff);
 		enum PixelFormat get_orig_cp();
 		void set_orig_cp(enum PixelFormat set_orig_cp);
 		enum PixelFormat get_curr_cp();

@@ -45,12 +45,10 @@ void* Stream::resize(void){
 	}else{
 		if (curr_frame == orig_frame){
 			curr_frame = avcodec_alloc_frame();
-			int num_bytes = avpicture_get_size(curr_cp, curr_w, curr_h);
-			uint8_t *buffer = (uint8_t *) av_malloc(num_bytes * sizeof(uint8_t));
-			avpicture_fill((AVPicture *) curr_frame, buffer, curr_cp, curr_w, curr_h);
+			buffsize = avpicture_get_size(curr_cp, curr_w, curr_h) * sizeof(uint8_t);
+			av_fast_malloc(buffer, &buffsize, 0);
+			avpicture_fill((AVPicture *)curr_frame, buffer, curr_cp, curr_w, curr_h);
 		}
-
-		//TODO: check if fill has to change the AVFrame structure if parameters change
 
 		//Prepare context
 		ctx = sws_getContext(
@@ -228,6 +226,21 @@ pthread_mutex_t* Stream::get_resize_mutex(){
 
 pthread_mutex_t* Stream::get_needs_displaying_mutex(){
 	return &needs_displaying_mutex;
+}
+
+unsigned int* Stream::get_buffsize(){
+	return &buffsize;
+}
+
+void Stream::set_buffsize(unsigned int bsize){
+	buffsize = bsize;
+}
+
+uint8_t* Stream::get_buffer(){
+	return buffer;
+}
+void Stream::set_buffer(uint8_t *buff){
+	buffer = buff;
 }
 
 

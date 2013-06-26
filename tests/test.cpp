@@ -59,7 +59,7 @@ int main ()
 	layout.init(1920, 1080, PIX_FMT_RGB24, 8);
 	printf ("Initializing layout 1920x1080 and 8 streams...\n");
 
-	int option;
+	int option, cont=0, test_stream_id;
 	int num_frame = 1;
 	while (1){
 		printf("Please enter a Layout function:\n");
@@ -74,50 +74,49 @@ int main ()
 
 	scanf ("%d",&option);
 
-	int orig_w, orig_h, new_w, new_h, x, y, stream_id, layer, keepratio, resize, cont=0, numstreams=0;
+	int new_w, new_h, x, y, stream_id, layer, keepratio, resize;
 	uint8_t** layout_matrix = NULL;
 	bool keepAspectRatio = false, resizeStreams = false;
-	AVPixelFormat orig_cp, new_cp;
+	AVPixelFormat new_cp;
 	switch(option){
 	case 1:
 		printf("You have choosen the %d option: Introduce stream\n", option);
-		printf("Please introduce the values this way: new_w new_h position_x position_y new_cp and layer\n");
-		scanf("%d %d %d %d %d %d", &new_w, &new_h, &x, &y, &new_cp, &layer);
-		numstreams= layout.get_active_streams() + 1;
-		switch (numstreams){
-				case 1:
-					if (layout.introduce_stream(w1, h1, cp1, new_w, new_h, x, y, new_cp, layer) == -1)
-							printf ("Error while entering the strem\n");
-					break;
-				case 2:
-					if (layout.introduce_stream(w2, h2, cp2, new_w, new_h, x, y, new_cp, layer) == -1)
-							printf ("Error while entering the strem\n");
-					break;
-				case 3:
-					if (layout.introduce_stream(w3, h3, cp3, new_w, new_h, x, y, new_cp, layer) == -1)
-							printf ("Error while entering the strem\n");
-					break;
-				case 4:
-					if (layout.introduce_stream(w4, h4, cp4, new_w, new_h, x, y, new_cp, layer) == -1)
-							printf ("Error while entering the strem\n");
-					break;
-				case 5:
-					if (layout.introduce_stream(w5, h5, cp5, new_w, new_h, x, y, new_cp, layer) == -1)
-							printf ("Error while entering the strem\n");
-					break;
-				case 6:
-					if (layout.introduce_stream(w6, h6, cp6, new_w, new_h, x, y, new_cp, layer) == -1)
-							printf ("Error while entering the strem\n");
-					break;
-				case 7:
-					if (layout.introduce_stream(w7, h7, cp7, new_w, new_h, x, y, new_cp, layer) == -1)
-							printf ("Error while entering the strem\n");
-					break;
-				case 8:
-					if (layout.introduce_stream(w8, h8, cp8, new_w, new_h, x, y, new_cp, layer) == -1)
-							printf ("Error while entering the strem\n");
-					break;
-				}
+		printf("Please introduce the values this way: test_stream_id new_w new_h position_x position_y new_cp and layer\n");
+		scanf("%d %d %d %d %d %d %d", &test_stream_id, &new_w, &new_h, &x, &y, &new_cp, &layer);
+		switch (test_stream_id){
+		case 0:
+			if (layout.introduce_stream(w1, h1, cp1, new_w, new_h, x, y, new_cp, layer) == -1)
+				printf ("Error while entering the strem\n");
+			break;
+		case 1:
+			if (layout.introduce_stream(w2, h2, cp2, new_w, new_h, x, y, new_cp, layer) == -1)
+				printf ("Error while entering the strem\n");
+			break;
+		case 2:
+			if (layout.introduce_stream(w3, h3, cp3, new_w, new_h, x, y, new_cp, layer) == -1)
+				printf ("Error while entering the strem\n");
+			break;
+		case 3:
+			if (layout.introduce_stream(w4, h4, cp4, new_w, new_h, x, y, new_cp, layer) == -1)
+				printf ("Error while entering the strem\n");
+			break;
+		case 4:
+			if (layout.introduce_stream(w5, h5, cp5, new_w, new_h, x, y, new_cp, layer) == -1)
+				printf ("Error while entering the strem\n");
+			break;
+		case 5:
+			if (layout.introduce_stream(w6, h6, cp6, new_w, new_h, x, y, new_cp, layer) == -1)
+				printf ("Error while entering the strem\n");
+			break;
+		case 6:
+			if (layout.introduce_stream(w7, h7, cp7, new_w, new_h, x, y, new_cp, layer) == -1)
+				printf ("Error while entering the strem\n");
+			break;
+		case 7:
+			if (layout.introduce_stream(w8, h8, cp8, new_w, new_h, x, y, new_cp, layer) == -1)
+				printf ("Error while entering the strem\n");
+			break;
+		}
 		break;
 	case 2:
 		printf("You have choosen the %d option: Introduce frame\n", option);
@@ -183,7 +182,7 @@ int main ()
 	case 6:
 		printf("You have choosen the %d option: Modify layout\n", option);
 		printf("Please introduce the values this way: width heigth colorspace and resizestreams?\n");		
-		scanf("%d %d %d %d ", &new_w, &new_h, &new_cp, &resize);
+		scanf("%d %d %d %d", &new_w, &new_h, &new_cp, &resize);
 		if (resize == 1)
 			resizeStreams = true;
 		if (layout.modify_layout(new_w, new_h, new_cp, resizeStreams) == -1)
@@ -200,7 +199,7 @@ int main ()
 		SaveFrame(layout.get_lay_frame(), layout.get_w(), layout.get_h(), cont);
 			break;
 	default:
-		cout << "Incorrect option. Only 1 to 7 are correct.\n";
+		cout << "Incorrect option. Only 1 to 8 are correct.\n";
 		break;
 	}
 	}
@@ -271,8 +270,8 @@ uint8_t* load_image(AVFrame* out_frame, enum AVPixelFormat *cp, int *w, int *h, 
 
   }
   int numBytes = avpicture_get_size(pCodecCtx->pix_fmt, pCodecCtx->width, pCodecCtx->height);
-      uint8_t *buff1=(uint8_t *)av_malloc(numBytes*sizeof(uint8_t));
-      avpicture_layout((AVPicture *)out_frame, pCodecCtx->pix_fmt, pCodecCtx->width, pCodecCtx->height, buff1, numBytes*sizeof(uint8_t));
+  uint8_t *buff1=(uint8_t *)av_malloc(numBytes*sizeof(uint8_t));
+  avpicture_layout((AVPicture *)out_frame, pCodecCtx->pix_fmt, pCodecCtx->width, pCodecCtx->height, buff1, numBytes*sizeof(uint8_t));
   //av_free(pFrame);
 
     // Close the codec

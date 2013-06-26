@@ -44,6 +44,8 @@ class Layout {
     	bool check_modify_layout (int width, int height, enum AVPixelFormat colorspace);
     	bool check_frame_overlap(int x1, int y1, int w1, int h1, int x2, int y2, int w2, int h2);
     	bool check_overlap();
+    	void print_active_stream_id();
+    	void print_free_stream_id();
 
 
 	public:

@@ -259,6 +259,23 @@ void Stream::set_buffer(uint8_t *buff){
 	buffer = buff;
 }
 
+AVFrame* Stream::get_dummy_frame(){
+	return dummy_frame;
+}
+
+void Stream::set_dummy_frame(AVFrame *set_dummy_frame){
+	dummy_frame = set_dummy_frame;
+}
+
+uint8_t* Stream::get_dummy_buffer(){
+	return dummy_buffer;
+}
+
+void  Stream::set_dummy_buffer(uint8_t* buff){
+	dummy_buffer = buff;
+}
+
+
 
 
 

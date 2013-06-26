@@ -21,13 +21,13 @@ class Stream {
 	private:
 		int id, orig_w, orig_h, curr_w, curr_h, x_pos, y_pos, layer;
 		enum PixelFormat orig_cp, curr_cp;
-		AVFrame *orig_frame, *curr_frame;
+		AVFrame *orig_frame, *curr_frame, *dummy_frame;
 		bool needs_displaying, orig_frame_ready, curr_frame_ready;
 		pthread_t thread;
 		pthread_mutex_t orig_frame_ready_mutex, resize_mutex, needs_displaying_mutex;
 		pthread_cond_t  orig_frame_ready_cond;
 		unsigned int buffsize;
-		uint8_t *buffer;
+		uint8_t *buffer, *dummy_buffer;
 
 
 
@@ -60,6 +60,10 @@ class Stream {
 		void set_orig_frame(AVFrame *set_orig_frame);
 		AVFrame* get_current_frame();
 		void set_current_frame(AVFrame *set_curr_frame);
+		AVFrame* get_dummy_frame();
+		void set_dummy_frame(AVFrame *set_dummy_frame);
+		uint8_t* get_dummy_buffer();
+		void  set_dummy_buffer(uint8_t* buff);
 		bool get_needs_displaying();
 		void set_needs_displaying(bool set_needs_displaying);
 		pthread_t get_thread();

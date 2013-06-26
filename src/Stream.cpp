@@ -216,16 +216,32 @@ pthread_mutex_t* Stream::get_orig_frame_ready_mutex(){
 	return &orig_frame_ready_mutex;
 }
 
+void Stream::set_orig_frame_ready_mutex(pthread_mutex_t mutex){
+	orig_frame_ready_mutex = mutex;
+}
+
 pthread_cond_t*  Stream::get_orig_frame_ready_cond(){
 	return &orig_frame_ready_cond;
+}
+
+void  Stream::set_orig_frame_ready_cond(pthread_cond_t cond){
+	orig_frame_ready_cond = cond;
 }
 
 pthread_mutex_t* Stream::get_resize_mutex(){
 	return &resize_mutex;
 }
 
+void Stream::set_resize_mutex(pthread_mutex_t mutex){
+	resize_mutex = mutex;
+}
+
 pthread_mutex_t* Stream::get_needs_displaying_mutex(){
 	return &needs_displaying_mutex;
+}
+
+void Stream::set_needs_displaying_mutex(pthread_mutex_t mutex){
+	needs_displaying_mutex = mutex;
 }
 
 unsigned int* Stream::get_buffsize(){
@@ -242,6 +258,8 @@ uint8_t* Stream::get_buffer(){
 void Stream::set_buffer(uint8_t *buff){
 	buffer = buff;
 }
+
+
 
 
 

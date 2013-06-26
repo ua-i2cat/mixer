@@ -69,9 +69,13 @@ class Stream {
 		bool is_curr_frame_ready();
 		void set_curr_frame_ready(bool ready);
 		pthread_mutex_t* get_orig_frame_ready_mutex();
+		void set_orig_frame_ready_mutex(pthread_mutex_t mutex);
 		pthread_cond_t*  get_orig_frame_ready_cond();
+		void  set_orig_frame_ready_cond(pthread_cond_t cond);
 		pthread_mutex_t* get_resize_mutex();
+		void set_resize_mutex(pthread_mutex_t mutex);
 		pthread_mutex_t* get_needs_displaying_mutex();
+		void set_needs_displaying_mutex(pthread_mutex_t mutex);
 
 		void *resize(void);
 		static void *execute_resize(void *context);

@@ -5,7 +5,7 @@
  *      Author: palau
  */
 
-#include "mutex_object.h"
+#include "include/mutex_object.h"
 
 MutexObject::MutexObject(pthread_mutex_t* mutex) {
 	mutex_ = mutex;

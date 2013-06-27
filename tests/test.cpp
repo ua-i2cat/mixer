@@ -12,7 +12,7 @@ extern "C" {
 	#include <libavdevice/avdevice.h>
 }
 #include <iostream>
-#include "layout.h"
+#include "../src/include/layout.h"
 
 using namespace std;
 
@@ -156,7 +156,7 @@ int main ()
 				printf ("Error while entering the frame\n");
 			break;
 		}
-		
+
 		break;
 	case 3:
 		printf("You have choosen the %d option: Merge frames\n", option);
@@ -165,7 +165,7 @@ int main ()
 		break;
 	case 4:
 		printf("You have choosen the %d option: Modify stream\n", option);
-		printf("Please introduce the values this way: stream_id width heigth colorspace position_x position_y layer and keepAspectRatio?\n");		
+		printf("Please introduce the values this way: stream_id width heigth colorspace position_x position_y layer and keepAspectRatio?\n");
 		scanf("%d %d %d %d %d %d %d %d", &stream_id,  &new_w, &new_h, &new_cp, &x, &y, &layer, &keepratio);
 		if (keepratio == 1)
 			keepAspectRatio = true;
@@ -181,7 +181,7 @@ int main ()
 		break;
 	case 6:
 		printf("You have choosen the %d option: Modify layout\n", option);
-		printf("Please introduce the values this way: width heigth colorspace and resizestreams?\n");		
+		printf("Please introduce the values this way: width heigth colorspace and resizestreams?\n");
 		scanf("%d %d %d %d", &new_w, &new_h, &new_cp, &resize);
 		if (resize == 1)
 			resizeStreams = true;

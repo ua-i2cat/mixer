@@ -14,7 +14,7 @@ extern "C" {
 	#include <libswscale/swscale.h>
 	#include <libavutil/avutil.h>
 }
-#include <stream.h>
+#include "stream.h"
 #include <vector>
 
 #define MAX_STREAMS 8
@@ -39,7 +39,7 @@ class Layout {
     	int check_active_stream(int stream_id);
     	int print_frame(int x_pos, int y_pos, int width, int height, AVFrame *stream_frame, AVFrame *layout_frame);
     	bool check_modify_stream_values(int width, int height, enum AVPixelFormat colorspace, int x_pos, int y_pos, int layer);
-    	bool check_introduce_stream_values (int orig_w, int orig_h, enum AVPixelFormat orig_cp, int new_w, int new_h, enum  PixelFormat new_cp, int x, int y);
+    	bool check_introduce_stream_values (int orig_w, int orig_h, enum AVPixelFormat orig_cp, int new_w, int new_h, enum  AVPixelFormat new_cp, int x, int y);
     	bool check_introduce_frame_values (int width, int height, enum AVPixelFormat colorspace);
     	bool check_modify_layout (int width, int height, enum AVPixelFormat colorspace);
     	bool check_frame_overlap(int x1, int y1, int w1, int h1, int x2, int y2, int w2, int h2);

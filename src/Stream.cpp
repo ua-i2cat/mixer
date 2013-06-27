@@ -6,7 +6,7 @@ extern "C" {
 	#include <libavutil/avutil.h>
 }
 #include <pthread.h>
-#include <stream.h>
+#include "include/stream.h"
 #include <iostream>
 #include <stdio.h>
 
@@ -77,6 +77,10 @@ void* Stream::resize(void){
 	}
 
 	pthread_mutex_unlock(&resize_mutex);
+
+	pthread_mutex_lock(&current_frame_ready_mutex);
+	current_frame_ready = true;
+	pthread_mutex_unlock(&current_frame_ready_mutex);
 
 	}
 }
@@ -204,12 +208,12 @@ void Stream::set_orig_frame_ready(bool ready){
 	orig_frame_ready = ready;
 }
 
-bool Stream::is_curr_frame_ready(){
-	return curr_frame_ready;
+bool Stream::is_current_frame_ready(){
+	return current_frame_ready;
 }
 
-void Stream::set_curr_frame_ready(bool ready){
-	curr_frame_ready = ready;
+void Stream::set_current_frame_ready(bool ready){
+	current_frame_ready = ready;
 }
 
 pthread_mutex_t* Stream::get_orig_frame_ready_mutex(){
@@ -275,6 +279,13 @@ void  Stream::set_dummy_buffer(uint8_t* buff){
 	dummy_buffer = buff;
 }
 
+pthread_mutex_t* Stream::get_current_frame_ready_mutex(){
+	return &current_frame_ready_mutex;
+}
+
+void Stream::set_current_frame_ready_mutex(pthread_mutex_t mutex){
+	current_frame_ready_mutex = mutex;
+}
 
 
 

@@ -22,9 +22,9 @@ class Stream {
 		int id, orig_w, orig_h, curr_w, curr_h, x_pos, y_pos, layer;
 		enum PixelFormat orig_cp, curr_cp;
 		AVFrame *orig_frame, *curr_frame, *dummy_frame;
-		bool needs_displaying, orig_frame_ready, curr_frame_ready;
+		bool needs_displaying, orig_frame_ready, current_frame_ready;
 		pthread_t thread;
-		pthread_mutex_t orig_frame_ready_mutex, resize_mutex, needs_displaying_mutex;
+		pthread_mutex_t orig_frame_ready_mutex, current_frame_ready_mutex, resize_mutex, needs_displaying_mutex;
 		pthread_cond_t  orig_frame_ready_cond;
 		unsigned int buffsize;
 		uint8_t *buffer, *dummy_buffer;
@@ -70,10 +70,12 @@ class Stream {
 		void set_thread(pthread_t thr);
 		bool is_orig_frame_ready();
 		void set_orig_frame_ready(bool ready);
-		bool is_curr_frame_ready();
-		void set_curr_frame_ready(bool ready);
+		bool is_current_frame_ready();
+		void set_current_frame_ready(bool ready);
 		pthread_mutex_t* get_orig_frame_ready_mutex();
 		void set_orig_frame_ready_mutex(pthread_mutex_t mutex);
+		pthread_mutex_t* get_current_frame_ready_mutex();
+		void set_current_frame_ready_mutex(pthread_mutex_t mutex);
 		pthread_cond_t*  get_orig_frame_ready_cond();
 		void  set_orig_frame_ready_cond(pthread_cond_t cond);
 		pthread_mutex_t* get_resize_mutex();

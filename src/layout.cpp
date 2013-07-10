@@ -47,7 +47,6 @@ int Layout::init(int width, int height, enum PixelFormat colorspace, int max_str
 	layout_frame = avcodec_alloc_frame();
 	lay_buffsize = avpicture_get_size(lay_colorspace, lay_width, lay_height) * sizeof(uint8_t);
 	lay_buffer = (uint8_t*)av_malloc(lay_buffsize);
-//	av_fast_malloc(lay_buffer, &lay_buffsize, 0);
 	avpicture_fill((AVPicture *)layout_frame, lay_buffer, lay_colorspace, lay_width, lay_height);
 	overlap = false;
 	merge_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -60,7 +59,6 @@ int Layout::init(int width, int height, enum PixelFormat colorspace, int max_str
 
 		Stream* stream = new Stream();
 
-		//TODO: create stream constructor
 		stream->set_id(i);
 		stream->set_orig_w(0);
 		stream->set_orig_h(0);
@@ -154,7 +152,6 @@ int Layout::modify_layout (int width, int height, enum AVPixelFormat colorspace,
 		lay_height = height;
 		lay_buffsize = avpicture_get_size(lay_colorspace, lay_width, lay_height) * sizeof(uint8_t);
 		lay_buffer = (uint8_t*)av_malloc(lay_buffsize);
-//		av_fast_malloc(lay_buffer, &lay_buffsize, 0);
 		avpicture_fill((AVPicture *)layout_frame, lay_buffer, lay_colorspace, lay_width, lay_height);
 
 		#ifdef ENABLE_DEBUG
@@ -167,7 +164,6 @@ int Layout::modify_layout (int width, int height, enum AVPixelFormat colorspace,
 		lay_height = height;
 		lay_buffsize = avpicture_get_size(lay_colorspace, lay_width, lay_height) * sizeof(uint8_t);
 		lay_buffer = (uint8_t*)av_malloc(lay_buffsize);
-	//	av_fast_malloc(lay_buffer, &lay_buffsize, 0);
 		avpicture_fill((AVPicture *)layout_frame, lay_buffer, lay_colorspace, lay_width, lay_height);
 
 		for (i=0; i<(int)active_streams_id.size(); i++){
@@ -254,7 +250,8 @@ int Layout::merge_frames(){
 		//For every active stream, take resized AVFrames and merge them layer by layer
 		for (i=0; i<max_layers; i++){
 			for (j=0; j<(int)active_streams_id.size(); j++){
-				if (i==streams[active_streams_id[j]]->get_layer()){
+				if (i==streams[active_streams_id[j]]->get_layer() &&
+						streams[active_streams_id[j]]->get_x_pos()<lay_width && streams[active_streams_id[j]]->get_y_pos()<lay_height){
 
 					stream = streams[active_streams_id[j]];
 
@@ -291,7 +288,8 @@ int Layout::merge_frames(){
 		//For every active stream, check if needs to be desplayed and print it
 		for (i=0; i<max_layers; i++){
 			for (j=0; j<(int)active_streams_id.size(); j++){
-				if (i==streams[active_streams_id[j]]->get_layer() && streams[active_streams_id[j]]->get_needs_displaying()){
+				if (i==streams[active_streams_id[j]]->get_layer() && streams[active_streams_id[j]]->get_needs_displaying()
+						&& streams[active_streams_id[j]]->get_x_pos()<lay_width && streams[active_streams_id[j]]->get_y_pos()<lay_height){
 
 					stream = streams[active_streams_id[j]];
 
@@ -371,7 +369,6 @@ int Layout::introduce_stream (int orig_w, int orig_h, enum AVPixelFormat orig_cp
 	streams[id]->set_buffsize(avpicture_get_size(streams[id]->get_curr_cp(), streams[id]->get_curr_w(), streams[id]->get_curr_h()) * sizeof(uint8_t));
 	streams[id]->set_buffer((uint8_t*)av_malloc(*streams[id]->get_buffsize()));
 	streams[id]->set_dummy_buffer((uint8_t*)av_malloc(*streams[id]->get_buffsize()));
-//	av_fast_malloc(streams[id]->get_buffer(), streams[id]->get_buffsize(), 0);
 	avpicture_fill((AVPicture *)streams[id]->get_current_frame(), streams[id]->get_buffer(), streams[id]->get_curr_cp(), streams[id]->get_curr_w(), streams[id]->get_curr_h());
 	avpicture_fill((AVPicture *)streams[id]->get_dummy_frame(), streams[id]->get_dummy_buffer(), streams[id]->get_curr_cp(), streams[id]->get_curr_w(), streams[id]->get_curr_h());
 
@@ -684,6 +681,12 @@ int Layout::print_frame(int x_pos, int y_pos, int width, int height, AVFrame *st
 	byte_init_point = y_pos*layout_frame->linesize[0] + x_pos*3;  //Per 3 because every pixel is represented by 3 bytes
 	byte_offset_line = layout_frame->linesize[0] - max_x*3; //Per 3 because every pixel is represented by 3 bytes
 	contTFrame = byte_init_point;
+//	for (y = 0; y < max_y; y++){
+//		memcpy(layout_frame->data[0] + byte_init_point + byte_offset_line * y,
+//								stream_frame->data[0] + stream_frame->linesize[0] * y,
+//								stream_frame->linesize[0] - (width - max_x)*3 );
+//	}
+
 	for (y = 0 ; y < max_y; y++) {
 		for (x = 0; x < max_x; x++) {
 			layout_frame->data[0][contTFrame] = stream_frame->data[0][contSFrame];				//R
@@ -692,6 +695,7 @@ int Layout::print_frame(int x_pos, int y_pos, int width, int height, AVFrame *st
 	    	contTFrame += 3;
 	    	contSFrame += 3;
 	    }
+
 	    contTFrame += byte_offset_line;
 	    contSFrame += (width - max_x)*3;
 	}

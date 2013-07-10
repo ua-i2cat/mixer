@@ -1,0 +1,12 @@
+MIXER DOCUMENTATION
+
+- How to compile Mixer as shared library
+    
+    g++ -c -D__STDC_CONSTANT_MACROS -DENABLE_DEBUG -Isrc/include -Wall -fpic src/layout.cpp
+    g++ -c -Isrc/include -Wall -fpic src/mutex_object.cpp
+    g++ -c -D__STDC_CONSTANT_MACROS -DENABLE_DEBUG -Isrc/include -Wall -fpic src/stream.cpp
+
+    g++ -shared -o libmixer.so layout.o mutex_object.o stream.o -lavcodec -lswscale -lpthread
+
+
+

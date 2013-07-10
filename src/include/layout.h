@@ -24,7 +24,7 @@ class Stream;
 class Layout {
 
 	private:
-		int lay_width, lay_height, max_streams, n_streams, max_layers, i, j;
+		int lay_width, lay_height, max_streams, max_layers, i, j;
 		std::vector<int> active_streams_id;
 	    std::vector<int> free_streams_id;
 	    enum PixelFormat lay_colorspace;
@@ -47,9 +47,7 @@ class Layout {
     	void print_active_stream_id();
     	void print_free_stream_id();
 
-
 	public:
-
     	int introduce_frame (int stream_id, uint8_t *data_buffer);
     	int merge_frames();
     	int introduce_stream (int orig_w, int orig_h, enum PixelFormat orig_cp, int new_w, int new_h, int x, int y, enum PixelFormat new_cp, int layer);

@@ -309,7 +309,7 @@ int Layout::merge_frames(){
 							stream->get_curr_h(), stream->get_current_frame(), layout_frame);
 
 					#ifdef ENABLE_DEBUG
-						printf("Stream %d frame has been printed into layout", stream->get_id());
+						printf("Stream %d frame has been printed into layout\n", stream->get_id());
 					#endif
 
 					pthread_mutex_unlock(stream->get_resize_mutex());
@@ -324,7 +324,7 @@ int Layout::merge_frames(){
 	pthread_mutex_unlock(&merge_mutex);
 
 	#ifdef ENABLE_DEBUG
-		printf("Frame merging finished.");
+		printf("Frame merging finished\n.");
 	#endif
 
 	return 0;
@@ -430,7 +430,6 @@ int Layout::modify_stream (int stream_id, int width, int height, enum AVPixelFor
 		streams[id]->set_curr_h(height);
 		size_modified = true;
 	}
-	//TODO: check if -1 colorspace is or not valid for enum AVPixelFormat
 	if (colorspace != -1){
 		streams[id]->set_curr_cp(colorspace);
 	}
@@ -682,9 +681,11 @@ int Layout::print_frame(int x_pos, int y_pos, int width, int height, AVFrame *st
 	byte_offset_line = layout_frame->linesize[0] - max_x*3; //Per 3 because every pixel is represented by 3 bytes
 	contTFrame = byte_init_point;
 //	for (y = 0; y < max_y; y++){
+//		uint8_t *aux = layout_frame->data[0] + byte_init_point + byte_offset_line * y;
+//		int copyval = stream_frame->linesize[0] - (width - max_x)*3;
 //		memcpy(layout_frame->data[0] + byte_init_point + byte_offset_line * y,
 //								stream_frame->data[0] + stream_frame->linesize[0] * y,
-//								stream_frame->linesize[0] - (width - max_x)*3 );
+//								stream_frame->linesize[0] - (width - max_x)*3);
 //	}
 
 	for (y = 0 ; y < max_y; y++) {

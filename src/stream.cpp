@@ -17,41 +17,41 @@ void* Stream::resize(void){
 
 	while (1) {
 
-	//Check if the original frame is ready
-	pthread_mutex_lock(&orig_frame_ready_mutex);
-	while (!orig_frame_ready) {
-		#ifdef ENABLE_DEBUG
+		//Check if the original frame is ready
+		pthread_mutex_lock(&orig_frame_ready_mutex);
+		while (!orig_frame_ready) {
+#ifdef ENABLE_DEBUG
 			printf("Stream %d resizing thread is in waiting loop\n", id);
-		#endif
+#endif
 		pthread_cond_wait(&orig_frame_ready_cond, &orig_frame_ready_mutex);
-	}
-	orig_frame_ready = false;
-	pthread_mutex_unlock(&orig_frame_ready_mutex);
+		}
+		orig_frame_ready = false;
+		pthread_mutex_unlock(&orig_frame_ready_mutex);
 
-	#ifdef ENABLE_DEBUG
+#ifdef ENABLE_DEBUG
 		cout << "Stream " << id << " resizing thread has been waken up" << endl;
-	#endif
+#endif
 
-	pthread_mutex_lock(&resize_mutex);
-	//Check if frame needs resizing
-	if (orig_w == curr_w && orig_h == curr_h && orig_cp == curr_cp){
-		if (curr_frame == NULL || curr_frame == orig_frame){
-			curr_frame = orig_frame;  //Pointer curr_frame now points to orig_frame
-		} else {
-			av_freep(curr_frame);
-			curr_frame = orig_frame;
-		}
+		pthread_mutex_lock(&resize_mutex);
+		//Check if frame needs resizing
+		if (orig_w == curr_w && orig_h == curr_h && orig_cp == curr_cp){
+			if (curr_frame == NULL || curr_frame == orig_frame){
+				curr_frame = orig_frame;  //Pointer curr_frame now points to orig_frame
+			} else {
+				av_freep(curr_frame);
+				curr_frame = orig_frame;
+			}
 
-	}else{
-		if (curr_frame == orig_frame){
-			curr_frame = avcodec_alloc_frame();
-			buffsize = avpicture_get_size(curr_cp, curr_w, curr_h) * sizeof(uint8_t);
-			av_fast_malloc(buffer, &buffsize, 0);
-			avpicture_fill((AVPicture *)curr_frame, buffer, curr_cp, curr_w, curr_h);
-		}
+		}else{
+			if (curr_frame == orig_frame){
+				curr_frame = avcodec_alloc_frame();
+				buffsize = avpicture_get_size(curr_cp, curr_w, curr_h) * sizeof(uint8_t);
+				av_fast_malloc(buffer, &buffsize, 0);
+				avpicture_fill((AVPicture *)curr_frame, buffer, curr_cp, curr_w, curr_h);
+			}
 
-		//Prepare context
-		ctx = sws_getContext(
+			//Prepare context
+			ctx = sws_getContext(
 				orig_w,
 				orig_h,
 				orig_cp,
@@ -62,25 +62,25 @@ void* Stream::resize(void){
 				NULL,
 				NULL,
 				NULL
-		);
+			);
 
-		//Scale
-		sws_scale(
-			ctx,
-			(uint8_t const * const *)orig_frame->data,
-			orig_frame->linesize,
-			0,
-			orig_h,
-			curr_frame->data,
-			curr_frame->linesize
-		);
-	}
+			//Scale
+			sws_scale(
+				ctx,
+				(uint8_t const * const *)orig_frame->data,
+				orig_frame->linesize,
+				0,
+				orig_h,
+				curr_frame->data,
+				curr_frame->linesize
+			);
+		}
 
-	pthread_mutex_unlock(&resize_mutex);
+		pthread_mutex_unlock(&resize_mutex);
 
-	pthread_mutex_lock(&current_frame_ready_mutex);
-	current_frame_ready = true;
-	pthread_mutex_unlock(&current_frame_ready_mutex);
+		pthread_mutex_lock(&current_frame_ready_mutex);
+		current_frame_ready = true;
+		pthread_mutex_unlock(&current_frame_ready_mutex);
 
 	}
 }

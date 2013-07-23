@@ -256,6 +256,13 @@ void Stream::set_buffsize(unsigned int bsize){
 	buffsize = bsize;
 }
 
+unsigned int Stream::get_in_buffsize(){
+	return in_buffsize;
+}
+void Stream::set_in_buffsize (unsigned int bsize){
+	in_buffsize = bsize;
+}
+
 uint8_t* Stream::get_buffer(){
 	return buffer;
 }
@@ -277,6 +284,14 @@ uint8_t* Stream::get_dummy_buffer(){
 
 void  Stream::set_dummy_buffer(uint8_t* buff){
 	dummy_buffer = buff;
+}
+
+uint8_t* Stream::get_in_buffer(){
+	return in_buffer;
+}
+
+void Stream::set_in_buffer(uint8_t* buff){
+	in_buffer = buff;
 }
 
 pthread_mutex_t* Stream::get_current_frame_ready_mutex(){

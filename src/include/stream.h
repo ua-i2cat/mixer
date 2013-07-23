@@ -26,8 +26,8 @@ class Stream {
 		pthread_t thread;
 		pthread_mutex_t orig_frame_ready_mutex, current_frame_ready_mutex, resize_mutex, needs_displaying_mutex;
 		pthread_cond_t  orig_frame_ready_cond;
-		unsigned int buffsize;
-		uint8_t *buffer, *dummy_buffer;
+		unsigned int buffsize, in_buffsize;
+		uint8_t *buffer, *dummy_buffer, *in_buffer;
 
 
 
@@ -50,6 +50,8 @@ class Stream {
 		void set_layer(int set_layer);
 		unsigned int* get_buffsize();
 		void set_buffsize(unsigned int bsize);
+		unsigned int get_in_buffsize();
+		void set_in_buffsize (unsigned int bsize);
 		uint8_t* get_buffer();
 		void set_buffer(uint8_t *buff);
 		enum PixelFormat get_orig_cp();
@@ -64,6 +66,8 @@ class Stream {
 		void set_dummy_frame(AVFrame *set_dummy_frame);
 		uint8_t* get_dummy_buffer();
 		void  set_dummy_buffer(uint8_t* buff);
+		uint8_t* get_in_buffer();
+		void set_in_buffer(uint8_t* buff);
 		bool get_needs_displaying();
 		void set_needs_displaying(bool set_needs_displaying);
 		pthread_t get_thread();

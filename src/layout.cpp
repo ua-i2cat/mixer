@@ -11,6 +11,7 @@ extern "C" {
 #include "include/mutex_object.h"
 #include <math.h>
 #include <iostream>
+#include <assert.h>
 
 using namespace std;
 
@@ -71,6 +72,7 @@ int Layout::init(int width, int height, enum PixelFormat colorspace, int max_str
 		stream->set_dummy_frame(avcodec_alloc_frame());
 		stream->set_buffer(NULL);
 		stream->set_dummy_buffer(NULL);
+		stream->set_in_buffer(NULL);
 		stream->set_orig_frame_ready_mutex(PTHREAD_MUTEX_INITIALIZER);
 		stream->set_resize_mutex(PTHREAD_MUTEX_INITIALIZER);
 		stream->set_needs_displaying_mutex(PTHREAD_MUTEX_INITIALIZER);
@@ -193,7 +195,7 @@ int Layout::modify_layout (int width, int height, enum AVPixelFormat colorspace,
 
 }
 
-int Layout::introduce_frame(int stream_id, uint8_t *data_buffer){
+int Layout::introduce_frame(int stream_id, uint8_t *data_buffer, int data_length){
 	int id;
 	//Check if id is active
 	id = check_active_stream(stream_id);
@@ -214,9 +216,9 @@ int Layout::introduce_frame(int stream_id, uint8_t *data_buffer){
 
 	pthread_mutex_lock(streams[id]->get_resize_mutex());
 
-	//Fill AVFrame structure
-	avpicture_fill((AVPicture *)streams[id]->get_orig_frame(), data_buffer,
-			streams[id]->get_orig_cp(), streams[id]->get_orig_w(), streams[id]->get_orig_h());
+	assert(data_length == streams[id]->get_in_buffsize());
+
+	streams[id]->set_in_buffer((uint8_t*)memcpy((uint8_t*)streams[id]->get_in_buffer(),(uint8_t*)data_buffer, data_length));
 
 	pthread_mutex_unlock(streams[id]->get_resize_mutex());
 
@@ -371,9 +373,12 @@ int Layout::introduce_stream (int orig_w, int orig_h, enum AVPixelFormat orig_cp
 	streams[id]->set_layer(layer);
 
 	//Generate AVFrame structures
+	streams[id]->set_in_buffsize(avpicture_get_size(streams[id]->get_orig_cp(), streams[id]->get_orig_w(), streams[id]->get_orig_h()) * sizeof(uint8_t));
+	streams[id]->set_in_buffer((uint8_t*)malloc(streams[id]->get_in_buffsize()));
 	streams[id]->set_buffsize(avpicture_get_size(streams[id]->get_curr_cp(), streams[id]->get_curr_w(), streams[id]->get_curr_h()) * sizeof(uint8_t));
 	streams[id]->set_buffer((uint8_t*)malloc(*streams[id]->get_buffsize()));
 	streams[id]->set_dummy_buffer((uint8_t*)malloc(*streams[id]->get_buffsize()));
+	avpicture_fill((AVPicture *)streams[id]->get_orig_frame(), streams[id]->get_in_buffer(), streams[id]->get_orig_cp(), streams[id]->get_orig_w(), streams[id]->get_orig_h());
 	avpicture_fill((AVPicture *)streams[id]->get_current_frame(), streams[id]->get_buffer(), streams[id]->get_curr_cp(), streams[id]->get_curr_w(), streams[id]->get_curr_h());
 	avpicture_fill((AVPicture *)streams[id]->get_dummy_frame(), streams[id]->get_dummy_buffer(), streams[id]->get_curr_cp(), streams[id]->get_curr_w(), streams[id]->get_curr_h());
 
@@ -555,6 +560,7 @@ int Layout::remove_stream (int stream_id){
 		avcodec_get_frame_defaults(streams[id]->get_dummy_frame());
 		av_freep(streams[id]->get_buffer());
 		av_freep(streams[id]->get_dummy_buffer());
+		av_freep(streams[id]->get_in_buffer());
 	} else {
 		avcodec_get_frame_defaults(streams[id]->get_orig_frame());
 		avcodec_get_frame_defaults(streams[id]->get_current_frame());
@@ -564,6 +570,9 @@ int Layout::remove_stream (int stream_id){
 		}
 		if (!*streams[id]->get_dummy_buffer()){
 			av_freep(streams[id]->get_dummy_buffer());
+		}
+		if (!*streams[id]->get_in_buffer()){
+			av_freep(streams[id]->get_in_buffer());
 		}
 	}
 

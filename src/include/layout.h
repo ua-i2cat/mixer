@@ -48,7 +48,7 @@ class Layout {
     	void print_free_stream_id();
 
 	public:
-    	int introduce_frame (int stream_id, uint8_t *data_buffer);
+    	int introduce_frame (int stream_id, uint8_t *data_buffer, int data_length);
     	int merge_frames();
     	int introduce_stream (int orig_w, int orig_h, enum PixelFormat orig_cp, int new_w, int new_h, int x, int y, enum PixelFormat new_cp, int layer);
     	int modify_stream (int stream_id, int width, int height, enum PixelFormat colorspace, int xpos, int ypos, int layer, bool keepAspectRatio);

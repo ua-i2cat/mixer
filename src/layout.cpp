@@ -23,7 +23,7 @@ int Layout::init(int width, int height, enum PixelFormat colorspace, int max_str
 	//Check if width, height and color space are valid
 	if (!check_init_layout(width, height, colorspace, max_str)){
 #ifdef ENABLE_DEBUG
-			printf("Layout initialization failed: introduced values not valid.\n");
+		printf("Layout initialization failed: introduced values not valid.\n");
 #endif
 		return -1;
 	}
@@ -62,7 +62,7 @@ int Layout::init(int width, int height, enum PixelFormat colorspace, int max_str
 		stream->set_layer(0);
 		stream->set_orig_cp(PIX_FMT_YUV420P);
 		stream->set_curr_cp(PIX_FMT_RGB24);
-		stream->set_needs_displaying(true);
+		stream->set_needs_displaying(false);
 		stream->set_orig_frame_ready(false);
 		stream->set_current_frame_ready(false);
 		stream->set_thread(thr[i]);
@@ -173,6 +173,10 @@ int Layout::modify_layout (int width, int height, enum AVPixelFormat colorspace,
 			pthread_mutex_lock(streams[active_streams_id[i]]->get_needs_displaying_mutex());
 			streams[active_streams_id[i]]->set_needs_displaying(true);
 			pthread_mutex_unlock(streams[active_streams_id[i]]->get_needs_displaying_mutex());
+
+			pthread_mutex_lock(streams[active_streams_id[i]]->get_current_frame_ready_mutex());
+			streams[active_streams_id[i]]->set_current_frame_ready(true);
+			pthread_mutex_unlock(streams[active_streams_id[i]]->get_current_frame_ready_mutex());
 		}
 
 #ifdef ENABLE_DEBUG
@@ -348,6 +352,7 @@ int Layout::introduce_stream (int orig_w, int orig_h, enum AVPixelFormat orig_cp
 #endif
 		return -1; //There are no free streams
 	}
+
 	//Update stream id arrays
 	id = free_streams_id[free_streams_id.back()];
 	active_streams_id.push_back(id);
@@ -367,8 +372,8 @@ int Layout::introduce_stream (int orig_w, int orig_h, enum AVPixelFormat orig_cp
 
 	//Generate AVFrame structures
 	streams[id]->set_buffsize(avpicture_get_size(streams[id]->get_curr_cp(), streams[id]->get_curr_w(), streams[id]->get_curr_h()) * sizeof(uint8_t));
-	streams[id]->set_buffer((uint8_t*)av_malloc(*streams[id]->get_buffsize()));
-	streams[id]->set_dummy_buffer((uint8_t*)av_malloc(*streams[id]->get_buffsize()));
+	streams[id]->set_buffer((uint8_t*)malloc(*streams[id]->get_buffsize()));
+	streams[id]->set_dummy_buffer((uint8_t*)malloc(*streams[id]->get_buffsize()));
 	avpicture_fill((AVPicture *)streams[id]->get_current_frame(), streams[id]->get_buffer(), streams[id]->get_curr_cp(), streams[id]->get_curr_w(), streams[id]->get_curr_h());
 	avpicture_fill((AVPicture *)streams[id]->get_dummy_frame(), streams[id]->get_dummy_buffer(), streams[id]->get_curr_cp(), streams[id]->get_curr_w(), streams[id]->get_curr_h());
 
@@ -578,7 +583,7 @@ int Layout::remove_stream (int stream_id){
 		overlap = check_overlap();
 	}
 
-	merge_frames();
+	//merge_frames();
 
 #ifdef ENABLE_DEBUG
 	cout << "Stream " << id << " has been removed" << endl;

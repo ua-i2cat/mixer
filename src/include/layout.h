@@ -32,7 +32,7 @@ class Layout {
 	    AVFrame *layout_frame;
 	    bool overlap;
 	    pthread_mutex_t merge_mutex;
-	    uint8_t *lay_buffer;
+	    uint8_t *lay_buffer, *out_buffer;
 	    unsigned int lay_buffsize;
 
 	    bool check_init_layout(int width, int height, enum AVPixelFormat colorspace, int max_streams);
@@ -53,7 +53,7 @@ class Layout {
     	int introduce_stream (int orig_w, int orig_h, enum PixelFormat orig_cp, int new_w, int new_h, int x, int y, enum PixelFormat new_cp, int layer);
     	int modify_stream (int stream_id, int width, int height, enum PixelFormat colorspace, int xpos, int ypos, int layer, bool keepAspectRatio);
     	int remove_stream (int stream_id);
-    	uint8_t** get_layout_bytestream();
+    	uint8_t* get_layout_bytestream();
     	int modify_layout (int width, int height, enum PixelFormat colorspace, bool resize_streams);
     	int init(int width, int height, enum AVPixelFormat colorspace, int max_str);
     	int get_w();
@@ -61,6 +61,7 @@ class Layout {
     	AVFrame* get_lay_frame();
     	Stream* get_stream(int stream_id);
     	int get_active_streams();
+    	unsigned int get_buffsize();
 
 };
 

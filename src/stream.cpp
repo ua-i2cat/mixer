@@ -12,6 +12,36 @@ extern "C" {
 
 using namespace std;
 
+Stream::Stream(int identifier, pthread_t thr){
+	id = identifier;
+	orig_w = 0;
+	orig_h = 0;
+	curr_w = 0;
+	curr_h = 0;
+	x_pos = 0;
+	y_pos = 0;
+	layer = 0;
+	orig_cp = PIX_FMT_NONE;
+	curr_cp = PIX_FMT_RGB24;
+	needs_displaying = false;
+	orig_frame_ready = false;
+	current_frame_ready = false;
+	thread = thr;
+	orig_frame = avcodec_alloc_frame();
+	curr_frame = avcodec_alloc_frame();
+	dummy_frame = avcodec_alloc_frame();
+	buffer = NULL;
+	dummy_buffer = NULL;
+	in_buffer = NULL;
+	orig_frame_ready_mutex = PTHREAD_MUTEX_INITIALIZER;
+	resize_mutex = PTHREAD_MUTEX_INITIALIZER;
+	orig_frame_ready_cond = PTHREAD_COND_INITIALIZER;
+	pthread_rwlock_init(&needs_displaying_rwlock, NULL);
+	pthread_rwlock_init(&current_frame_ready_rwlock, NULL);
+
+}
+
+
 void* Stream::resize(void){
 	struct SwsContext *ctx;
 
@@ -78,9 +108,9 @@ void* Stream::resize(void){
 
 		pthread_mutex_unlock(&resize_mutex);
 
-		pthread_mutex_lock(&current_frame_ready_mutex);
+		pthread_rwlock_wrlock(&current_frame_ready_rwlock);
 		current_frame_ready = true;
-		pthread_mutex_unlock(&current_frame_ready_mutex);
+		pthread_rwlock_unlock(&current_frame_ready_rwlock);
 
 	}
 }
@@ -240,12 +270,12 @@ void Stream::set_resize_mutex(pthread_mutex_t mutex){
 	resize_mutex = mutex;
 }
 
-pthread_mutex_t* Stream::get_needs_displaying_mutex(){
-	return &needs_displaying_mutex;
+pthread_rwlock_t* Stream::get_needs_displaying_rwlock(){
+	return &needs_displaying_rwlock;
 }
 
-void Stream::set_needs_displaying_mutex(pthread_mutex_t mutex){
-	needs_displaying_mutex = mutex;
+void Stream::set_needs_displaying_rwlock(pthread_rwlock_t lock){
+	needs_displaying_rwlock = lock;
 }
 
 unsigned int* Stream::get_buffsize(){
@@ -294,12 +324,12 @@ void Stream::set_in_buffer(uint8_t* buff){
 	in_buffer = buff;
 }
 
-pthread_mutex_t* Stream::get_current_frame_ready_mutex(){
-	return &current_frame_ready_mutex;
+pthread_rwlock_t* Stream::get_current_frame_ready_rwlock(){
+	return &current_frame_ready_rwlock;
 }
 
-void Stream::set_current_frame_ready_mutex(pthread_mutex_t mutex){
-	current_frame_ready_mutex = mutex;
+void Stream::set_current_frame_ready_rwlock(pthread_rwlock_t lock){
+	current_frame_ready_rwlock = lock;
 }
 
 

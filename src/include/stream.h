@@ -24,7 +24,8 @@ class Stream {
 		AVFrame *orig_frame, *curr_frame, *dummy_frame;
 		bool needs_displaying, orig_frame_ready, current_frame_ready;
 		pthread_t thread;
-		pthread_mutex_t orig_frame_ready_mutex, current_frame_ready_mutex, resize_mutex, needs_displaying_mutex;
+		pthread_mutex_t resize_mutex, orig_frame_ready_mutex ;
+		pthread_rwlock_t current_frame_ready_rwlock, needs_displaying_rwlock;
 		pthread_cond_t  orig_frame_ready_cond;
 		unsigned int buffsize, in_buffsize;
 		uint8_t *buffer, *dummy_buffer, *in_buffer;
@@ -32,6 +33,7 @@ class Stream {
 
 
 	public:
+		Stream(int identifier, pthread_t thr);
 		int get_id();
 		void set_id(int set_id);
 		int get_orig_w();
@@ -78,14 +80,14 @@ class Stream {
 		void set_current_frame_ready(bool ready);
 		pthread_mutex_t* get_orig_frame_ready_mutex();
 		void set_orig_frame_ready_mutex(pthread_mutex_t mutex);
-		pthread_mutex_t* get_current_frame_ready_mutex();
-		void set_current_frame_ready_mutex(pthread_mutex_t mutex);
+		pthread_rwlock_t* get_current_frame_ready_rwlock();
+		void set_current_frame_ready_rwlock(pthread_rwlock_t lock);
 		pthread_cond_t*  get_orig_frame_ready_cond();
 		void  set_orig_frame_ready_cond(pthread_cond_t cond);
 		pthread_mutex_t* get_resize_mutex();
 		void set_resize_mutex(pthread_mutex_t mutex);
-		pthread_mutex_t* get_needs_displaying_mutex();
-		void set_needs_displaying_mutex(pthread_mutex_t mutex);
+		pthread_rwlock_t* get_needs_displaying_rwlock();
+		void set_needs_displaying_rwlock(pthread_rwlock_t lock);
 
 		void *resize(void);
 		static void *execute_resize(void *context);

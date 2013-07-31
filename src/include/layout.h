@@ -62,6 +62,7 @@ class Layout {
     	Stream* get_stream(int stream_id);
     	int get_active_streams();
     	unsigned int get_buffsize();
+    	int get_max_streams();
 
 };
 

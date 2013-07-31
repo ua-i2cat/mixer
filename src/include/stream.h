@@ -22,9 +22,9 @@ class Stream {
 		int id, orig_w, orig_h, curr_w, curr_h, x_pos, y_pos, layer;
 		enum PixelFormat orig_cp, curr_cp;
 		AVFrame *orig_frame, *curr_frame, *dummy_frame;
-		bool needs_displaying, orig_frame_ready, current_frame_ready;
+		bool needs_displaying, orig_frame_ready, current_frame_ready, first_frame;
 		pthread_t thread;
-		pthread_mutex_t resize_mutex, orig_frame_ready_mutex ;
+		pthread_mutex_t resize_mutex, orig_frame_ready_mutex, first_frame_mutex ;
 		pthread_rwlock_t current_frame_ready_rwlock, needs_displaying_rwlock;
 		pthread_cond_t  orig_frame_ready_cond;
 		unsigned int buffsize, in_buffsize;
@@ -88,6 +88,11 @@ class Stream {
 		void set_resize_mutex(pthread_mutex_t mutex);
 		pthread_rwlock_t* get_needs_displaying_rwlock();
 		void set_needs_displaying_rwlock(pthread_rwlock_t lock);
+		pthread_mutex_t* get_first_frame_mutex();
+		void set_next_frame_mutex(pthread_mutex_t mutex);
+		bool has_first_frame();
+		void set_first_frame(bool first);
+		void set_stream_to_default();
 
 		void *resize(void);
 		static void *execute_resize(void *context);

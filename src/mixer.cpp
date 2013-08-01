@@ -8,6 +8,9 @@
 #include <iostream>
 #include "mixer.h"
 #include <sys/time.h>
+extern "C"{
+	#include "transmitter.h"
+}
 
 using namespace std;
 
@@ -21,7 +24,7 @@ void* mixer::run(void) {
 	should_stop = false;
 	struct timeval start, finish;
 	int diff = 0, min_diff = 0;
-	int frame_cont = 0, save_cont=5, lockcont=0;
+	int frame_cont = 0, save_cont=5;
 
 	min_diff = ((float)1/(float)max_frame_rate)*1000; // In ms
 
@@ -52,11 +55,13 @@ void* mixer::run(void) {
 
 		if (have_new_frame){
 			layout.merge_frames();
-			if(save_cont-- == 0){
-			    SaveFrame(layout.get_lay_frame(), layout.get_w(), layout.get_h(), frame_cont);
-			    save_cont = 10;
-			}
-			frame_cont++;
+			
+//			if(save_cont-- == 0){
+//			    SaveFrame(layout.get_lay_frame(), layout.get_w(), layout.get_h(), frame_cont);
+//			    save_cont = 10;
+//			}
+//			frame_cont++;
+			
 			pthread_rwlock_rdlock(&dst_p_list->lock);
 
 			part = dst_p_list->first;
@@ -64,6 +69,7 @@ void* mixer::run(void) {
 			for (i=0; i<dst_p_list->count; i++){
 				pthread_mutex_lock(&part->lock);
 				memcpy((uint8_t*)part->frame, (uint8_t*)layout.get_layout_bytestream(), layout.get_buffsize());
+				part->frame_length = layout.get_buffsize();
 				part->new_frame = 1;
 				pthread_mutex_unlock(&part->lock);
 				part = part->next;
@@ -93,7 +99,7 @@ void mixer::init(int layout_width, int layout_height, int max_streams, uint32_t 
 
 void mixer::exec(){
 	start_reciever(reciever);
-//	start_out_manager(dst_p_list, _out_port);
+	start_out_manager(dst_p_list);
 	pthread_create(&thread, NULL, mixer::execute_run, this);
 }
 
@@ -103,17 +109,13 @@ void mixer::stop(){
 
 int mixer::add_source(uint32_t width, uint32_t height, codec_t codec){
 	int id = layout.introduce_stream(width, height, PIX_FMT_RGB24, width, height, 0, 0, PIX_FMT_RGB24, 0);
-	printf("Stream introduced\n");
 	if (id == -1){
 		printf("You have reached the max number of simultaneous streams in the Mixer: %u\n", layout.get_max_streams());
 		return -1;
 	}
 	pthread_rwlock_wrlock(&src_p_list->lock);
-	printf("pthread_rwlock_wrlock(&src_p_list->lock)\n");
 	int ret = add_participant(src_p_list, id, width, height, codec, NULL, 0, INPUT);
-	printf("add_participant(src_p_list, id, width, height, codec, NULL, 0, INPUT)\n");
 	pthread_rwlock_unlock(&src_p_list->lock);
-	printf("pthread_rwlock_unlock(&src_p_list->lock)\n");
 	return ret;
 }
 
@@ -173,7 +175,7 @@ void SaveFrame(AVFrame *pFrame, int width, int height, int iFrame) {
   int  y;
 
   // Open file
-  sprintf(szFilename, "/home/palau/TFG/layout_prints/rtp_reciever/layout%d.ppm", iFrame);
+  sprintf(szFilename, "./layout%d.ppm", iFrame);
   pFile=fopen(szFilename, "wb");
   if(pFile==NULL)
     return;

@@ -12,7 +12,7 @@ extern "C" {
 
 using namespace std;
 
-Stream::Stream(int identifier, pthread_t thr){
+Stream::Stream(int identifier, pthread_t thr, pthread_rwlock_t* lock){
 	id = identifier;
 	orig_w = 0;
 	orig_h = 0;
@@ -25,8 +25,6 @@ Stream::Stream(int identifier, pthread_t thr){
 	curr_cp = PIX_FMT_RGB24;
 	needs_displaying = false;
 	orig_frame_ready = false;
-	current_frame_ready = false;
-	first_frame = false;
 	thread = thr;
 	orig_frame = avcodec_alloc_frame();
 	curr_frame = avcodec_alloc_frame();
@@ -35,11 +33,10 @@ Stream::Stream(int identifier, pthread_t thr){
 	dummy_buffer = NULL;
 	in_buffer = NULL;
 	orig_frame_ready_mutex = PTHREAD_MUTEX_INITIALIZER;
-	resize_mutex = PTHREAD_MUTEX_INITIALIZER;
+	in_buffer_mutex = PTHREAD_MUTEX_INITIALIZER;
 	orig_frame_ready_cond = PTHREAD_COND_INITIALIZER;
-	first_frame_mutex = PTHREAD_MUTEX_INITIALIZER;
 	pthread_rwlock_init(&needs_displaying_rwlock, NULL);
-	pthread_rwlock_init(&current_frame_ready_rwlock, NULL);
+	stream_resize_rwlock_ref = lock;
 
 }
 
@@ -59,12 +56,12 @@ void* Stream::resize(void){
 		}
 		orig_frame_ready = false;
 		pthread_mutex_unlock(&orig_frame_ready_mutex);
-		
+
 #ifdef ENABLE_DEBUG
 		cout << "Stream " << id << " resizing thread has been waken up" << endl;
 #endif
 
-		pthread_mutex_lock(&resize_mutex);
+		pthread_rwlock_rdlock(stream_resize_rwlock_ref);
 		//Check if frame needs resizing
 //		if (orig_w == curr_w && orig_h == curr_h && orig_cp == curr_cp){
 //				curr_frame = orig_frame;  //Pointer curr_frame now points to orig_frame
@@ -105,17 +102,14 @@ void* Stream::resize(void){
 
 //		}
 
-        
-		pthread_mutex_unlock(&resize_mutex);
-			
-		pthread_rwlock_wrlock(&current_frame_ready_rwlock);
-		current_frame_ready = true;
-		pthread_rwlock_unlock(&current_frame_ready_rwlock);
+		pthread_rwlock_unlock(stream_resize_rwlock_ref);
 
 	}
 }
 
 void Stream::set_stream_to_default(){
+
+	pthread_mutex_lock(&in_buffer_mutex);
 
 	avcodec_get_frame_defaults(orig_frame);
 	avcodec_get_frame_defaults(curr_frame);
@@ -131,6 +125,8 @@ void Stream::set_stream_to_default(){
 		free(in_buffer);
 	}
 
+	pthread_mutex_unlock(&in_buffer_mutex);
+
 	orig_w = 0;
 	orig_h = 0;
 	curr_w = 0;
@@ -142,8 +138,6 @@ void Stream::set_stream_to_default(){
 	curr_cp = PIX_FMT_RGB24;
 	needs_displaying = false;
 	orig_frame_ready = false;
-	current_frame_ready = false;
-	first_frame = false;
 }
 
 void* Stream::execute_resize(void *context){
@@ -269,14 +263,6 @@ void Stream::set_orig_frame_ready(bool ready){
 	orig_frame_ready = ready;
 }
 
-bool Stream::is_current_frame_ready(){
-	return current_frame_ready;
-}
-
-void Stream::set_current_frame_ready(bool ready){
-	current_frame_ready = ready;
-}
-
 pthread_mutex_t* Stream::get_orig_frame_ready_mutex(){
 	return &orig_frame_ready_mutex;
 }
@@ -293,12 +279,12 @@ void  Stream::set_orig_frame_ready_cond(pthread_cond_t cond){
 	orig_frame_ready_cond = cond;
 }
 
-pthread_mutex_t* Stream::get_resize_mutex(){
-	return &resize_mutex;
+pthread_mutex_t* Stream::get_in_buffer_mutex(){
+	return &in_buffer_mutex;
 }
 
-void Stream::set_resize_mutex(pthread_mutex_t mutex){
-	resize_mutex = mutex;
+void Stream::set_in_buffer_mutex(pthread_mutex_t mutex){
+	in_buffer_mutex = mutex;
 }
 
 pthread_rwlock_t* Stream::get_needs_displaying_rwlock(){
@@ -355,31 +341,6 @@ uint8_t* Stream::get_in_buffer(){
 void Stream::set_in_buffer(uint8_t* buff){
 	in_buffer = buff;
 }
-
-pthread_rwlock_t* Stream::get_current_frame_ready_rwlock(){
-	return &current_frame_ready_rwlock;
-}
-
-void Stream::set_current_frame_ready_rwlock(pthread_rwlock_t lock){
-	current_frame_ready_rwlock = lock;
-}
-
-pthread_mutex_t* Stream::get_first_frame_mutex(){
-	return &first_frame_mutex;
-}
-
-void Stream::set_next_frame_mutex(pthread_mutex_t mutex){
-	first_frame_mutex = mutex;
-}
-
-bool Stream::has_first_frame(){
-	return first_frame;
-}
-
-void Stream::set_first_frame(bool first){
-	first_frame = first;
-}
-
 
 
 

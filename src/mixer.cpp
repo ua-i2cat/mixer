@@ -34,7 +34,7 @@ void* mixer::run(void) {
 
 		if (diff < min_diff){
 			usleep((min_diff - diff)*1000); // We sleep a 10% of the minimum diff between loops
-			printf("(min_diff - diff): %f  diff: %f   min_diff: %f\n", min_diff - diff, diff, min_diff);
+//			printf("(min_diff - diff): %f  diff: %f   min_diff: %f\n", min_diff - diff, diff, min_diff);
 		}
 
 		gettimeofday(&start, NULL);
@@ -44,7 +44,7 @@ void* mixer::run(void) {
 		part = src_p_list->first;
 
 		for (i=0; i<src_p_list->count; i++){
-			if(pthread_mutex_trylock(&part->lock)==0){
+			if(pthread_mutex_lock(&part->lock)==0){
 			    if (part->new_frame == TRUE){
 				    layout.introduce_frame(part->id, (uint8_t*)part->frame, part->frame_length);
 				    have_new_frame = true;

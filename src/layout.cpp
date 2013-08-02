@@ -44,7 +44,7 @@ int Layout::init(int width, int height, enum PixelFormat colorspace, int max_str
 	out_buffer = (uint8_t*)malloc(lay_buffsize);
 	avpicture_fill((AVPicture *)layout_frame, lay_buffer, lay_colorspace, lay_width, lay_height);
 	overlap = false;
-	merge_mutex = PTHREAD_MUTEX_INITIALIZER;
+	pthread_rwlock_init(&resize_rwlock, NULL);
 
 	pthread_t thr[max_streams];
 
@@ -52,7 +52,7 @@ int Layout::init(int width, int height, enum PixelFormat colorspace, int max_str
 
 		free_streams_id.push_back(i);
 
-		Stream* stream = new Stream(i, thr[i]);
+		Stream* stream = new Stream(i, thr[i], &resize_rwlock);
 
 		streams[i] = stream;
 
@@ -70,15 +70,15 @@ int Layout::init(int width, int height, enum PixelFormat colorspace, int max_str
 }
 
 int Layout::modify_layout (int width, int height, enum AVPixelFormat colorspace, bool resize_streams){
-	pthread_mutex_lock(&merge_mutex);
+	pthread_rwlock_wrlock(&resize_rwlock);
 	Stream *stream;
 
 	//Check if width, height and color space are valid
 	if (!check_modify_layout(width, height, colorspace)){
-		pthread_mutex_unlock(&merge_mutex);
 #ifdef ENABLE_DEBUG
 		cout << "Layout modification failed: introduced values not valid" << endl;
 #endif
+		pthread_rwlock_unlock(&resize_rwlock);
 		return -1;
 	}
 
@@ -92,7 +92,7 @@ int Layout::modify_layout (int width, int height, enum AVPixelFormat colorspace,
 
 		//Modify streams fields
 		for (i=0; i<(int)active_streams_id.size(); i++){
-			pthread_mutex_lock(streams[active_streams_id[i]]->get_resize_mutex());
+			pthread_mutex_lock(streams[active_streams_id[i]]->get_in_buffer_mutex());
 			stream = streams[active_streams_id[i]];
 
 			stream->set_curr_w(stream->get_curr_w()*delta_w);
@@ -109,15 +109,11 @@ int Layout::modify_layout (int width, int height, enum AVPixelFormat colorspace,
 			stream->set_dummy_buffer((uint8_t*)malloc(*stream->get_buffsize()));
 			avpicture_fill((AVPicture *)stream->get_dummy_frame(), stream->get_dummy_buffer(), stream->get_curr_cp(), stream->get_curr_w(), stream->get_curr_h());
 
-			pthread_mutex_unlock(streams[active_streams_id[i]]->get_resize_mutex());
+			pthread_mutex_unlock(streams[active_streams_id[i]]->get_in_buffer_mutex());
 
 			pthread_rwlock_wrlock(stream->get_needs_displaying_rwlock());
 				stream->set_needs_displaying(true);
 			pthread_rwlock_unlock(stream->get_needs_displaying_rwlock());
-
-			pthread_rwlock_wrlock(stream->get_current_frame_ready_rwlock());
-				stream->set_current_frame_ready(false);
-			pthread_rwlock_unlock(stream->get_current_frame_ready_rwlock());
 
 			pthread_mutex_lock(stream->get_orig_frame_ready_mutex());
 			stream->set_orig_frame_ready(true);
@@ -154,10 +150,6 @@ int Layout::modify_layout (int width, int height, enum AVPixelFormat colorspace,
 			pthread_rwlock_wrlock(streams[active_streams_id[i]]->get_needs_displaying_rwlock());
 			streams[active_streams_id[i]]->set_needs_displaying(true);
 			pthread_rwlock_unlock(streams[active_streams_id[i]]->get_needs_displaying_rwlock());
-
-			pthread_rwlock_wrlock(streams[active_streams_id[i]]->get_current_frame_ready_rwlock());
-			streams[active_streams_id[i]]->set_current_frame_ready(true);
-			pthread_rwlock_unlock(streams[active_streams_id[i]]->get_current_frame_ready_rwlock());
 		}
 
 #ifdef ENABLE_DEBUG
@@ -166,7 +158,7 @@ int Layout::modify_layout (int width, int height, enum AVPixelFormat colorspace,
 
 	}
 
-	pthread_mutex_unlock(&merge_mutex);
+	pthread_rwlock_unlock(&resize_rwlock);
 
 	merge_frames();
 
@@ -193,28 +185,19 @@ int Layout::introduce_frame(int stream_id, uint8_t *data_buffer, int data_length
 		return -1; //data_buffer is empty
 	}
 
-	pthread_mutex_lock(streams[id]->get_resize_mutex());
+	pthread_mutex_lock(streams[id]->get_in_buffer_mutex());
 
 	assert(data_length == streams[id]->get_in_buffsize());
 	streams[id]->set_in_buffer((uint8_t*)memcpy((uint8_t*)streams[id]->get_in_buffer(),(uint8_t*)data_buffer, data_length));
-	pthread_mutex_unlock(streams[id]->get_resize_mutex());
+	pthread_mutex_unlock(streams[id]->get_in_buffer_mutex());
 
 #ifdef ENABLE_DEBUG
 	cout << "Stream " << stream_id << " has introduced a new frame" << endl;
 #endif
 
-	pthread_mutex_lock(streams[id]->get_first_frame_mutex());
-	if(!streams[id]->has_first_frame())
-		streams[id]->set_first_frame(true);
-	pthread_mutex_unlock(streams[id]->get_first_frame_mutex());
-
 	pthread_rwlock_wrlock(streams[id]->get_needs_displaying_rwlock());
 		streams[id]->set_needs_displaying(true);
 	pthread_rwlock_unlock(streams[id]->get_needs_displaying_rwlock());
-
-	pthread_rwlock_wrlock(streams[id]->get_current_frame_ready_rwlock());
-		streams[id]->set_current_frame_ready(false);
-	pthread_rwlock_unlock(streams[id]->get_current_frame_ready_rwlock());
 
 	pthread_mutex_lock(streams[id]->get_orig_frame_ready_mutex());
 	streams[id]->set_orig_frame_ready(true);
@@ -225,8 +208,6 @@ int Layout::introduce_frame(int stream_id, uint8_t *data_buffer, int data_length
 }
 
 int Layout::merge_frames(){
-	pthread_mutex_lock(&merge_mutex);
-	bool can_continue = false;
 
 	Stream *stream;
 
@@ -236,41 +217,26 @@ int Layout::merge_frames(){
 #endif
 		//For every active stream, take resized AVFrames and merge them layer by layer
 		for (i=0; i<max_layers; i++){
+			pthread_rwlock_wrlock(&resize_rwlock);
 			for (j=0; j<(int)active_streams_id.size(); j++){
 				if (i==streams[active_streams_id[j]]->get_layer() &&
 						streams[active_streams_id[j]]->get_x_pos()<lay_width && streams[active_streams_id[j]]->get_y_pos()<lay_height){
 
 					stream = streams[active_streams_id[j]];
+//TODO:Implementar sistema de saber streams actius
 
-					pthread_mutex_lock(stream->get_first_frame_mutex());
-					if(stream->has_first_frame()){
-
-						while(!can_continue){
-							pthread_rwlock_rdlock(stream->get_current_frame_ready_rwlock());
-								if (stream->is_current_frame_ready()){
-									can_continue = true;
-								}
-							pthread_rwlock_unlock(stream->get_current_frame_ready_rwlock());
-						}
-
-						can_continue = false;
-
-						pthread_mutex_lock(stream->get_resize_mutex());
-
-						print_frame(stream->get_x_pos(), stream->get_y_pos(), stream->get_curr_w(),
-							stream->get_curr_h(), stream->get_current_frame(), layout_frame);
+					print_frame(stream->get_x_pos(), stream->get_y_pos(), stream->get_curr_w(),
+						stream->get_curr_h(), stream->get_current_frame(), layout_frame);
 #ifdef ENABLE_DEBUG
-						cout << "Stream " << stream->get_id() << " frame has been printed into layout" << endl;
+					cout << "Stream " << stream->get_id() << " frame has been printed into layout" << endl;
 #endif
-						pthread_mutex_unlock(streams[active_streams_id[j]]->get_resize_mutex());
 
-						pthread_rwlock_wrlock(streams[active_streams_id[j]]->get_needs_displaying_rwlock());
-						streams[active_streams_id[j]]->set_needs_displaying(false);
-						pthread_rwlock_unlock(streams[active_streams_id[j]]->get_needs_displaying_rwlock());
-					}
-					pthread_mutex_unlock(stream->get_first_frame_mutex());
+					pthread_rwlock_wrlock(streams[active_streams_id[j]]->get_needs_displaying_rwlock());
+					streams[active_streams_id[j]]->set_needs_displaying(false);
+					pthread_rwlock_unlock(streams[active_streams_id[j]]->get_needs_displaying_rwlock());
 				}
 			}
+			pthread_rwlock_unlock(&resize_rwlock);
 		}
 	} else{
 
@@ -279,46 +245,27 @@ int Layout::merge_frames(){
 #endif
 		//For every active stream, check if needs to be desplayed and print it
 		for (i=0; i<max_layers; i++){
+			pthread_rwlock_wrlock(&resize_rwlock);
 			for (j=0; j<(int)active_streams_id.size(); j++){
 				if (i==streams[active_streams_id[j]]->get_layer() && streams[active_streams_id[j]]->get_needs_displaying()
 						&& streams[active_streams_id[j]]->get_x_pos()<lay_width && streams[active_streams_id[j]]->get_y_pos()<lay_height){
 
 					stream = streams[active_streams_id[j]];
 
-					pthread_mutex_lock(stream->get_first_frame_mutex());
-					if(stream->has_first_frame()){
-
-						while(!can_continue){
-							pthread_rwlock_rdlock(stream->get_current_frame_ready_rwlock());
-							if (stream->is_current_frame_ready()){
-								can_continue = true;
-							}
-							pthread_rwlock_unlock(stream->get_current_frame_ready_rwlock());
-						}
-
-						can_continue = false;
-
-						pthread_mutex_lock(stream->get_resize_mutex());
-
-						print_frame(stream->get_x_pos(), stream->get_y_pos(), stream->get_curr_w(),
-							stream->get_curr_h(), stream->get_current_frame(), layout_frame);
+					print_frame(stream->get_x_pos(), stream->get_y_pos(), stream->get_curr_w(),
+						stream->get_curr_h(), stream->get_current_frame(), layout_frame);
 
 #ifdef ENABLE_DEBUG
-						printf("Stream %d frame has been printed into layout\n", stream->get_id());
+					printf("Stream %d frame has been printed into layout\n", stream->get_id());
 #endif
-						pthread_mutex_unlock(stream->get_resize_mutex());
-
-						pthread_rwlock_rdlock(stream->get_needs_displaying_rwlock());
-						stream->set_needs_displaying(false);
-						pthread_rwlock_unlock(stream->get_needs_displaying_rwlock());
-					}
-					pthread_mutex_unlock(stream->get_first_frame_mutex());
+					pthread_rwlock_rdlock(stream->get_needs_displaying_rwlock());
+					stream->set_needs_displaying(false);
+					pthread_rwlock_unlock(stream->get_needs_displaying_rwlock());
 				}
 			}
+			pthread_rwlock_unlock(&resize_rwlock);
 		}
 	}
-
-	pthread_mutex_unlock(&merge_mutex);
 
 #ifdef ENABLE_DEBUG
 	printf("Frame merging finished.\n");
@@ -328,7 +275,7 @@ int Layout::merge_frames(){
 }
 
 int Layout::introduce_stream (int orig_w, int orig_h, enum AVPixelFormat orig_cp, int new_w, int new_h, int x, int y, enum  PixelFormat new_cp, int layer){
-	pthread_mutex_lock(&merge_mutex);
+	pthread_rwlock_wrlock(&resize_rwlock);
 
 	int id;
 	//Check if width, height and color space are valid
@@ -336,7 +283,7 @@ int Layout::introduce_stream (int orig_w, int orig_h, enum AVPixelFormat orig_cp
 #ifdef ENABLE_DEBUG
 		cout << "Stream introduction failed: introduced values not valid" << endl;
 #endif
-		pthread_mutex_unlock(&merge_mutex);
+		pthread_rwlock_unlock(&resize_rwlock);
 		return -1;
 	}
 	//Check if there are available threads
@@ -344,7 +291,7 @@ int Layout::introduce_stream (int orig_w, int orig_h, enum AVPixelFormat orig_cp
 #ifdef ENABLE_DEBUG
 		cout << "Stream introduction failed: the maximum of streams are active" << endl;
 #endif
-		pthread_mutex_unlock(&merge_mutex);
+		pthread_rwlock_unlock(&resize_rwlock);
 		return -1; //There are no free streams
 	}
 
@@ -375,6 +322,8 @@ int Layout::introduce_stream (int orig_w, int orig_h, enum AVPixelFormat orig_cp
 	avpicture_fill((AVPicture *)streams[id]->get_current_frame(), streams[id]->get_buffer(), streams[id]->get_curr_cp(), streams[id]->get_curr_w(), streams[id]->get_curr_h());
 	avpicture_fill((AVPicture *)streams[id]->get_dummy_frame(), streams[id]->get_dummy_buffer(), streams[id]->get_curr_cp(), streams[id]->get_curr_w(), streams[id]->get_curr_h());
 
+	pthread_rwlock_unlock(&resize_rwlock);
+
 	//Check overlap
 	if (active_streams_id.size()>1){
 		overlap = check_overlap();
@@ -393,13 +342,16 @@ int Layout::introduce_stream (int orig_w, int orig_h, enum AVPixelFormat orig_cp
 	cout << "Y Position: " << streams[id]->get_y_pos()<< endl;
 	cout << "Layer: " << streams[id]->get_layer() << endl;
 #endif
-	pthread_mutex_unlock(&merge_mutex);
+
+
 	return id;
 }
 
 int Layout::modify_stream (int stream_id, int width, int height, enum AVPixelFormat colorspace, int x_pos, int y_pos, int layer, bool keepAspectRatio){
 
-	MutexObject mutex(&merge_mutex);
+	pthread_rwlock_wrlock(&resize_rwlock);
+
+//TODO: resize rwlock podria ser un read lock si fem un wrlock d'un mutex intern de l'stream
 
 	int id, old_x_pos, old_y_pos, old_width, old_height;
 	//Check if id is active
@@ -408,6 +360,7 @@ int Layout::modify_stream (int stream_id, int width, int height, enum AVPixelFor
 #ifdef ENABLE_DEBUG
 		printf("Stream %d is not active", stream_id);
 #endif
+		pthread_rwlock_unlock(&resize_rwlock);
 		return -1; //selected stream is not active
 	}
 	//Check if width, height, color space, xpos, ypos, layer are valid
@@ -415,10 +368,9 @@ int Layout::modify_stream (int stream_id, int width, int height, enum AVPixelFor
 #ifdef ENABLE_DEBUG
 		printf("Introduced values are not valid.");
 #endif
+		pthread_rwlock_unlock(&resize_rwlock);
 		return -1;
 	}
-
-	pthread_mutex_lock(streams[id]->get_resize_mutex());
 
 	bool size_modified = false, pos_modified = false;
 
@@ -493,21 +445,18 @@ int Layout::modify_stream (int stream_id, int width, int height, enum AVPixelFor
 		streams[id]->set_dummy_buffer((uint8_t*)realloc(streams[id]->get_dummy_buffer(), *streams[id]->get_buffsize()));
 		avpicture_fill((AVPicture *)streams[id]->get_dummy_frame(), streams[id]->get_dummy_buffer(), streams[id]->get_curr_cp(), streams[id]->get_curr_w(), streams[id]->get_curr_h());
 	}
-
-	pthread_mutex_unlock(streams[id]->get_resize_mutex());
+	printf("I'm trying pthread_rwlock_unlock(&resize_rwlock). ID: %d\n", stream_id);
+	pthread_rwlock_unlock(&resize_rwlock);
+	printf("I have done pthread_rwlock_unlock(&resize_rwlock). ID: %d\n", stream_id);
 
 	pthread_rwlock_wrlock(streams[id]->get_needs_displaying_rwlock());
 	streams[id]->set_needs_displaying(true);
 	pthread_rwlock_unlock(streams[id]->get_needs_displaying_rwlock());
 
-	pthread_rwlock_wrlock(streams[id]->get_current_frame_ready_rwlock());
-	streams[id]->set_current_frame_ready(false);
-	pthread_rwlock_unlock(streams[id]->get_current_frame_ready_rwlock());
-
-	pthread_mutex_lock(streams[id]->get_orig_frame_ready_mutex());
-	streams[id]->set_orig_frame_ready(true);
-	pthread_cond_signal(streams[id]->get_orig_frame_ready_cond());
-	pthread_mutex_unlock(streams[id]->get_orig_frame_ready_mutex());
+//	pthread_mutex_lock(streams[id]->get_orig_frame_ready_mutex());
+//	streams[id]->set_orig_frame_ready(true);
+//	pthread_cond_signal(streams[id]->get_orig_frame_ready_cond());
+//	pthread_mutex_unlock(streams[id]->get_orig_frame_ready_mutex());
 
 	//Check overlapping
 	if (active_streams_id.size()>1){
@@ -543,11 +492,9 @@ int Layout::remove_stream (int stream_id){
 		return -1; //selected stream is not active
 	}
 
-	pthread_mutex_lock(streams[id]->get_resize_mutex());
-	pthread_mutex_lock(&merge_mutex);
 
+	pthread_rwlock_wrlock(&resize_rwlock);
 	print_frame(streams[id]->get_x_pos(), streams[id]->get_y_pos(), streams[id]->get_curr_w(), streams[id]->get_curr_h(), streams[id]->get_dummy_frame(), layout_frame);
-
 //	if (streams[id]->get_orig_frame() == streams[id]->get_current_frame()){
 //		avcodec_get_frame_defaults(streams[id]->get_orig_frame());
 //		avcodec_get_frame_defaults(streams[id]->get_dummy_frame());
@@ -566,10 +513,9 @@ int Layout::remove_stream (int stream_id){
 		}
 	}
 
-	streams[id]->set_stream_to_default();
+	pthread_rwlock_wrlock(&resize_rwlock);
 
-	pthread_mutex_unlock(&merge_mutex);
-	pthread_mutex_unlock(streams[id]->get_resize_mutex());
+	streams[id]->set_stream_to_default();
 
 	//Check overlapping
 	if (active_streams_id.size()>1){
@@ -584,19 +530,18 @@ int Layout::remove_stream (int stream_id){
 }
 
 uint8_t* Layout::get_layout_bytestream(){
-	MutexObject mutex(&merge_mutex);
-
+	pthread_rwlock_wrlock(&resize_rwlock);
 	avpicture_layout((AVPicture *)layout_frame, lay_colorspace, lay_width, lay_height, out_buffer, lay_buffsize);
-
+	pthread_rwlock_unlock(&resize_rwlock);
 	return out_buffer;
 }
 
 bool Layout::check_overlap(){
+
+	pthread_rwlock_wrlock(&resize_rwlock);
+
 	for (i=0; i<(int)active_streams_id.size(); i++){
 		for (j=i+1; j<(int)active_streams_id.size(); j++){
-			pthread_mutex_lock(streams[active_streams_id[i]]->get_resize_mutex());
-			pthread_mutex_lock(streams[active_streams_id[j]]->get_resize_mutex());
-
 			if(check_frame_overlap(
 					streams[active_streams_id[i]]->get_x_pos(),
 					streams[active_streams_id[i]]->get_y_pos(),
@@ -607,15 +552,12 @@ bool Layout::check_overlap(){
 					streams[active_streams_id[j]]->get_curr_w(),
 					streams[active_streams_id[j]]->get_curr_h()
 				)){
-				pthread_mutex_unlock(streams[active_streams_id[i]]->get_resize_mutex());
-				pthread_mutex_unlock(streams[active_streams_id[j]]->get_resize_mutex());
+				pthread_rwlock_unlock(&resize_rwlock);
 				return true;
 			}
-
-			pthread_mutex_unlock(streams[active_streams_id[i]]->get_resize_mutex());
-			pthread_mutex_unlock(streams[active_streams_id[j]]->get_resize_mutex());
 		}
 	}
+	pthread_rwlock_unlock(&resize_rwlock);
 	return false;
 }
 

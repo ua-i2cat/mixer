@@ -20,8 +20,8 @@ int main(int argc, char *argv[]){
 	m->init(layout_width, layout_height, max_streams, in_port, out_port);
 	m->exec();
 
-	int option=0, i=0;
-	uint32_t width=0, height=0, codec=0, id=0, port=0, x=0, y=0, layer=0, keepratio=0, resizestreams=0, framerate=0;
+	int option=0;
+	uint32_t width=0, height=0, id=0, port=0, x=0, y=0, layer=0, keepratio=0, resizestreams=0, framerate=0;
 	bool keep_aspect_ratio = false, resize_streams = false, should_stop = false;
 	char ip[20];
 

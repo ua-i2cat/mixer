@@ -1,0 +1,9 @@
+*.o
+*.so
+controller
+
+ug-modules
+
+Makefile2
+*~
+*.swp

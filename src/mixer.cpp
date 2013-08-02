@@ -23,15 +23,18 @@ void* mixer::run(void) {
 	bool have_new_frame = false;
 	should_stop = false;
 	struct timeval start, finish;
-	int diff = 0, min_diff = 0;
+	float diff = 0, min_diff = 0;
 	int frame_cont = 0, save_cont=5;
 
 	min_diff = ((float)1/(float)max_frame_rate)*1000; // In ms
 
 	while (!should_stop){
+	
+	    min_diff = ((float)1/(float)max_frame_rate)*1000;
 
 		if (diff < min_diff){
-			usleep((min_diff*0.1)*1000); // We sleep a 10% of the minimum diff between loops
+			usleep((min_diff - diff)*1000); // We sleep a 10% of the minimum diff between loops
+			printf("(min_diff - diff): %f  diff: %f   min_diff: %f\n", min_diff - diff, diff, min_diff);
 		}
 
 		gettimeofday(&start, NULL);
@@ -41,13 +44,14 @@ void* mixer::run(void) {
 		part = src_p_list->first;
 
 		for (i=0; i<src_p_list->count; i++){
-			pthread_mutex_lock(&part->lock);
-			if (part->new_frame == TRUE){
-				layout.introduce_frame(part->id, (uint8_t*)part->frame, part->frame_length);
-				have_new_frame = true;
-				part->new_frame = FALSE;
+			if(pthread_mutex_trylock(&part->lock)==0){
+			    if (part->new_frame == TRUE){
+				    layout.introduce_frame(part->id, (uint8_t*)part->frame, part->frame_length);
+				    have_new_frame = true;
+				    part->new_frame = FALSE;
+			    }
+			    pthread_mutex_unlock(&part->lock);
 			}
-			pthread_mutex_unlock(&part->lock);
 			part = part->next;
 		}
 
@@ -55,7 +59,6 @@ void* mixer::run(void) {
 
 		if (have_new_frame){
 			layout.merge_frames();
-			
 //			if(save_cont-- == 0){
 //			    SaveFrame(layout.get_lay_frame(), layout.get_w(), layout.get_h(), frame_cont);
 //			    save_cont = 10;
@@ -67,15 +70,18 @@ void* mixer::run(void) {
 			part = dst_p_list->first;
 
 			for (i=0; i<dst_p_list->count; i++){
-				pthread_mutex_lock(&part->lock);
+				if(pthread_mutex_trylock(&part->lock)==0){
 				memcpy((uint8_t*)part->frame, (uint8_t*)layout.get_layout_bytestream(), layout.get_buffsize());
 				part->frame_length = layout.get_buffsize();
 				part->new_frame = 1;
 				pthread_mutex_unlock(&part->lock);
+				}
 				part = part->next;
 			}
 
 			pthread_rwlock_unlock(&dst_p_list->lock);
+			
+			notify_out_manager();
 		}
         
 		have_new_frame = false;

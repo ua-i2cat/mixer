@@ -677,23 +677,11 @@ int Layout::print_frame(int x_pos, int y_pos, int width, int height, AVFrame *st
 	byte_init_point = y_pos*layout_frame->linesize[0] + x_pos*3;  //Per 3 because every pixel is represented by 3 bytes
 	byte_offset_line = layout_frame->linesize[0] - max_x*3; //Per 3 because every pixel is represented by 3 bytes
 	contTFrame = byte_init_point;
-//	for (y = 0; y < max_y; y++){
-//		uint8_t *aux = layout_frame->data[0] + byte_init_point + byte_offset_line * y;
-//		int copyval = stream_frame->linesize[0] - (width - max_x)*3;
-//		memcpy(layout_frame->data[0] + byte_init_point + byte_offset_line * y,
-//								stream_frame->data[0] + stream_frame->linesize[0] * y,
-//								stream_frame->linesize[0] - (width - max_x)*3);
-//	}
+
 	for (y = 0; y < max_y; y++) {
-		for (x = 0; x < max_x; x++) {
-			layout_frame->data[0][contTFrame] = stream_frame->data[0][contSFrame];				//R
-	    	layout_frame->data[0][contTFrame + 1] = stream_frame->data[0][contSFrame + 1];		//G
-	    	layout_frame->data[0][contTFrame + 2] = stream_frame->data[0][contSFrame + 2];		//B
-	    	contTFrame += 3;
-	    	contSFrame += 3;
-	    }
-	    contTFrame += byte_offset_line;
-	    contSFrame += (width - max_x)*3;
+	    memcpy(&layout_frame->data[0][contTFrame], &stream_frame->data[0][contSFrame], stream_frame->linesize[0] - (width - max_x)*3);
+	    contTFrame += byte_offset_line + 3*max_x;
+	    contSFrame += (width - max_x)*3 + 3*max_x;
 	}
 
 	return 0;

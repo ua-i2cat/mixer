@@ -34,7 +34,6 @@ void* mixer::run(void) {
 
 		if (diff < min_diff){
 			usleep((min_diff - diff)*1000); // We sleep a 10% of the minimum diff between loops
-//			printf("(min_diff - diff): %f  diff: %f   min_diff: %f\n", min_diff - diff, diff, min_diff);
 		}
 
 		gettimeofday(&start, NULL);
@@ -59,11 +58,9 @@ void* mixer::run(void) {
 
 		if (have_new_frame){
 			layout.merge_frames();
-//			if(save_cont-- == 0){
-//			    SaveFrame(layout.get_lay_frame(), layout.get_w(), layout.get_h(), frame_cont);
-//			    save_cont = 10;
-//			}
-//			frame_cont++;
+			if(frame_cont++<1000){
+			    SaveFrame(layout.get_lay_frame(), layout.get_w(), layout.get_h(), frame_cont);
+			}
 			
 			pthread_rwlock_rdlock(&dst_p_list->lock);
 
@@ -75,7 +72,7 @@ void* mixer::run(void) {
 				    part->frame_length = layout.get_buffsize();
 				    part->new_frame = 1;
 				    pthread_mutex_unlock(&part->lock);
-				    }
+				}
 				part = part->next;
 			}
 
@@ -181,7 +178,7 @@ void SaveFrame(AVFrame *pFrame, int width, int height, int iFrame) {
   int  y;
 
   // Open file
-  sprintf(szFilename, "./layout%d.ppm", iFrame);
+  sprintf(szFilename, "/home/palau/TFG/layout_prints/layout%d.ppm", iFrame);
   pFile=fopen(szFilename, "wb");
   if(pFile==NULL)
     return;
@@ -195,4 +192,8 @@ void SaveFrame(AVFrame *pFrame, int width, int height, int iFrame) {
 
   // Close file
   fclose(pFile);
+}
+
+void mixer::show_stream_info(){
+	layout.print_active_stream_info();
 }

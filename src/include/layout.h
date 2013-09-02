@@ -63,6 +63,7 @@ class Layout {
     	int get_active_streams();
     	unsigned int get_buffsize();
     	int get_max_streams();
+    	void print_active_stream_info();
 
 };
 

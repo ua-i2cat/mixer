@@ -8,7 +8,6 @@ extern "C" {
 #include <pthread.h>
 #include "include/stream.h"
 #include "include/layout.h"
-#include "include/mutex_object.h"
 #include <math.h>
 #include <iostream>
 #include <assert.h>
@@ -40,7 +39,7 @@ int Layout::init(int width, int height, enum PixelFormat colorspace, int max_str
 	lay_colorspace = colorspace;
 	layout_frame = avcodec_alloc_frame();
 	lay_buffsize = avpicture_get_size(lay_colorspace, lay_width, lay_height) * sizeof(uint8_t);
-	lay_buffer = (uint8_t*)av_malloc(lay_buffsize);
+	lay_buffer = (uint8_t*)malloc(lay_buffsize);
 	out_buffer = (uint8_t*)malloc(lay_buffsize);
 	avpicture_fill((AVPicture *)layout_frame, lay_buffer, lay_colorspace, lay_width, lay_height);
 	overlap = false;
@@ -619,8 +618,8 @@ int Layout::check_active_stream (int stream_id){
 
 int Layout::print_frame(int x_pos, int y_pos, int width, int height, AVFrame *stream_frame, AVFrame *layout_frame){
 
-	int x, y, contTFrame, contSFrame, max_x, max_y, byte_init_point, byte_offset_line;
-	x=0, y=0;
+	int y, contTFrame, contSFrame, max_x, max_y, byte_init_point, byte_offset_line;
+	y=0;
 	contTFrame = 0;
 	contSFrame = 0;
 	max_x = width;
@@ -728,7 +727,7 @@ int Layout::get_active_streams(){
 }
 
 void Layout::print_active_stream_id(){
-	int c=0;
+	uint c=0;
 	printf("Active streams:\n");
 	for (c=0; c<active_streams_id.size(); c++){
 		printf("%d ", active_streams_id[c]);
@@ -736,7 +735,7 @@ void Layout::print_active_stream_id(){
 }
 
 void Layout::print_free_stream_id(){
-	int c=0;
+	uint c=0;
 	printf("Free streams:");
 	for (c=0; c<free_streams_id.size(); c++){
 		printf("%d" , free_streams_id[c]);
@@ -749,4 +748,21 @@ unsigned int Layout::get_buffsize(){
 
 int Layout::get_max_streams(){
 	return max_streams;
+}
+
+void Layout::print_active_stream_info(){
+	uint c=0;
+	Stream *stream;
+
+	for (c=0; c<active_streams_id.size(); c++){
+		stream = streams[active_streams_id[c]];
+		printf("Id: %d\n", stream->get_id());
+		printf("Original width: %d\n", stream->get_orig_w());
+		printf("Original height: %d\n", stream->get_orig_h());
+		printf("Current width: %d\n", stream->get_curr_w());
+		printf("Current height: %d\n", stream->get_curr_h());
+		printf("X Position: %d\n", stream->get_x_pos());
+		printf("Y Position: %d\n", stream->get_y_pos());
+		printf("Layer: %d\n\n", stream->get_layer());
+	}
 }

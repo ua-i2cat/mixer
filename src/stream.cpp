@@ -32,9 +32,9 @@ Stream::Stream(int identifier, pthread_t thr, pthread_rwlock_t* lock){
 	buffer = NULL;
 	dummy_buffer = NULL;
 	in_buffer = NULL;
-	orig_frame_ready_mutex = PTHREAD_MUTEX_INITIALIZER;
-	in_buffer_mutex = PTHREAD_MUTEX_INITIALIZER;
-	orig_frame_ready_cond = PTHREAD_COND_INITIALIZER;
+	pthread_mutex_init(&orig_frame_ready_mutex, NULL);
+	pthread_mutex_init(&in_buffer_mutex, NULL);
+	pthread_cond_init(&orig_frame_ready_cond, NULL);
 	pthread_rwlock_init(&needs_displaying_rwlock, NULL);
 	stream_resize_rwlock_ref = lock;
 

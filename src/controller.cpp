@@ -34,14 +34,15 @@ int main(int argc, char *argv[]){
 		printf("5 - Modify stream parameters\n");
 		printf("6 - Resize output layout\n");
 		printf("7 - Modify max frame rate\n");
-		printf("8 - Stop the mixer and quit\n");
+		printf("8 - Show stream info\n");
+		printf("9 - Stop the mixer and quit\n");
 
 		scanf ("%d",&option);
 
 		switch (option){
 		case 1:
 			printf("\nYou have chosen to add a new source.\n"
-					"Please introduce the following values this way: width height codec\n");
+					"Please introduce the following values this way: width height\n");
 			scanf("%u %u", &width, &height);
 			if (m->add_source(width, height, H264) == -1)
 				printf ("\nError while adding the new source\n");
@@ -57,7 +58,7 @@ int main(int argc, char *argv[]){
 
 		case 3:
 			printf("\nYou have chosen to add a destination.\n"
-					"Please introduce the following values this way: codec ip port\n");
+					"Please introduce the following values this way: ip port\n");
 			scanf("%s %u", &ip, &port);
 			if (m->add_destination(H264, ip, port) == -1)
 				printf ("\nError while adding a new destination\n");
@@ -108,6 +109,10 @@ int main(int argc, char *argv[]){
 			break;
 
 		case 8:
+			m->show_stream_info();
+			break;
+
+		case 9:
 			printf("\nYou have chosen to stop the mixer and quit.\n");
 			m->stop();
 			should_stop = true;

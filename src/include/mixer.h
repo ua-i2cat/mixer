@@ -46,6 +46,7 @@ class mixer {
 		int modify_stream (int id, int width, int height, int x, int y, int layer, bool keep_aspect_ratio);
 		int resize_output (int width, int height, bool resize_streams);
 		void change_max_framerate(int frame_rate);
+		void show_stream_info();
 		void* run(void);
 		static void* execute_run(void *context);
 

@@ -109,6 +109,10 @@ int Layout::modify_layout (int width, int height, enum AVPixelFormat colorspace,
 			stream->set_dummy_buffer((uint8_t*)malloc(*stream->get_buffsize()));
 			avpicture_fill((AVPicture *)stream->get_dummy_frame(), stream->get_dummy_buffer(), stream->get_curr_cp(), stream->get_curr_w(), stream->get_curr_h());
 
+			sws_freeContext (stream->get_ctx());
+			stream->set_ctx(sws_getContext(stream->get_orig_w(), stream->get_orig_h(), stream->get_orig_cp(),
+					stream->get_curr_w(), stream->get_curr_h(), stream->get_curr_cp(), SWS_BILINEAR, NULL, NULL, NULL));
+
 			pthread_mutex_unlock(streams[active_streams_id[i]]->get_in_buffer_mutex());
 
 			pthread_rwlock_wrlock(stream->get_needs_displaying_rwlock());
@@ -188,7 +192,7 @@ int Layout::introduce_frame(int stream_id, uint8_t *data_buffer, int data_length
 	pthread_mutex_lock(streams[id]->get_in_buffer_mutex());
 
 	assert(data_length == streams[id]->get_in_buffsize());
-	streams[id]->set_in_buffer((uint8_t*)memcpy((uint8_t*)streams[id]->get_in_buffer(),(uint8_t*)data_buffer, data_length));
+	memcpy((uint8_t*)streams[id]->get_in_buffer(),(uint8_t*)data_buffer, data_length);
 	pthread_mutex_unlock(streams[id]->get_in_buffer_mutex());
 
 #ifdef ENABLE_DEBUG
@@ -238,6 +242,7 @@ int Layout::merge_frames(){
 			}
 			pthread_rwlock_unlock(&resize_rwlock);
 		}
+		
 	} else{
 
 #ifdef ENABLE_DEBUG
@@ -321,6 +326,7 @@ int Layout::introduce_stream (int orig_w, int orig_h, enum AVPixelFormat orig_cp
 	avpicture_fill((AVPicture *)streams[id]->get_orig_frame(), streams[id]->get_in_buffer(), streams[id]->get_orig_cp(), streams[id]->get_orig_w(), streams[id]->get_orig_h());
 	avpicture_fill((AVPicture *)streams[id]->get_current_frame(), streams[id]->get_buffer(), streams[id]->get_curr_cp(), streams[id]->get_curr_w(), streams[id]->get_curr_h());
 	avpicture_fill((AVPicture *)streams[id]->get_dummy_frame(), streams[id]->get_dummy_buffer(), streams[id]->get_curr_cp(), streams[id]->get_curr_w(), streams[id]->get_curr_h());
+	streams[id]->set_ctx(sws_getContext(orig_w, orig_h, orig_cp, new_w, new_h, new_cp, SWS_BILINEAR, NULL, NULL, NULL));
 
 	pthread_rwlock_unlock(&resize_rwlock);
 
@@ -429,6 +435,11 @@ int Layout::modify_stream (int stream_id, int width, int height, enum AVPixelFor
 		streams[id]->set_dummy_buffer((uint8_t*)realloc(streams[id]->get_dummy_buffer(), *streams[id]->get_buffsize()));
 		avpicture_fill((AVPicture *)streams[id]->get_dummy_frame(), streams[id]->get_dummy_buffer(), streams[id]->get_curr_cp(), streams[id]->get_curr_w(), streams[id]->get_curr_h());
 
+		sws_freeContext (streams[id]->get_ctx());
+		streams[id]->set_ctx(sws_getContext(streams[id]->get_orig_w(), streams[id]->get_orig_h(), streams[id]->get_orig_cp(),
+				streams[id]->get_curr_w(), streams[id]->get_curr_h(), streams[id]->get_curr_cp(), SWS_BILINEAR, NULL, NULL, NULL));
+
+
 	} else if (!size_modified && pos_modified){
 		print_frame(old_x_pos, old_y_pos, streams[id]->get_curr_w(), streams[id]->get_curr_h(), streams[id]->get_dummy_frame(), layout_frame);
 
@@ -444,10 +455,14 @@ int Layout::modify_stream (int stream_id, int width, int height, enum AVPixelFor
 
 		streams[id]->set_dummy_buffer((uint8_t*)realloc(streams[id]->get_dummy_buffer(), *streams[id]->get_buffsize()));
 		avpicture_fill((AVPicture *)streams[id]->get_dummy_frame(), streams[id]->get_dummy_buffer(), streams[id]->get_curr_cp(), streams[id]->get_curr_w(), streams[id]->get_curr_h());
+
+		sws_freeContext (streams[id]->get_ctx());
+		streams[id]->set_ctx(sws_getContext(streams[id]->get_orig_w(), streams[id]->get_orig_h(), streams[id]->get_orig_cp(),
+				streams[id]->get_curr_w(), streams[id]->get_curr_h(), streams[id]->get_curr_cp(), SWS_BILINEAR, NULL, NULL, NULL));
 	}
-	printf("I'm trying pthread_rwlock_unlock(&resize_rwlock). ID: %d\n", stream_id);
+	
 	pthread_rwlock_unlock(&resize_rwlock);
-	printf("I have done pthread_rwlock_unlock(&resize_rwlock). ID: %d\n", stream_id);
+	
 
 	pthread_rwlock_wrlock(streams[id]->get_needs_displaying_rwlock());
 	streams[id]->set_needs_displaying(true);

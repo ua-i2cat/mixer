@@ -20,7 +20,7 @@ class Stream {
 
 	private:
 		int id, orig_w, orig_h, curr_w, curr_h, x_pos, y_pos, layer;
-		enum PixelFormat orig_cp, curr_cp;
+		enum AVPixelFormat orig_cp, curr_cp;
 		AVFrame *orig_frame, *curr_frame, *dummy_frame;
 		bool needs_displaying, orig_frame_ready;
 		pthread_t thread;
@@ -29,8 +29,7 @@ class Stream {
 		pthread_cond_t  orig_frame_ready_cond;
 		unsigned int buffsize, in_buffsize;
 		uint8_t *buffer, *dummy_buffer, *in_buffer;
-
-
+		struct SwsContext *ctx;
 
 	public:
 		Stream(int identifier, pthread_t thr, pthread_rwlock_t* lock);
@@ -56,10 +55,10 @@ class Stream {
 		void set_in_buffsize (unsigned int bsize);
 		uint8_t* get_buffer();
 		void set_buffer(uint8_t *buff);
-		enum PixelFormat get_orig_cp();
-		void set_orig_cp(enum PixelFormat set_orig_cp);
-		enum PixelFormat get_curr_cp();
-		void set_curr_cp(enum PixelFormat set_curr_cp);
+		enum AVPixelFormat get_orig_cp();
+		void set_orig_cp(enum AVPixelFormat set_orig_cp);
+		enum AVPixelFormat get_curr_cp();
+		void set_curr_cp(enum AVPixelFormat set_curr_cp);
 		AVFrame* get_orig_frame();
 		void set_orig_frame(AVFrame *set_orig_frame);
 		AVFrame* get_current_frame();
@@ -85,6 +84,8 @@ class Stream {
 		pthread_rwlock_t* get_needs_displaying_rwlock();
 		void set_needs_displaying_rwlock(pthread_rwlock_t lock);
 		void set_stream_to_default();
+		struct SwsContext* get_ctx();
+		void set_ctx(struct SwsContext *context);
 
 
 		void *resize(void);

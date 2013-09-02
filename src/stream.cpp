@@ -42,7 +42,6 @@ Stream::Stream(int identifier, pthread_t thr, pthread_rwlock_t* lock){
 
 
 void* Stream::resize(void){
-	struct SwsContext *ctx;
 
 	while (1) {
 
@@ -74,20 +73,6 @@ void* Stream::resize(void){
 //				buffer = (uint8_t*)malloc(buffsize);
 //				avpicture_fill((AVPicture *)curr_frame, buffer, curr_cp, curr_w, curr_h);
 //			}
-            
-			//Prepare context
-			ctx = sws_getContext(
-				orig_w,
-				orig_h,
-				orig_cp,
-				curr_w,
-				curr_h,
-				curr_cp,
-				SWS_BILINEAR,
-				NULL,
-				NULL,
-				NULL
-			);
             
 			//Scale
 			sws_scale(
@@ -138,6 +123,7 @@ void Stream::set_stream_to_default(){
 	curr_cp = PIX_FMT_RGB24;
 	needs_displaying = false;
 	orig_frame_ready = false;
+	sws_freeContext(ctx);
 }
 
 void* Stream::execute_resize(void *context){
@@ -207,19 +193,19 @@ void Stream::set_layer(int set_layer){
 	layer = set_layer;
 }
 
-enum PixelFormat Stream::get_orig_cp(){
+enum AVPixelFormat Stream::get_orig_cp(){
 	return orig_cp;
 }
 
-void Stream::set_orig_cp(enum PixelFormat set_orig_cp){
+void Stream::set_orig_cp(enum AVPixelFormat set_orig_cp){
 	orig_cp = set_orig_cp;
 }
 
-enum PixelFormat Stream::get_curr_cp(){
+enum AVPixelFormat Stream::get_curr_cp(){
 	return curr_cp;
 }
 
-void Stream::set_curr_cp(enum PixelFormat set_curr_cp){
+void Stream::set_curr_cp(enum AVPixelFormat set_curr_cp){
 	curr_cp = set_curr_cp;
 }
 
@@ -340,6 +326,14 @@ uint8_t* Stream::get_in_buffer(){
 
 void Stream::set_in_buffer(uint8_t* buff){
 	in_buffer = buff;
+}
+
+struct SwsContext* Stream::get_ctx(){
+	return ctx;
+}
+
+void Stream::set_ctx(struct SwsContext *context){
+	ctx = context;
 }
 
 

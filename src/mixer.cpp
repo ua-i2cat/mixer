@@ -71,11 +71,11 @@ void* mixer::run(void) {
 
 			for (i=0; i<dst_p_list->count; i++){
 				if(pthread_mutex_trylock(&part->lock)==0){
-				memcpy((uint8_t*)part->frame, (uint8_t*)layout.get_layout_bytestream(), layout.get_buffsize());
-				part->frame_length = layout.get_buffsize();
-				part->new_frame = 1;
-				pthread_mutex_unlock(&part->lock);
-				}
+				    memcpy((uint8_t*)part->frame, (uint8_t*)layout.get_layout_bytestream(), layout.get_buffsize());
+				    part->frame_length = layout.get_buffsize();
+				    part->new_frame = 1;
+				    pthread_mutex_unlock(&part->lock);
+				    }
 				part = part->next;
 			}
 

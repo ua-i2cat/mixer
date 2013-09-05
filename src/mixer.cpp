@@ -13,7 +13,8 @@ extern "C"{
 }
 
 using namespace std;
-
+char *OUTPUT_PATH = "/home/palau/TFG/decompressed_frame.rgb";
+FILE *F_video_rx=NULL;
 mixer* mixer::mixer_instance;
 void SaveFrame(AVFrame *pFrame, int width, int height, int iFrame);
 
@@ -24,7 +25,7 @@ void* mixer::run(void) {
 	should_stop = false;
 	struct timeval start, finish;
 	float diff = 0, min_diff = 0;
-	int frame_cont = 0, save_cont=5;
+	int frame_cont = 0;
 
 	min_diff = ((float)1/(float)max_frame_rate)*1000; // In ms
 
@@ -44,10 +45,10 @@ void* mixer::run(void) {
 
 		for (i=0; i<src_p_list->count; i++){
 			if(pthread_mutex_lock(&part->lock)==0){
-			    if (part->new_frame == TRUE){
+			    if (part->new_frame == 1){
 				    layout.introduce_frame(part->id, (uint8_t*)part->frame, part->frame_length);
 				    have_new_frame = true;
-				    part->new_frame = FALSE;
+				    part->new_frame = 0;
 			    }
 			    pthread_mutex_unlock(&part->lock);
 			}
@@ -58,9 +59,20 @@ void* mixer::run(void) {
 
 		if (have_new_frame){
 			layout.merge_frames();
-			if(frame_cont++<1000){
-			    SaveFrame(layout.get_lay_frame(), layout.get_w(), layout.get_h(), frame_cont);
-			}
+//			if(frame_cont++<1000){
+//			    SaveFrame(layout.get_lay_frame(), layout.get_w(), layout.get_h(), frame_cont);
+//			}
+
+//            //MODUL DE CAPTURA AUDIO A FITXER PER COMPROVACIONS EN TX
+//            //CAPTURA FRAMES ABANS DE DESCODIFICAR PER COMPROVAR RECEPCIÓ.
+//            if (F_video_rx == NULL) {
+//                printf("recording rx frame...\n");
+//                F_video_rx = fopen(OUTPUT_PATH, "wb");
+//            }
+//
+//            fwrite((uint8_t*)layout.get_layout_bytestream(), layout.get_buffsize(), 1,F_video_rx);
+//            //FI CAPTURA
+
 			
 			pthread_rwlock_rdlock(&dst_p_list->lock);
 
@@ -93,7 +105,7 @@ void mixer::init(int layout_width, int layout_height, int max_streams, uint32_t 
 	layout.init(layout_width, layout_height, PIX_FMT_RGB24, max_streams);
 	src_p_list = init_participant_list();
 	dst_p_list = init_participant_list();
-	reciever = init_reciever(src_p_list, in_port);
+	receiver = init_receiver(src_p_list, in_port);
 	_in_port = in_port;
 	_out_port = out_port;
 	dst_counter = 0;
@@ -101,7 +113,7 @@ void mixer::init(int layout_width, int layout_height, int max_streams, uint32_t 
 }
 
 void mixer::exec(){
-	start_reciever(reciever);
+	start_receiver(receiver);
 	start_out_manager(dst_p_list);
 	pthread_create(&thread, NULL, mixer::execute_run, this);
 }
@@ -119,16 +131,14 @@ int mixer::add_source(uint32_t width, uint32_t height, codec_t codec){
 	pthread_rwlock_wrlock(&src_p_list->lock);
 	int ret = add_participant(src_p_list, id, width, height, codec, NULL, 0, INPUT);
 	pthread_rwlock_unlock(&src_p_list->lock);
+	//printf("Stream introduced succesfully: %u\n", layout.get_max_streams());
 	return ret;
 }
 
 int mixer::remove_source(uint32_t id){
 	layout.remove_stream(id);
-	printf("Just after removing stream\n");
 	pthread_rwlock_wrlock(&src_p_list->lock);
-	printf("Just before removing participant\n");
 	int ret = remove_participant(src_p_list, id);
-	printf("Just after removing participant\n");
 	pthread_rwlock_unlock(&src_p_list->lock);
 	return ret;
 }

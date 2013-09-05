@@ -12,7 +12,7 @@
 #include <stdint.h>
 #include "layout.h"
 extern "C"{
-	#include "reciever.h"
+	#include "receiver.h"
 }
 
 
@@ -21,7 +21,7 @@ using namespace std;
 class mixer {
 
 		pthread_t thread;
-		reciever_t *reciever;
+		receiver_t *receiver;
 		participant_list *src_p_list;
 		participant_list *dst_p_list;
 		Layout layout;

@@ -6,8 +6,8 @@ extern "C" {
 	#include <libavutil/avutil.h>
 }
 #include <pthread.h>
-#include "include/stream.h"
-#include "include/layout.h"
+#include "stream.h"
+#include "layout.h"
 #include <math.h>
 #include <iostream>
 #include <assert.h>

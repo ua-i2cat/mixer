@@ -6,7 +6,7 @@ extern "C" {
 	#include <libavutil/avutil.h>
 }
 #include <pthread.h>
-#include "include/stream.h"
+#include "stream.h"
 #include <iostream>
 #include <stdio.h>
 

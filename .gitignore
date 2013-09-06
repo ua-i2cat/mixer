@@ -2,6 +2,16 @@
 *.so
 controller
 
+lib
+bin
+
+*.lo
+*.la
+.libs
+.deps
+Makefile
+Makefile.in
+
 ug-modules
 
 Makefile2

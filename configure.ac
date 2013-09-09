@@ -4,12 +4,14 @@
 AC_PREREQ([2.68])
 AC_INIT([rtpMixer], [0.1], [BUG-REPORT-ADDRESS])
 
+AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE([subdir-objects],[controller], [0.1])
 LT_INIT
 
 # Checks for programs.
 AC_PROG_CXX
 AC_PROG_CC
+AM_PROG_CC_C_O
 
 # Checks for libraries.
 # FIXME: Replace `main' with a function in `-lavcodec':
@@ -42,4 +44,4 @@ AC_FUNC_MALLOC
 AC_FUNC_REALLOC
 AC_CHECK_FUNCS([floor gettimeofday])
 
-AC_OUTPUT([Makefile])
+AC_OUTPUT([Makefile libmixer/Makefile])

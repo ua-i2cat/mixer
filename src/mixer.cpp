@@ -9,7 +9,7 @@
 #include "mixer.h"
 #include <sys/time.h>
 extern "C"{
-	#include "transmitter.h"
+	#include <io_mngr/transmitter.h>
 }
 
 using namespace std;

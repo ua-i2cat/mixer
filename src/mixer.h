@@ -12,7 +12,7 @@
 #include <stdint.h>
 #include "layout.h"
 extern "C"{
-	#include <io_mngr/receiver.h>
+	#include <ug-modules/io_mngr/receiver.h>
 }
 
 

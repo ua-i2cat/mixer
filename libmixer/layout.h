@@ -60,7 +60,7 @@ class Layout {
     	int get_h();
     	AVFrame* get_lay_frame();
     	Stream* get_stream(int stream_id);
-    	int get_active_streams();
+    	std::vector<int> get_streams_id();
     	unsigned int get_buffsize();
     	int get_max_streams();
     	void print_active_stream_info();

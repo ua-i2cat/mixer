@@ -10,31 +10,23 @@
 
 #include <pthread.h>
 #include <stdint.h>
+#include <map>
+#include <string>
 #include "layout.h"
 extern "C"{
-	#include <ug-modules/io_mngr/receiver.h>
+	#include <ug-modules/src/io_mngr/receiver.h>
 }
 
 
 using namespace std;
 
 class mixer {
-
-		pthread_t thread;
-		receiver_t *receiver;
-		participant_list *src_p_list;
-		participant_list *dst_p_list;
-		Layout layout;
-		bool should_stop;
-		uint32_t dst_counter;
-		int max_frame_rate;
-		uint32_t _in_port;
-		uint32_t _out_port;
-
-		static mixer* mixer_instance;
-		mixer();
-
 	public:
+		struct Dst{
+			char *ip;
+			int port;
+		};
+
 		static mixer* get_instance();
 		void init(int layout_width, int layout_height, int max_streams, uint32_t in_port, uint32_t out_port);
 		void exec();
@@ -47,8 +39,29 @@ class mixer {
 		int resize_output (int width, int height, bool resize_streams);
 		void change_max_framerate(int frame_rate);
 		void show_stream_info();
+		void get_stream_info(std::map<string, int> &str_map, int id);
+		int get_destination(int id, std::string &ip, int *port);
+		std::vector<int> get_streams_id();
+		map<uint32_t, Dst> get_destinations();
 		void* run(void);
 		static void* execute_run(void *context);
+
+	private:
+		pthread_t thread;
+		receiver_t *receiver;
+		participant_list *src_p_list;
+		participant_list *dst_p_list;
+		Layout layout;
+		bool should_stop;
+		uint32_t dst_counter;
+		int max_frame_rate;
+		uint32_t _in_port;
+		uint32_t _out_port;
+
+		map<uint32_t, Dst> destinations;
+
+		static mixer* mixer_instance;
+		mixer();
 
 
 };

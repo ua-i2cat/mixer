@@ -722,8 +722,8 @@ Stream* Layout::get_stream(int stream_id){
 	return streams[stream_id];
 }
 
-int Layout::get_active_streams(){
-	return active_streams_id.size();
+std::vector<int> Layout::get_streams_id(){
+	return active_streams_id;
 }
 
 void Layout::print_active_stream_id(){

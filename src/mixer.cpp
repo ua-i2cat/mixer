@@ -6,10 +6,12 @@
  */
 
 #include <iostream>
+#include <map>
+#include <string>
 #include "mixer.h"
 #include <sys/time.h>
 extern "C"{
-	#include <ug-modules/io_mngr/transmitter.h>
+	#include <ug-modules/src/io_mngr/transmitter.h>
 }
 
 using namespace std;
@@ -131,7 +133,6 @@ int mixer::add_source(uint32_t width, uint32_t height, codec_t codec){
 	pthread_rwlock_wrlock(&src_p_list->lock);
 	int ret = add_participant(src_p_list, id, width, height, codec, NULL, 0, INPUT);
 	pthread_rwlock_unlock(&src_p_list->lock);
-	//printf("Stream introduced succesfully: %u\n", layout.get_max_streams());
 	return ret;
 }
 
@@ -146,6 +147,10 @@ int mixer::remove_source(uint32_t id){
 int mixer::add_destination(codec_t codec, char *ip, uint32_t port){
 	pthread_rwlock_wrlock(&dst_p_list->lock);
 	int ret =  add_participant(dst_p_list, dst_counter++, layout.get_w(), layout.get_h(), codec, ip, port, OUTPUT);
+	if(ret != -1){
+		Dst dest = {ip,port};
+		destinations[dst_counter] = dest; 
+	}
 	pthread_rwlock_unlock(&dst_p_list->lock);
 	return ret;
 }
@@ -153,6 +158,9 @@ int mixer::add_destination(codec_t codec, char *ip, uint32_t port){
 int mixer::remove_destination(uint32_t id){
 	pthread_rwlock_wrlock(&dst_p_list->lock);
 	int ret = remove_participant(dst_p_list, id);
+	if(ret != -1){
+		destinations.erase(id); 
+	}
 	pthread_rwlock_unlock(&dst_p_list->lock);
 	return ret;
 }
@@ -167,6 +175,37 @@ int mixer::resize_output (int width, int height, bool resize_streams){
 
 void mixer::change_max_framerate(int frame_rate){
 	max_frame_rate = frame_rate;
+}
+
+void mixer::get_stream_info(std::map<string, int> &str_map, int id){
+	str_map["id"] = id;
+	str_map["orig_width"] = layout.get_stream(id)->get_orig_w();
+	str_map["orig_height"] = layout.get_stream(id)->get_orig_h();
+	str_map["width"] = layout.get_stream(id)->get_curr_w();
+	str_map["height"] = layout.get_stream(id)->get_curr_h();
+	str_map["x"] = layout.get_stream(id)->get_x_pos();
+	str_map["y"] = layout.get_stream(id)->get_y_pos();
+	str_map["layer"] = layout.get_stream(id)->get_layer();
+	//str_map["active"] = layout.get_stream(id)->is_active();
+	str_map["active"] = true;
+}
+
+std::vector<int> mixer::get_streams_id(){
+	return layout.get_streams_id();
+}
+
+int mixer::get_destination(int id, std::string &ip, int *port){
+	if(destinations.count(id)>0){
+		ip = destinations[id].ip;
+		*port = destinations[id].port;
+		return 0;
+	}
+	return -1;
+}
+
+map<uint32_t, mixer::Dst> mixer::get_destinations(){
+	return destinations;
+
 }
 
 mixer::mixer(){}

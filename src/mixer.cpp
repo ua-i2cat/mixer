@@ -91,8 +91,6 @@ void* mixer::run(void) {
 			}
 
 			pthread_rwlock_unlock(&dst_p_list->lock);
-			
-			notify_out_manager();
 		}
         
 		have_new_frame = false;
@@ -116,7 +114,7 @@ void mixer::init(int layout_width, int layout_height, int max_streams, uint32_t 
 
 void mixer::exec(){
 	start_receiver(receiver);
-	start_out_manager(dst_p_list);
+	start_out_manager(dst_p_list, 15);
 	pthread_create(&thread, NULL, mixer::execute_run, this);
 }
 

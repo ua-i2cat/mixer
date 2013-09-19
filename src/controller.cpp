@@ -75,17 +75,19 @@ int main(int argc, char *argv[]){
         root_response.Clear();
         n = read(newsockfd,buffer,255);
         if (n < 0) error("ERROR reading from socket");
-        std::cout << "Buffer_in:" << buffer << std::endl;
-        parser.SetJson(buffer);
-        if (!parser.Parse()) {
-            std::cout << "Error: " << parser.GetError() << std::endl;
-        }else { 
-            commands[rootNode.Get("action").ToString()](rootNode, &root_response);
-            writer.Write();
-            result = writer.GetResult();
-            std::cout << "Result:" << result << std::endl;
-            res = result.c_str();
-            n = write(newsockfd,res,result.size());
+        if (n != 0) {
+            std::cout << "Buffer_in:" << buffer << std::endl;
+            parser.SetJson(buffer);
+            if (!parser.Parse()) {
+                std::cout << "Error: " << parser.GetError() << std::endl;
+            }else { 
+                commands[rootNode.Get("action").ToString()](rootNode, &root_response);
+                writer.Write();
+                result = writer.GetResult();
+                std::cout << "Result:" << result << std::endl;
+                res = result.c_str();
+                n = write(newsockfd,res,result.size());
+            }
         }
     }
 
@@ -147,7 +149,8 @@ void start_mixer(Jzon::Object rootNode, Jzon::Object *outRootNode){
     printf("m->init(%d, %d, %d, %d, %d);\nm->exec()\n", 
         width, height, max_streams, in_port, out_port);
     m->init(width, height, max_streams, in_port, out_port); 
-    m->exec();   
+    m->exec();
+    outRootNode->Add("error", Jzon::null);   
 }
 
 void stop_mixer(Jzon::Object rootNode, Jzon::Object *outRootNode){

@@ -44,6 +44,7 @@ void exit_mixer(Jzon::Object rootNode, Jzon::Object *outRootNode);
 void initialize_action_mapping();
 int get_socket(int port, int *sock);
 int listen_socket(int sock, int *newsock);
+int check_stream_id(int id);
 
 std::map<std::string, void(*)(Jzon::Object, Jzon::Object*)> commands;
 Jzon::Object rootNode, root_response;
@@ -274,21 +275,24 @@ void get_streams(Jzon::Object rootNode, Jzon::Object *outRootNode){
 
 void get_stream(Jzon::Object rootNode, Jzon::Object *outRootNode){
     int id = rootNode.Get("params").Get("id").ToInt();
-    std::map<std::string, int> stream_map;
-    m->get_stream_info(stream_map, id);
-    outRootNode->Add("id", stream_map["id"]);
-    outRootNode->Add("orig_width", stream_map["orig_width"]);
-    outRootNode->Add("orig_height", stream_map["orig_height"]);
-    outRootNode->Add("width", stream_map["width"]);
-    outRootNode->Add("height", stream_map["height"]);
-    outRootNode->Add("x", stream_map["x"]);
-    outRootNode->Add("y", stream_map["y"]);
-    outRootNode->Add("layer", stream_map["layer"]);
-    outRootNode->Add("active", stream_map["active"]);
+    if (check_stream_id(id) == -1){
+    	outRootNode->Add("error", "Introduced ID doesn't match any mixer stream ID");
+    } else {
+    	std::map<std::string, int> stream_map;
+    	m->get_stream_info(stream_map, id);
+    	outRootNode->Add("id", stream_map["id"]);
+    	outRootNode->Add("orig_width", stream_map["orig_width"]);
+    	outRootNode->Add("orig_height", stream_map["orig_height"]);
+    	outRootNode->Add("width", stream_map["width"]);
+    	outRootNode->Add("height", stream_map["height"]);
+    	outRootNode->Add("x", stream_map["x"]);
+    	outRootNode->Add("y", stream_map["y"]);
+    	outRootNode->Add("layer", stream_map["layer"]);
+    	outRootNode->Add("active", stream_map["active"]);
+    }
 }
 
 void get_destinations(Jzon::Object rootNode, Jzon::Object *outRootNode){
-    int i;
     Jzon::Array list;
     map<uint32_t, mixer::Dst> dst_map = m->get_destinations();
     std::map<uint32_t,mixer::Dst>::iterator it;
@@ -315,6 +319,17 @@ void get_destination(Jzon::Object rootNode, Jzon::Object *outRootNode){
         outRootNode->Add("ip", ip);
         outRootNode->Add("port", port);
     }
+}
+
+int check_stream_id(int id){
+	int i;
+	std::vector<int> streams_id = m->get_streams_id();
+	for (i=0; i<streams_id.size(); i++){
+		if (streams_id[i] == id){
+			return 0;
+		}
+	}
+	return -1;
 }
 
 void exit_mixer(Jzon::Object rootNode, Jzon::Object *outRootNode){

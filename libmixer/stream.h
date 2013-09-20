@@ -30,6 +30,7 @@ class Stream {
 		unsigned int buffsize, in_buffsize;
 		uint8_t *buffer, *dummy_buffer, *in_buffer;
 		struct SwsContext *ctx;
+		uint8_t active;
 
 	public:
 		Stream(int identifier, pthread_t thr, pthread_rwlock_t* lock);
@@ -86,6 +87,8 @@ class Stream {
 		void set_stream_to_default();
 		struct SwsContext* get_ctx();
 		void set_ctx(struct SwsContext *context);
+		uint8_t get_active();
+		void set_active(uint8_t active_flag);
 
 
 		void *resize(void);

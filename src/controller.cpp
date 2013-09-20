@@ -221,14 +221,30 @@ void modify_layout(Jzon::Object rootNode, Jzon::Object *outRootNode){
 
 void enable_stream(Jzon::Object rootNode, Jzon::Object *outRootNode){
     int id = rootNode.Get("params").Get("id").ToInt();
-    outRootNode->Add("error", Jzon::null);
-    printf("m->enable_stream(%d)\n", id);
+    if (check_stream_id(id) == -1){
+        outRootNode->Add("error", "Introduced ID doesn't match any mixer stream ID");
+    } else {
+        if(m->set_stream_active(id, 1) == -1){
+            outRootNode->Add("error", "Error enabling stream");
+        } else {
+            outRootNode->Add("error", Jzon::null);
+            printf("m->set_stream_active(%d, 1)\n", id);
+        }
+    }
 }
 
 void disable_stream(Jzon::Object rootNode, Jzon::Object *outRootNode){
     int id = rootNode.Get("params").Get("id").ToInt();
-    outRootNode->Add("error", Jzon::null);
-    printf("m->disable_stream(%d)\n", id);
+    if (check_stream_id(id) == -1){
+        outRootNode->Add("error", "Introduced ID doesn't match any mixer stream ID");
+    } else {
+        if(m->set_stream_active(id, 0) == -1){
+            outRootNode->Add("error", "Error enabling stream");
+        } else {
+            outRootNode->Add("error", Jzon::null);
+            printf("m->set_stream_active(%d, 0)\n", id);
+        }
+    }
 }
 
 void add_destination(Jzon::Object rootNode, Jzon::Object *outRootNode){

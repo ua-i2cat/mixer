@@ -222,11 +222,10 @@ int Layout::merge_frames(){
 		for (i=0; i<max_layers; i++){
 			pthread_rwlock_wrlock(&resize_rwlock);
 			for (j=0; j<(int)active_streams_id.size(); j++){
-				if (i==streams[active_streams_id[j]]->get_layer() &&
+				if (i==streams[active_streams_id[j]]->get_layer() && streams[active_streams_id[j]]->get_active() == 1 &&
 						streams[active_streams_id[j]]->get_x_pos()<lay_width && streams[active_streams_id[j]]->get_y_pos()<lay_height){
 
 					stream = streams[active_streams_id[j]];
-//TODO:Implementar sistema de saber streams actius
 
 					print_frame(stream->get_x_pos(), stream->get_y_pos(), stream->get_curr_w(),
 						stream->get_curr_h(), stream->get_current_frame(), layout_frame);
@@ -251,8 +250,9 @@ int Layout::merge_frames(){
 		for (i=0; i<max_layers; i++){
 			pthread_rwlock_wrlock(&resize_rwlock);
 			for (j=0; j<(int)active_streams_id.size(); j++){
-				if (i==streams[active_streams_id[j]]->get_layer() && streams[active_streams_id[j]]->get_needs_displaying()
-						&& streams[active_streams_id[j]]->get_x_pos()<lay_width && streams[active_streams_id[j]]->get_y_pos()<lay_height){
+				if (i==streams[active_streams_id[j]]->get_layer() && streams[active_streams_id[j]]->get_needs_displaying()  &&
+						streams[active_streams_id[j]]->get_active() == 1 && streams[active_streams_id[j]]->get_x_pos()<lay_width && 
+							streams[active_streams_id[j]]->get_y_pos()<lay_height){
 
 					stream = streams[active_streams_id[j]];
 
@@ -315,6 +315,7 @@ int Layout::introduce_stream (int orig_w, int orig_h, enum AVPixelFormat orig_cp
 	streams[id]->set_x_pos(x);
 	streams[id]->set_y_pos(y);
 	streams[id]->set_layer(layer);
+	streams[id]->set_active(1);
 
 	//Generate AVFrame structures
 	streams[id]->set_in_buffsize(avpicture_get_size(streams[id]->get_orig_cp(), streams[id]->get_orig_w(), streams[id]->get_orig_h()) * sizeof(uint8_t));
@@ -509,15 +510,6 @@ int Layout::remove_stream (int stream_id){
 
 	pthread_rwlock_wrlock(&resize_rwlock);
 	print_frame(streams[id]->get_x_pos(), streams[id]->get_y_pos(), streams[id]->get_curr_w(), streams[id]->get_curr_h(), streams[id]->get_dummy_frame(), layout_frame);
-//	if (streams[id]->get_orig_frame() == streams[id]->get_current_frame()){
-//		avcodec_get_frame_defaults(streams[id]->get_orig_frame());
-//		avcodec_get_frame_defaults(streams[id]->get_dummy_frame());
-//		free(streams[id]->get_buffer());
-//		free(streams[id]->get_dummy_buffer());
-//		free(streams[id]->get_in_buffer());
-//	} else {
-
-//	}
 
 	//Update stream id arrays
 	for (i=0; i<=(int)active_streams_id.size(); i++){
@@ -527,7 +519,7 @@ int Layout::remove_stream (int stream_id){
 		}
 	}
 
-	pthread_rwlock_wrlock(&resize_rwlock);
+	pthread_rwlock_unlock(&resize_rwlock);
 
 	streams[id]->set_stream_to_default();
 
@@ -548,6 +540,29 @@ uint8_t* Layout::get_layout_bytestream(){
 	avpicture_layout((AVPicture *)layout_frame, lay_colorspace, lay_width, lay_height, out_buffer, lay_buffsize);
 	pthread_rwlock_unlock(&resize_rwlock);
 	return out_buffer;
+}
+
+int Layout::set_active(int stream_id, uint8_t active_flag){
+	int id;
+	id = check_active_stream (stream_id);
+	if (id==-1){
+		return -1; //selected stream is not active
+	}
+
+	pthread_rwlock_wrlock(&resize_rwlock);
+	if (active_flag == 1){ //enable stream
+		streams[id]->set_active(1);
+		pthread_rwlock_unlock(&resize_rwlock);
+		return 0;
+	} else if (active_flag == 0){ //disable stream
+		print_frame(streams[id]->get_x_pos(), streams[id]->get_y_pos(), streams[id]->get_curr_w(), streams[id]->get_curr_h(), streams[id]->get_dummy_frame(), layout_frame);
+		streams[id]->set_active(0);
+		pthread_rwlock_unlock(&resize_rwlock);
+		return 0;
+	} else {
+		pthread_rwlock_unlock(&resize_rwlock);
+		return -1;
+	}
 }
 
 bool Layout::check_overlap(){

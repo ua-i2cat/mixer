@@ -43,6 +43,7 @@ class mixer {
 		int get_destination(int id, std::string &ip, int *port);
 		std::vector<int> get_streams_id();
 		map<uint32_t, Dst> get_destinations();
+		int set_stream_active(int id, uint8_t active_flag);
 		void* run(void);
 		static void* execute_run(void *context);
 

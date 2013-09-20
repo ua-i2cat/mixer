@@ -203,7 +203,12 @@ int mixer::get_destination(int id, std::string &ip, int *port){
 
 map<uint32_t, mixer::Dst> mixer::get_destinations(){
 	return destinations;
+}
 
+int mixer::set_stream_active(int id, uint8_t active_flag){
+	//get_participant_id(src_p_list, id)->set_active(active_flag)
+	layout.set_active(id, active_flag);
+	return 0;
 }
 
 mixer::mixer(){}

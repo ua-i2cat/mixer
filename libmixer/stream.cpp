@@ -21,6 +21,7 @@ Stream::Stream(int identifier, pthread_t thr, pthread_rwlock_t* lock){
 	x_pos = 0;
 	y_pos = 0;
 	layer = 0;
+	active = 0;
 	orig_cp = PIX_FMT_NONE;
 	curr_cp = PIX_FMT_RGB24;
 	needs_displaying = false;
@@ -61,18 +62,6 @@ void* Stream::resize(void){
 #endif
 
 		pthread_rwlock_rdlock(stream_resize_rwlock_ref);
-		//Check if frame needs resizing
-//		if (orig_w == curr_w && orig_h == curr_h && orig_cp == curr_cp){
-//				curr_frame = orig_frame;  //Pointer curr_frame now points to orig_frame
-//
-//		}else{
-//			if (curr_frame == orig_frame){
-//				curr_frame = avcodec_alloc_frame();
-//				buffsize = avpicture_get_size(curr_cp, curr_w, curr_h) * 10 * sizeof(uint8_t);
-//				free(buffer);
-//				buffer = (uint8_t*)malloc(buffsize);
-//				avpicture_fill((AVPicture *)curr_frame, buffer, curr_cp, curr_w, curr_h);
-//			}
             
 			//Scale
 			sws_scale(
@@ -84,8 +73,6 @@ void* Stream::resize(void){
 				curr_frame->data,
 				curr_frame->linesize
 			);
-
-//		}
 
 		pthread_rwlock_unlock(stream_resize_rwlock_ref);
 
@@ -334,6 +321,14 @@ struct SwsContext* Stream::get_ctx(){
 
 void Stream::set_ctx(struct SwsContext *context){
 	ctx = context;
+}
+
+uint8_t Stream::get_active(){
+	return active;
+}
+
+void Stream::set_active(uint8_t active_flag){
+	active = active_flag;
 }
 
 

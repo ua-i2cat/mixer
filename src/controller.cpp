@@ -42,7 +42,8 @@ void get_destinations(Jzon::Object rootNode, Jzon::Object *outRootNode);
 void get_destination(Jzon::Object rootNode, Jzon::Object *outRootNode);
 void exit_mixer(Jzon::Object rootNode, Jzon::Object *outRootNode);
 void initialize_action_mapping();
-int get_socket(int port, int *sock, int *new_sock);
+int get_socket(int port, int *sock);
+int listen_socket(int sock, int *newsock);
 
 std::map<std::string, void(*)(Jzon::Object, Jzon::Object*)> commands;
 Jzon::Object rootNode, root_response;
@@ -64,39 +65,39 @@ int main(int argc, char *argv[]){
     }
 
     portno = atoi(argv[1]);
-    get_socket(portno, &sockfd, &newsockfd);
+    get_socket(portno, &sockfd);
 
     initialize_action_mapping();
     m = mixer::get_instance();
 
     while(!should_stop){
-        bzero(buffer,256);
-        rootNode.Clear();
-        root_response.Clear();
-        n = read(newsockfd,buffer,255);
-        if (n < 0) error("ERROR reading from socket");
-        std::cout << "Buffer_in:" << buffer << std::endl;
-        parser.SetJson(buffer);
-        if (!parser.Parse()) {
-            std::cout << "Error: " << parser.GetError() << std::endl;
-        }else { 
-            commands[rootNode.Get("action").ToString()](rootNode, &root_response);
-            writer.Write();
-            result = writer.GetResult();
-            std::cout << "Result:" << result << std::endl;
-            res = result.c_str();
-            n = write(newsockfd,res,result.size());
-        }
+    	if (listen_socket(sockfd, &newsockfd) == 0){
+    		bzero(buffer,256);
+        	rootNode.Clear();
+        	root_response.Clear();
+        	n = read(newsockfd,buffer,255);
+        	if (n < 0) error("ERROR reading from socket");
+        	std::cout << "Buffer_in:" << buffer << std::endl;
+        	parser.SetJson(buffer);
+        	if (!parser.Parse()) {
+            	std::cout << "Error: " << parser.GetError() << std::endl;
+        	}else { 
+            	commands[rootNode.Get("action").ToString()](rootNode, &root_response);
+            	writer.Write();
+            	result = writer.GetResult();
+            	std::cout << "Result:" << result << std::endl;
+            	res = result.c_str();
+            	n = write(newsockfd,res,result.size());
+        	}
+        close(newsockfd);
+    	}
     }
-
-     close(newsockfd);
-     close(sockfd);
-     return 0; 
+    close(sockfd);
+    return 0; 
  }
 
-int get_socket(int port, int *sock, int *new_sock){
-    socklen_t clilen;
-    struct sockaddr_in serv_addr, cli_addr;
+int get_socket(int port, int *sock){
+    struct sockaddr_in serv_addr;
 
     *sock = socket(AF_INET, SOCK_STREAM, 0);
     if (*sock < 0) 
@@ -108,15 +109,20 @@ int get_socket(int port, int *sock, int *new_sock){
     if (bind(*sock, (struct sockaddr *) &serv_addr,
              sizeof(serv_addr)) < 0) 
              error("ERROR on binding");
-    listen(*sock,1);
-    clilen = sizeof(cli_addr);
-    *new_sock = accept(*sock, 
-                (struct sockaddr *) &cli_addr, 
-                &clilen);
-    if (*new_sock < 0) 
-         error("ERROR on accept");
 
-     return 0;
+    return 0;     
+}
+
+int listen_socket(int sock, int *newsock) {
+	socklen_t clilen;
+	struct sockaddr cli_addr;
+	listen(sock,5);
+    clilen = sizeof(cli_addr);
+    *newsock = accept(sock, (struct sockaddr *) &cli_addr, &clilen);
+    if (*newsock < 0) 
+        return -1;
+
+    return 0;
 }
 
 

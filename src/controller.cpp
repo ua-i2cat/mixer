@@ -153,7 +153,8 @@ void start_mixer(Jzon::Object rootNode, Jzon::Object *outRootNode){
     printf("m->init(%d, %d, %d, %d, %d);\nm->exec()\n", 
         width, height, max_streams, in_port, out_port);
     m->init(width, height, max_streams, in_port, out_port); 
-    m->exec();   
+    m->exec();
+    outRootNode->Add("error", Jzon::null);   
 }
 
 void stop_mixer(Jzon::Object rootNode, Jzon::Object *outRootNode){

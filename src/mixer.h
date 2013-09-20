@@ -31,7 +31,7 @@ class mixer {
 		void init(int layout_width, int layout_height, int max_streams, uint32_t in_port, uint32_t out_port);
 		void exec();
 		void stop();
-		int add_source(uint32_t width, uint32_t height, codec_t codec);
+		int add_source(int width, int height, int new_w, int new_h, int x, int y, int layer, codec_t codec);
 		int remove_source(uint32_t id);
 		int add_destination(codec_t codec, char *ip, uint32_t port);
 		int remove_destination(uint32_t id);

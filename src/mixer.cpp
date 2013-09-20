@@ -122,8 +122,8 @@ void mixer::stop(){
 	should_stop = true;
 }
 
-int mixer::add_source(uint32_t width, uint32_t height, codec_t codec){
-	int id = layout.introduce_stream(width, height, PIX_FMT_RGB24, width, height, 0, 0, PIX_FMT_RGB24, 0);
+int mixer::add_source(int width, int height, int new_w, int new_h, int x, int y, int layer, codec_t codec){
+	int id = layout.introduce_stream(width, height, PIX_FMT_RGB24, new_w, new_h, x, y, PIX_FMT_RGB24, layer);
 	if (id == -1){
 		printf("You have reached the max number of simultaneous streams in the Mixer: %u\n", layout.get_max_streams());
 		return -1;

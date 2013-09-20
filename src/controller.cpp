@@ -167,7 +167,12 @@ void stop_mixer(Jzon::Object rootNode, Jzon::Object *outRootNode){
 void add_stream(Jzon::Object rootNode, Jzon::Object *outRootNode){
     int width = rootNode.Get("params").Get("width").ToInt();
     int height = rootNode.Get("params").Get("height").ToInt();
-    if (m->add_source(width, height, H264) == -1){
+    int new_w = rootNode.Get("params").Get("new_w").ToInt();
+    int new_h = rootNode.Get("params").Get("new_h").ToInt();
+    int x = rootNode.Get("params").Get("x").ToInt();
+    int y = rootNode.Get("params").Get("y").ToInt();
+    int layer = rootNode.Get("params").Get("layer").ToInt();
+    if (m->add_source(width, height, new_w, new_h, x, y, layer, H264) == -1){
         outRootNode->Add("error", "errore");
     }else {
         outRootNode->Add("error", Jzon::null);

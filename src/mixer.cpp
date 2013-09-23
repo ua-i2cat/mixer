@@ -184,8 +184,7 @@ void mixer::get_stream_info(std::map<string, int> &str_map, int id){
 	str_map["x"] = layout.get_stream(id)->get_x_pos();
 	str_map["y"] = layout.get_stream(id)->get_y_pos();
 	str_map["layer"] = layout.get_stream(id)->get_layer();
-	//str_map["active"] = layout.get_stream(id)->is_active();
-	str_map["active"] = true;
+	str_map["active"] = layout.get_stream(id)->get_active();
 }
 
 std::vector<int> mixer::get_streams_id(){

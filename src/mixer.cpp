@@ -205,7 +205,7 @@ map<uint32_t, mixer::Dst> mixer::get_destinations(){
 }
 
 int mixer::set_stream_active(int id, uint8_t active_flag){
-	//get_participant_id(src_p_list, id)->set_active(active_flag)
+	set_active_participant(get_participant_id(src_p_list, id), active_flag);
 	layout.set_active(id, active_flag);
 	return 0;
 }

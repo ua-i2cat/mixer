@@ -143,6 +143,7 @@ void initialize_action_mapping() {
     commands["get_stream"] = get_stream;
     commands["get_destinations"] = get_destinations;
     commands["get_destination"] = get_destination;
+    commands["get_layout"] = get_layout;
     commands["exit_mixer"] = exit_mixer;
 }
 

@@ -40,6 +40,7 @@ void get_streams(Jzon::Object rootNode, Jzon::Object *outRootNode);
 void get_stream(Jzon::Object rootNode, Jzon::Object *outRootNode);
 void get_destinations(Jzon::Object rootNode, Jzon::Object *outRootNode);
 void get_destination(Jzon::Object rootNode, Jzon::Object *outRootNode);
+void get_layout(Jzon::Object rootNode, Jzon::Object *outRootNode);
 void exit_mixer(Jzon::Object rootNode, Jzon::Object *outRootNode);
 void initialize_action_mapping();
 int get_socket(int port, int *sock);
@@ -339,6 +340,16 @@ void get_destination(Jzon::Object rootNode, Jzon::Object *outRootNode){
         outRootNode->Add("id", id);
         outRootNode->Add("ip", ip);
         outRootNode->Add("port", port);
+    }
+}
+
+void get_layout(Jzon::Object rootNode, Jzon::Object *outRootNode){
+    int width, height;
+    if (m->get_layout_size(&width, &height) == 0){
+        outRootNode->Add("width", width);
+        outRootNode->Add("height", height);
+    } else {
+        outRootNode->Add("error", "Error while getting layout size");
     }
 }
 

@@ -210,6 +210,12 @@ int mixer::set_stream_active(int id, uint8_t active_flag){
 	return 0;
 }
 
+int mixer::get_layout_size(int *width, int *height){
+	*width = layout.get_w();
+    *height = layout.get_h();
+    return 0;
+}
+
 mixer::mixer(){}
 
 mixer* mixer::get_instance(){

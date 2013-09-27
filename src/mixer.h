@@ -44,6 +44,7 @@ class mixer {
 		std::vector<int> get_streams_id();
 		map<uint32_t, Dst> get_destinations();
 		int set_stream_active(int id, uint8_t active_flag);
+		int get_layout_size(int *width, int *height);
 		void* run(void);
 		static void* execute_run(void *context);
 

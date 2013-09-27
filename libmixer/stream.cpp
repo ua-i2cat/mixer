@@ -41,6 +41,16 @@ Stream::Stream(int identifier, pthread_t thr, pthread_rwlock_t* lock){
 
 }
 
+Stream::~Stream(){
+	avcodec_free_frame(&orig_frame);
+	avcodec_free_frame(&curr_frame);
+	avcodec_free_frame(&dummy_frame);
+	free(buffer);
+	free(dummy_buffer);
+	free(in_buffer);
+	sws_freeContext(ctx);
+}
+
 
 void* Stream::resize(void){
 

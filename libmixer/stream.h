@@ -34,6 +34,7 @@ class Stream {
 
 	public:
 		Stream(int identifier, pthread_t thr, pthread_rwlock_t* lock);
+		~Stream();
 		int get_id();
 		void set_id(int set_id);
 		int get_orig_w();

@@ -781,3 +781,13 @@ void Layout::print_active_stream_info(){
 		printf("Layer: %d\n\n", stream->get_layer());
 	}
 }
+
+Layout::~Layout(){
+  int i;
+  for (i=0; i<streams.size(); i++){
+  	delete streams[i];
+  }
+  avcodec_free_frame(&layout_frame);
+  free(lay_buffer);
+  free(out_buffer);
+}

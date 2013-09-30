@@ -279,22 +279,28 @@ void get_streams(Jzon::Object rootNode, Jzon::Object *outRootNode){
     int i;
     Jzon::Array list;
     std::vector<int> streams_id = m->get_streams_id();
-    for (i=0; i<streams_id.size(); i++){
-        Jzon::Object stream;
-        std::map<std::string, int> stream_map;
-        m->get_stream_info(stream_map, streams_id[i]);
-        stream.Add("id", stream_map["id"]);
-        stream.Add("orig_width", stream_map["orig_width"]);
-        stream.Add("orig_height", stream_map["orig_height"]);
-        stream.Add("width", stream_map["width"]);
-        stream.Add("height", stream_map["height"]);
-        stream.Add("x", stream_map["x"]);
-        stream.Add("y", stream_map["y"]);
-        stream.Add("layer", stream_map["layer"]);
-        stream.Add("active", stream_map["active"]);
-        list.Add(stream);
-    }
+    if(streams_id.empty()){
+        outRootNode->Add("error", "errore");
+    } else {
+        for (i=0; i<streams_id.size(); i++){
+            Jzon::Object stream;
+            std::map<std::string, int> stream_map;
+            m->get_stream_info(stream_map, streams_id[i]);
+            stream.Add("id", stream_map["id"]);
+            stream.Add("orig_width", stream_map["orig_width"]);
+            stream.Add("orig_height", stream_map["orig_height"]);
+            stream.Add("width", stream_map["width"]);
+            stream.Add("height", stream_map["height"]);
+            stream.Add("x", stream_map["x"]);
+            stream.Add("y", stream_map["y"]);
+            stream.Add("layer", stream_map["layer"]);
+            stream.Add("active", stream_map["active"]);
+            list.Add(stream);
+        }
+
     outRootNode->Add("streams", list);
+    }
+    
 }
 
 void get_stream(Jzon::Object rootNode, Jzon::Object *outRootNode){

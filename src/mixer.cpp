@@ -197,7 +197,7 @@ void mixer::get_stream_info(std::map<string, int> &str_map, int id){
 
 std::vector<int> mixer::get_streams_id(){
 	if (layout == NULL)
-		return -1;
+		return std::vector<int>();
 
 	return layout->get_streams_id();
 }

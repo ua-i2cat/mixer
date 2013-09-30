@@ -16,9 +16,6 @@ using namespace std;
 
 int Layout::init(int width, int height, enum PixelFormat colorspace, int max_str){
 
-#ifdef ENABLE_DEBUG
-	cout << "Layout initialization." << endl;
-#endif
 
 	//Check if width, height and color space are valid
 	if (!check_init_layout(width, height, colorspace, max_str)){

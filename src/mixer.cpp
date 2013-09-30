@@ -92,6 +92,7 @@ void* mixer::run(void) {
 }
 
 void mixer::init(int layout_width, int layout_height, int max_streams, uint32_t in_port, uint32_t out_port){
+	layout = new Layout();
 	layout->init(layout_width, layout_height, PIX_FMT_RGB24, max_streams);
 	src_p_list = init_participant_list();
 	dst_p_list = init_participant_list();
@@ -104,7 +105,7 @@ void mixer::init(int layout_width, int layout_height, int max_streams, uint32_t 
 
 void mixer::exec(){
 	start_receiver(receiver);
-	start_out_manager(dst_p_list, 10);
+	start_out_manager(dst_p_list, 15);
 	pthread_create(&thread, NULL, mixer::execute_run, this);
 }
 

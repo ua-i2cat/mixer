@@ -66,13 +66,13 @@ void* Stream::resize(void){
 		    pthread_cond_wait(&orig_frame_ready_cond, &orig_frame_ready_mutex);
 		}
 
-		if (should_stop){
-			break;
-		}
-
 		orig_frame_ready = false;
 		pthread_mutex_unlock(&orig_frame_ready_mutex);
 
+		if (should_stop){
+			break;
+		}
+		
 		pthread_rwlock_rdlock(stream_resize_rwlock_ref);
             
 			//Scale

@@ -104,7 +104,7 @@ void mixer::init(int layout_width, int layout_height, int max_streams, uint32_t 
 
 void mixer::exec(){
 	start_receiver(receiver);
-	start_out_manager(dst_p_list, 15);
+	start_out_manager(dst_p_list, 10);
 	pthread_create(&thread, NULL, mixer::execute_run, this);
 }
 

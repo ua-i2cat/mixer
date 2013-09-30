@@ -114,6 +114,9 @@ void mixer::stop(){
 }
 
 int mixer::add_source(int width, int height, int new_w, int new_h, int x, int y, int layer, codec_t codec){
+	if (layout == NULL)
+		return -1;
+
 	int id = layout->introduce_stream(width, height, PIX_FMT_RGB24, new_w, new_h, x, y, PIX_FMT_RGB24, layer);
 	if (id == -1){
 		printf("You have reached the max number of simultaneous streams in the Mixer: %u\n", layout->get_max_streams());
@@ -126,6 +129,8 @@ int mixer::add_source(int width, int height, int new_w, int new_h, int x, int y,
 }
 
 int mixer::remove_source(uint32_t id){
+	if (layout == NULL)
+		return -1;
 	layout->remove_stream(id);
 	pthread_rwlock_wrlock(&src_p_list->lock);
 	int ret = remove_participant(src_p_list, id);
@@ -134,6 +139,9 @@ int mixer::remove_source(uint32_t id){
 }
 
 int mixer::add_destination(codec_t codec, char *ip, uint32_t port){
+	if (layout == NULL)
+		return -1;
+
 	pthread_rwlock_wrlock(&dst_p_list->lock);
 	int ret =  add_participant(dst_p_list, dst_counter++, layout->get_w(), layout->get_h(), codec, ip, port, OUTPUT);
 	if(ret != -1){
@@ -145,6 +153,9 @@ int mixer::add_destination(codec_t codec, char *ip, uint32_t port){
 }
 
 int mixer::remove_destination(uint32_t id){
+	if (layout == NULL)
+		return -1;
+
 	pthread_rwlock_wrlock(&dst_p_list->lock);
 	int ret = remove_participant(dst_p_list, id);
 	if(ret != -1){
@@ -155,10 +166,16 @@ int mixer::remove_destination(uint32_t id){
 }
 
 int mixer::modify_stream (int id, int width, int height, int x, int y, int layer, bool keep_aspect_ratio){
+	if (layout == NULL)
+		return -1;
+
 	return layout->modify_stream(id, width, height, PIX_FMT_RGB24, x, y, layer, keep_aspect_ratio);
 }
 
 int mixer::resize_output (int width, int height, bool resize_streams){
+	if (layout == NULL)
+		return -1;
+
 	return layout->modify_layout(width,height, PIX_FMT_RGB24, resize_streams);
 }
 
@@ -179,6 +196,9 @@ void mixer::get_stream_info(std::map<string, int> &str_map, int id){
 }
 
 std::vector<int> mixer::get_streams_id(){
+	if (layout == NULL)
+		return -1;
+
 	return layout->get_streams_id();
 }
 
@@ -196,12 +216,18 @@ map<uint32_t, mixer::Dst> mixer::get_destinations(){
 }
 
 int mixer::set_stream_active(int id, uint8_t active_flag){
+	if (layout == NULL)
+		return -1;
+
 	set_active_participant(get_participant_id(src_p_list, id), active_flag);
 	layout->set_active(id, active_flag);
 	return 0;
 }
 
 int mixer::get_layout_size(int *width, int *height){
+	if (layout == NULL)
+		return -1;
+
 	*width = layout->get_w();
     *height = layout->get_h();
     return 0;

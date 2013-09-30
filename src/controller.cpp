@@ -148,6 +148,7 @@ void initialize_action_mapping() {
 }
 
 void start_mixer(Jzon::Object rootNode, Jzon::Object *outRootNode){
+    m = mixer::get_instance();
     int width = rootNode.Get("params").Get("width").ToInt();
     int height = rootNode.Get("params").Get("height").ToInt();
     int max_streams = rootNode.Get("params").Get("max_streams").ToInt();
@@ -163,7 +164,7 @@ void start_mixer(Jzon::Object rootNode, Jzon::Object *outRootNode){
 void stop_mixer(Jzon::Object rootNode, Jzon::Object *outRootNode){
     outRootNode->Add("error", Jzon::null);
     m->stop();
-    printf("m->stop()");  
+    delete m;
 }
 
 void add_stream(Jzon::Object rootNode, Jzon::Object *outRootNode){

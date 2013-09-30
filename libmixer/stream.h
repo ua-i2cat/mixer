@@ -22,7 +22,7 @@ class Stream {
 		int id, orig_w, orig_h, curr_w, curr_h, x_pos, y_pos, layer;
 		enum AVPixelFormat orig_cp, curr_cp;
 		AVFrame *orig_frame, *curr_frame, *dummy_frame;
-		bool needs_displaying, orig_frame_ready;
+		bool needs_displaying, orig_frame_ready, should_stop;
 		pthread_t thread;
 		pthread_mutex_t in_buffer_mutex, orig_frame_ready_mutex;
 		pthread_rwlock_t needs_displaying_rwlock, *stream_resize_rwlock_ref;
@@ -32,8 +32,10 @@ class Stream {
 		struct SwsContext *ctx;
 		uint8_t active;
 
+
 	public:
 		Stream(int identifier, pthread_t thr, pthread_rwlock_t* lock);
+		~Stream();
 		int get_id();
 		void set_id(int set_id);
 		int get_orig_w();

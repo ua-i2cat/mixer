@@ -53,7 +53,7 @@ class mixer {
 		receiver_t *receiver;
 		participant_list *src_p_list;
 		participant_list *dst_p_list;
-		Layout layout;
+		Layout *layout;
 		bool should_stop;
 		uint32_t dst_counter;
 		int max_frame_rate;

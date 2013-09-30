@@ -65,6 +65,7 @@ class Layout {
     	int get_max_streams();
     	void print_active_stream_info();
         int set_active(int stream_id, uint8_t active_flag);
+        ~Layout();
 
 };
 

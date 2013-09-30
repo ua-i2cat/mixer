@@ -280,7 +280,7 @@ void get_streams(Jzon::Object rootNode, Jzon::Object *outRootNode){
     Jzon::Array list;
     std::vector<int> streams_id = m->get_streams_id();
     if(streams_id.empty()){
-        outRootNode->Add("error", "errore");
+        outRootNode->Add("streams", list);
     } else {
         for (i=0; i<streams_id.size(); i++){
             Jzon::Object stream;

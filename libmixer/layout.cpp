@@ -359,7 +359,7 @@ int Layout::modify_stream (int stream_id, int width, int height, enum AVPixelFor
 
 //TODO: resize rwlock podria ser un read lock si fem un wrlock d'un mutex intern de l'stream
 
-	int id, old_x_pos, old_y_pos, old_width, old_height;
+	int id, old_x_pos = 0, old_y_pos = 0, old_width = 0, old_height = 0;
 	//Check if id is active
 	id = check_active_stream(stream_id);
 	if (id==-1){

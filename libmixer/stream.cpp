@@ -33,15 +33,19 @@ Stream::Stream(int identifier, pthread_t thr, pthread_rwlock_t* lock){
 	buffer = NULL;
 	dummy_buffer = NULL;
 	in_buffer = NULL;
+	should_stop = false;
 	pthread_mutex_init(&orig_frame_ready_mutex, NULL);
 	pthread_mutex_init(&in_buffer_mutex, NULL);
 	pthread_cond_init(&orig_frame_ready_cond, NULL);
 	pthread_rwlock_init(&needs_displaying_rwlock, NULL);
 	stream_resize_rwlock_ref = lock;
-
 }
 
 Stream::~Stream(){
+	should_stop = true;
+	pthread_mutex_lock(&orig_frame_ready_mutex);
+	pthread_cond_signal(&orig_frame_ready_cond);
+	pthread_mutex_unlock(&orig_frame_ready_mutex);
 	avcodec_free_frame(&orig_frame);
 	avcodec_free_frame(&curr_frame);
 	avcodec_free_frame(&dummy_frame);
@@ -54,22 +58,20 @@ Stream::~Stream(){
 
 void* Stream::resize(void){
 
-	while (1) {
+	while (!should_stop) {
 
 		//Check if the original frame is ready
 		pthread_mutex_lock(&orig_frame_ready_mutex);
-		while (!orig_frame_ready) {
-#ifdef ENABLE_DEBUG
-			printf("Stream %d resizing thread is in waiting loop\n", id);
-#endif
+		while (!orig_frame_ready && !should_stop) {
 		    pthread_cond_wait(&orig_frame_ready_cond, &orig_frame_ready_mutex);
 		}
+
+		if (should_stop){
+			break;
+		}
+
 		orig_frame_ready = false;
 		pthread_mutex_unlock(&orig_frame_ready_mutex);
-
-#ifdef ENABLE_DEBUG
-		cout << "Stream " << id << " resizing thread has been waken up" << endl;
-#endif
 
 		pthread_rwlock_rdlock(stream_resize_rwlock_ref);
             
@@ -87,6 +89,8 @@ void* Stream::resize(void){
 		pthread_rwlock_unlock(stream_resize_rwlock_ref);
 
 	}
+
+	pthread_exit((void *)NULL);   
 }
 
 void Stream::set_stream_to_default(){
@@ -120,6 +124,7 @@ void Stream::set_stream_to_default(){
 	curr_cp = PIX_FMT_RGB24;
 	needs_displaying = false;
 	orig_frame_ready = false;
+	should_stop = false;
 	sws_freeContext(ctx);
 }
 

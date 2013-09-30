@@ -92,7 +92,6 @@ void* mixer::run(void) {
 }
 
 void mixer::init(int layout_width, int layout_height, int max_streams, uint32_t in_port, uint32_t out_port){
-	Layout *layout = new Layout();
 	layout->init(layout_width, layout_height, PIX_FMT_RGB24, max_streams);
 	src_p_list = init_participant_list();
 	dst_p_list = init_participant_list();

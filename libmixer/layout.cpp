@@ -14,16 +14,7 @@ extern "C" {
 
 using namespace std;
 
-int Layout::init(int width, int height, enum PixelFormat colorspace, int max_str){
-
-
-	//Check if width, height and color space are valid
-	if (!check_init_layout(width, height, colorspace, max_str)){
-#ifdef ENABLE_DEBUG
-		printf("Layout initialization failed: introduced values not valid.\n");
-#endif
-		return -1;
-	}
+Layout::Layout(int width, int height, enum PixelFormat colorspace, int max_str){
 
 	//Fill layout fields
 	lay_width = width;
@@ -49,20 +40,11 @@ int Layout::init(int width, int height, enum PixelFormat colorspace, int max_str
 		free_streams_id.push_back(i);
 
 		Stream* stream = new Stream(i, thr[i], &resize_rwlock);
-
 		streams[i] = stream;
 
 		//Thread creation
 		pthread_create(&thr[i], NULL, Stream::execute_resize, stream);
 	}
-#ifdef ENABLE_DEBUG
-	printf("Layout initialization suceed\n.");
-	printf("Width: %d\n", lay_width);
-	printf("Height: %d\n", lay_height);
-	printf("Colorspace: %d\n", lay_colorspace);
-#endif
-
-	return 0;
 }
 
 int Layout::modify_layout (int width, int height, enum AVPixelFormat colorspace, bool resize_streams){
@@ -498,9 +480,6 @@ int Layout::remove_stream (int stream_id){
 	//Check if id is active
 	id = check_active_stream (stream_id);
 	if (id==-1){
-#ifdef ENABLE_DEBUG
-		cout << "Stream " << stream_id << " in not active" << endl;
-#endif
 		return -1; //selected stream is not active
 	}
 
@@ -780,11 +759,15 @@ void Layout::print_active_stream_info(){
 }
 
 Layout::~Layout(){
-  int i;
-  for (i=0; i<streams.size(); i++){
-  	delete streams[i];
-  }
-  avcodec_free_frame(&layout_frame);
-  free(lay_buffer);
-  free(out_buffer);
+  	int i;
+  	for (i=0; i<max_streams; i++){
+  		printf("Pointer: %p ID: %d\n", streams[i]->get_thread(), streams[i]->get_id());
+		pthread_cancel(streams[i]->get_thread());
+  		delete streams[i];
+  	}
+  	avcodec_free_frame(&layout_frame);
+  	free(lay_buffer);
+  	free(out_buffer);
+  	pthread_rwlock_destroy(&resize_rwlock);
+	printf("Layout_destructor\n");
 }

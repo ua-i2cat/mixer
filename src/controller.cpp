@@ -71,6 +71,7 @@ int main(int argc, char *argv[]){
 
     initialize_action_mapping();
     m = mixer::get_instance();
+    m->set_state(0);
 
     while(!should_stop){
     	if (listen_socket(sockfd, &newsockfd) == 0){
@@ -149,215 +150,274 @@ void initialize_action_mapping() {
 
 void start_mixer(Jzon::Object rootNode, Jzon::Object *outRootNode){
     m = mixer::get_instance();
-    int width = rootNode.Get("params").Get("width").ToInt();
-    int height = rootNode.Get("params").Get("height").ToInt();
-    int max_streams = rootNode.Get("params").Get("max_streams").ToInt();
-    int in_port = rootNode.Get("params").Get("input_port").ToInt();
-    int out_port = 56;
-    printf("m->init(%d, %d, %d, %d, %d);\nm->exec()\n", 
+    if (m->get_state() == 1){
+        outRootNode->Add("error", "Mixer is already running");   
+    }else {
+        int width = rootNode.Get("params").Get("width").ToInt();
+        int height = rootNode.Get("params").Get("height").ToInt();
+        int max_streams = rootNode.Get("params").Get("max_streams").ToInt();
+        int in_port = rootNode.Get("params").Get("input_port").ToInt();
+        int out_port = 56;
+        printf("m->init(%d, %d, %d, %d, %d);\nm->exec()\n", 
         width, height, max_streams, in_port, out_port);
-    m->init(width, height, max_streams, in_port, out_port); 
-    m->exec();
-    outRootNode->Add("error", Jzon::null);   
+        m->init(width, height, max_streams, in_port, out_port); 
+        m->exec();
+        m->set_state(1);
+        outRootNode->Add("error", Jzon::null);      
+    }
 }
 
 void stop_mixer(Jzon::Object rootNode, Jzon::Object *outRootNode){
-    outRootNode->Add("error", Jzon::null);
-    m->stop();
-    delete m;
+    if (m->get_state() == 0){
+        outRootNode->Add("error", "Mixer is not running. Cannot stop it");
+    }else {
+        m->stop();
+        m->set_state(0);
+        outRootNode->Add("error", Jzon::null);
+    } 
 }
 
 void add_stream(Jzon::Object rootNode, Jzon::Object *outRootNode){
-    int width = rootNode.Get("params").Get("width").ToInt();
-    int height = rootNode.Get("params").Get("height").ToInt();
-    int new_w = rootNode.Get("params").Get("new_w").ToInt();
-    int new_h = rootNode.Get("params").Get("new_h").ToInt();
-    int x = rootNode.Get("params").Get("x").ToInt();
-    int y = rootNode.Get("params").Get("y").ToInt();
-    int layer = rootNode.Get("params").Get("layer").ToInt();
-    if (m->add_source(width, height, new_w, new_h, x, y, layer, H264) == -1){
-        outRootNode->Add("error", "errore");
-    }else {
-        outRootNode->Add("error", Jzon::null);
-        printf("m->add_source(%d, %d, H264)\n", width, height);
+    if (m->get_state() == 0){
+        outRootNode->Add("error", "Mixer is not running!");
+    } else{
+        int width = rootNode.Get("params").Get("width").ToInt();
+        int height = rootNode.Get("params").Get("height").ToInt();
+        int new_w = rootNode.Get("params").Get("new_w").ToInt();
+        int new_h = rootNode.Get("params").Get("new_h").ToInt();
+        int x = rootNode.Get("params").Get("x").ToInt();
+        int y = rootNode.Get("params").Get("y").ToInt();
+        int layer = rootNode.Get("params").Get("layer").ToInt();
+        if (m->add_source(width, height, new_w, new_h, x, y, layer, H264) == -1){
+            outRootNode->Add("error", "errore");
+        }else {
+            outRootNode->Add("error", Jzon::null);
+            printf("m->add_source(%d, %d, H264)\n", width, height);
+        }
     }
 }
 
 void remove_stream(Jzon::Object rootNode, Jzon::Object *outRootNode){
-    int id = rootNode.Get("params").Get("id").ToInt();
-    if (m->remove_source(id) == -1){
-        outRootNode->Add("error", "errore");
-    }else {
-        outRootNode->Add("error", Jzon::null);
-        printf("m->remove_source(%d)\n", id);
+    if (m->get_state() == 0){
+        outRootNode->Add("error", "Mixer is not running!");
+    } else{
+        int id = rootNode.Get("params").Get("id").ToInt();
+        if (m->remove_source(id) == -1){
+            outRootNode->Add("error", "errore");
+        }else {
+            outRootNode->Add("error", Jzon::null);
+            printf("m->remove_source(%d)\n", id);
+        }
     }
 }
 
 void modify_stream(Jzon::Object rootNode, Jzon::Object *outRootNode){
-    int id = rootNode.Get("params").Get("id").ToInt();
-    int width = rootNode.Get("params").Get("width").ToInt();
-    int height = rootNode.Get("params").Get("height").ToInt();
-    int x = rootNode.Get("params").Get("x").ToInt();
-    int y = rootNode.Get("params").Get("y").ToInt();
-    int layer = rootNode.Get("params").Get("layer").ToInt();
-    bool keep_aspect_ratio = rootNode.Get("params").Get("keep_aspect_ratio").ToBool();
-    if (m->modify_stream(id, width, height, x, y, layer, keep_aspect_ratio) == -1){
-        outRootNode->Add("error", "errore");
-    }else {
-        outRootNode->Add("error", Jzon::null);
-        printf("m->modify_stream(%d, %d, %d, %d, %d, %d, %d);\n", 
-            id, width, height, x, y, layer, keep_aspect_ratio);
+    if (m->get_state() == 0){
+        outRootNode->Add("error", "Mixer is not running!");
+    } else{
+        int id = rootNode.Get("params").Get("id").ToInt();
+        int width = rootNode.Get("params").Get("width").ToInt();
+        int height = rootNode.Get("params").Get("height").ToInt();
+        int x = rootNode.Get("params").Get("x").ToInt();
+        int y = rootNode.Get("params").Get("y").ToInt();
+        int layer = rootNode.Get("params").Get("layer").ToInt();
+        bool keep_aspect_ratio = rootNode.Get("params").Get("keep_aspect_ratio").ToBool();
+        if (m->modify_stream(id, width, height, x, y, layer, keep_aspect_ratio) == -1){
+            outRootNode->Add("error", "errore");
+        }else {
+            outRootNode->Add("error", Jzon::null);
+            printf("m->modify_stream(%d, %d, %d, %d, %d, %d, %d);\n", 
+                id, width, height, x, y, layer, keep_aspect_ratio);
+        }
     }
 }
 
 void modify_layout(Jzon::Object rootNode, Jzon::Object *outRootNode){
-    int width = rootNode.Get("params").Get("width").ToInt();
-    int height = rootNode.Get("params").Get("height").ToInt();
-    bool resize_streams = rootNode.Get("params").Get("resize_streams").ToBool();
-    if (m->resize_output(width, height, resize_streams) == -1){
-        outRootNode->Add("error", "errore");
-    }else {
-        outRootNode->Add("error", Jzon::null);
-        printf("m->resize_output(%d, %d, %d)\n", width, height, resize_streams);
+    if (m->get_state() == 0){
+        outRootNode->Add("error", "Mixer is not running!");
+    } else{
+        int width = rootNode.Get("params").Get("width").ToInt();
+        int height = rootNode.Get("params").Get("height").ToInt();
+        bool resize_streams = rootNode.Get("params").Get("resize_streams").ToBool();
+        if (m->resize_output(width, height, resize_streams) == -1){
+            outRootNode->Add("error", "errore");
+        }else {
+            outRootNode->Add("error", Jzon::null);
+            printf("m->resize_output(%d, %d, %d)\n", width, height, resize_streams);
+        }
     } 
 }
 
 void enable_stream(Jzon::Object rootNode, Jzon::Object *outRootNode){
-    int id = rootNode.Get("params").Get("id").ToInt();
-    if (check_stream_id(id) == -1){
-        outRootNode->Add("error", "Introduced ID doesn't match any mixer stream ID");
-    } else {
-        if(m->set_stream_active(id, 1) == -1){
-            outRootNode->Add("error", "Error enabling stream");
+    if (m->get_state() == 0){
+        outRootNode->Add("error", "Mixer is not running!");
+    } else{
+        int id = rootNode.Get("params").Get("id").ToInt();
+        if (check_stream_id(id) == -1){
+            outRootNode->Add("error", "Introduced ID doesn't match any mixer stream ID");
         } else {
-            outRootNode->Add("error", Jzon::null);
-            printf("m->set_stream_active(%d, 1)\n", id);
+            if(m->set_stream_active(id, 1) == -1){
+                outRootNode->Add("error", "Error enabling stream");
+            } else {
+                outRootNode->Add("error", Jzon::null);
+                printf("m->set_stream_active(%d, 1)\n", id);
+            }
         }
     }
 }
 
 void disable_stream(Jzon::Object rootNode, Jzon::Object *outRootNode){
-    int id = rootNode.Get("params").Get("id").ToInt();
-    if (check_stream_id(id) == -1){
-        outRootNode->Add("error", "Introduced ID doesn't match any mixer stream ID");
-    } else {
-        if(m->set_stream_active(id, 0) == -1){
-            outRootNode->Add("error", "Error enabling stream");
-        } else {
-            outRootNode->Add("error", Jzon::null);
-            printf("m->set_stream_active(%d, 0)\n", id);
+    if (m->get_state() == 0){
+        outRootNode->Add("error", "Mixer is not running!");
+    } else{
+        int id = rootNode.Get("params").Get("id").ToInt();
+        if (check_stream_id(id) == -1){
+            outRootNode->Add("error", "Introduced ID doesn't match any mixer stream ID");
+        }else {
+            if(m->set_stream_active(id, 0) == -1){
+                outRootNode->Add("error", "Error enabling stream");
+            }else {
+                outRootNode->Add("error", Jzon::null);
+                printf("m->set_stream_active(%d, 0)\n", id);
+            }
         }
     }
 }
 
 void add_destination(Jzon::Object rootNode, Jzon::Object *outRootNode){
-    std::string ip_string = rootNode.Get("params").Get("ip").ToString();
-    int port = rootNode.Get("params").Get("port").ToInt();
-    char *ip = new char[ip_string.length() + 1];
-    strcpy(ip, ip_string.c_str());
-
-    if (m->add_destination(H264, ip, port) == -1){
-        outRootNode->Add("error", "errore");
-    }else {
-        outRootNode->Add("error", Jzon::null);
-        printf("m->add_destination(H264, %s, %d)\n", ip, port);
+    if (m->get_state() == 0){
+        outRootNode->Add("error", "Mixer is not running!");
+    } else{
+        std::string ip_string = rootNode.Get("params").Get("ip").ToString();
+        int port = rootNode.Get("params").Get("port").ToInt();
+        char *ip = new char[ip_string.length() + 1];
+        strcpy(ip, ip_string.c_str());
+        if (m->add_destination(H264, ip, port) == -1){
+            outRootNode->Add("error", "errore");
+        }else {
+            outRootNode->Add("error", Jzon::null);
+            printf("m->add_destination(H264, %s, %d)\n", ip, port);
+        }
     } 
 }
 
 void remove_destination(Jzon::Object rootNode, Jzon::Object *outRootNode){
-    int id = rootNode.Get("params").Get("id").ToInt();
-    outRootNode->Add("error", Jzon::null);
-    if (m->remove_destination(id) == -1){
-        outRootNode->Add("error", "errore");
-    }else {
+    if (m->get_state() == 0){
+        outRootNode->Add("error", "Mixer is not running!");
+    } else{
+        int id = rootNode.Get("params").Get("id").ToInt();
         outRootNode->Add("error", Jzon::null);
-        printf("m->remove_destination(%d)\n", id);
+        if (m->remove_destination(id) == -1){
+            outRootNode->Add("error", "errore");
+        }else {
+            outRootNode->Add("error", Jzon::null);
+            printf("m->remove_destination(%d)\n", id);
+        }
     } 
 }
 
 void get_streams(Jzon::Object rootNode, Jzon::Object *outRootNode){
-    int i;
-    Jzon::Array list;
-    std::vector<int> streams_id = m->get_streams_id();
-    if(streams_id.empty()){
-        outRootNode->Add("streams", list);
-    } else {
-        for (i=0; i<streams_id.size(); i++){
-            Jzon::Object stream;
-            std::map<std::string, int> stream_map;
-            m->get_stream_info(stream_map, streams_id[i]);
-            stream.Add("id", stream_map["id"]);
-            stream.Add("orig_width", stream_map["orig_width"]);
-            stream.Add("orig_height", stream_map["orig_height"]);
-            stream.Add("width", stream_map["width"]);
-            stream.Add("height", stream_map["height"]);
-            stream.Add("x", stream_map["x"]);
-            stream.Add("y", stream_map["y"]);
-            stream.Add("layer", stream_map["layer"]);
-            stream.Add("active", stream_map["active"]);
-            list.Add(stream);
+    if (m->get_state() == 0){
+        outRootNode->Add("error", "Mixer is not running!");
+    } else{
+        int i;
+        Jzon::Array list;
+        std::vector<int> streams_id = m->get_streams_id();
+        if(streams_id.empty()){
+            outRootNode->Add("streams", list);
+        }else {
+            for (i=0; i<streams_id.size(); i++){
+                Jzon::Object stream;
+                std::map<std::string, int> stream_map;
+                m->get_stream_info(stream_map, streams_id[i]);
+                stream.Add("id", stream_map["id"]);
+                stream.Add("orig_width", stream_map["orig_width"]);
+                stream.Add("orig_height", stream_map["orig_height"]);
+                stream.Add("width", stream_map["width"]);
+                stream.Add("height", stream_map["height"]);
+                stream.Add("x", stream_map["x"]);
+                stream.Add("y", stream_map["y"]);
+                stream.Add("layer", stream_map["layer"]);
+                stream.Add("active", stream_map["active"]);
+                list.Add(stream);
+            }
+            outRootNode->Add("streams", list);
         }
-
-    outRootNode->Add("streams", list);
     }
-    
 }
 
 void get_stream(Jzon::Object rootNode, Jzon::Object *outRootNode){
-    int id = rootNode.Get("params").Get("id").ToInt();
-    if (check_stream_id(id) == -1){
-    	outRootNode->Add("error", "Introduced ID doesn't match any mixer stream ID");
-    } else {
-    	std::map<std::string, int> stream_map;
-    	m->get_stream_info(stream_map, id);
-    	outRootNode->Add("id", stream_map["id"]);
-    	outRootNode->Add("orig_width", stream_map["orig_width"]);
-    	outRootNode->Add("orig_height", stream_map["orig_height"]);
-    	outRootNode->Add("width", stream_map["width"]);
-    	outRootNode->Add("height", stream_map["height"]);
-    	outRootNode->Add("x", stream_map["x"]);
-    	outRootNode->Add("y", stream_map["y"]);
-    	outRootNode->Add("layer", stream_map["layer"]);
-    	outRootNode->Add("active", stream_map["active"]);
+    if (m->get_state() == 0){
+        outRootNode->Add("error", "Mixer is not running!");
+    }else {
+        int id = rootNode.Get("params").Get("id").ToInt();
+        if (check_stream_id(id) == -1){
+    	   outRootNode->Add("error", "Introduced ID doesn't match any mixer stream ID");
+        }else {
+    	   std::map<std::string, int> stream_map;
+    	   m->get_stream_info(stream_map, id);
+    	   outRootNode->Add("id", stream_map["id"]);
+    	   outRootNode->Add("orig_width", stream_map["orig_width"]);
+    	   outRootNode->Add("orig_height", stream_map["orig_height"]);
+    	   outRootNode->Add("width", stream_map["width"]);
+    	   outRootNode->Add("height", stream_map["height"]);
+    	   outRootNode->Add("x", stream_map["x"]);
+    	   outRootNode->Add("y", stream_map["y"]);
+    	   outRootNode->Add("layer", stream_map["layer"]);
+    	   outRootNode->Add("active", stream_map["active"]);
+        }
     }
 }
 
 void get_destinations(Jzon::Object rootNode, Jzon::Object *outRootNode){
-    Jzon::Array list;
-    map<uint32_t, mixer::Dst> dst_map = m->get_destinations();
-    std::map<uint32_t,mixer::Dst>::iterator it;
-    for (it=dst_map.begin(); it!=dst_map.end(); it++){
-        Jzon::Object dst;
-        string ip;
-        int port;
-        m->get_destination(it->first, ip, &port);
-        dst.Add("id", (int)it->first);
-        dst.Add("ip", ip);
-        dst.Add("port", port);
-        list.Add(dst);
+    if (m->get_state() == 0){
+        outRootNode->Add("error", "Mixer is not running!");
+    }else {
+        Jzon::Array list;
+        map<uint32_t, mixer::Dst> dst_map = m->get_destinations();
+        std::map<uint32_t,mixer::Dst>::iterator it;
+        for (it=dst_map.begin(); it!=dst_map.end(); it++){
+            Jzon::Object dst;
+            string ip;
+            int port;
+            m->get_destination(it->first, ip, &port);
+            dst.Add("id", (int)it->first);
+            dst.Add("ip", ip);
+            dst.Add("port", port);
+            list.Add(dst);
+        }
+        outRootNode->Add("destinations", list);
     }
-    outRootNode->Add("destinations", list);
 }
+
 void get_destination(Jzon::Object rootNode, Jzon::Object *outRootNode){
-    int id = rootNode.Get("params").Get("id").ToInt();
-    int port;
-    string ip;
-    if (m->get_destination(id, ip, &port) == -1){
-        outRootNode->Add("error", "Destination ID not found");
-    } else {
-        outRootNode->Add("id", id);
-        outRootNode->Add("ip", ip);
-        outRootNode->Add("port", port);
+    if (m->get_state() == 0){
+        outRootNode->Add("error", "Mixer is not running!");
+    }else {
+        int id = rootNode.Get("params").Get("id").ToInt();
+        int port;
+        string ip;
+        if (m->get_destination(id, ip, &port) == -1){
+            outRootNode->Add("error", "Destination ID not found");
+        }else {
+            outRootNode->Add("id", id);
+            outRootNode->Add("ip", ip);
+            outRootNode->Add("port", port);
+        }
     }
 }
 
 void get_layout(Jzon::Object rootNode, Jzon::Object *outRootNode){
-    int width, height;
-    if (m->get_layout_size(&width, &height) == 0){
-        outRootNode->Add("width", width);
-        outRootNode->Add("height", height);
-    } else {
-        outRootNode->Add("error", "Error while getting layout size");
+    if (m->get_state() == 0){
+        outRootNode->Add("error", "Mixer is not running!");
+    }else {
+        int width, height;
+        if (m->get_layout_size(&width, &height) == 0){
+            outRootNode->Add("width", width);
+            outRootNode->Add("height", height);
+        }else {
+            outRootNode->Add("error", "Error while getting layout size");
+        }
     }
 }
 

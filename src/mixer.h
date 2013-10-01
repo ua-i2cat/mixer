@@ -47,6 +47,8 @@ class mixer {
 		int get_layout_size(int *width, int *height);
 		void* run(void);
 		static void* execute_run(void *context);
+		uint8_t get_state();
+		void set_state(uint8_t s);
 
 	private:
 		pthread_t thread;
@@ -59,6 +61,7 @@ class mixer {
 		int max_frame_rate;
 		uint32_t _in_port;
 		uint32_t _out_port;
+		uint8_t state;
 
 		map<uint32_t, Dst> destinations;
 

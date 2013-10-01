@@ -66,6 +66,7 @@ class Layout {
     	void print_active_stream_info();
         int set_active(int stream_id, uint8_t active_flag);
         ~Layout();
+        Layout(int width, int height, enum PixelFormat colorspace, int max_str);
 
 };
 

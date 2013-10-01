@@ -33,7 +33,6 @@ Stream::Stream(int identifier, pthread_t thr, pthread_rwlock_t* lock){
 	buffer = NULL;
 	dummy_buffer = NULL;
 	in_buffer = NULL;
-	should_stop = false;
 	pthread_mutex_init(&orig_frame_ready_mutex, NULL);
 	pthread_mutex_init(&in_buffer_mutex, NULL);
 	pthread_cond_init(&orig_frame_ready_cond, NULL);
@@ -42,7 +41,7 @@ Stream::Stream(int identifier, pthread_t thr, pthread_rwlock_t* lock){
 }
 
 Stream::~Stream(){
-	should_stop = true;
+	pthread_cancel(thread);
 	pthread_mutex_lock(&orig_frame_ready_mutex);
 	pthread_cond_signal(&orig_frame_ready_cond);
 	pthread_mutex_unlock(&orig_frame_ready_mutex);
@@ -52,27 +51,24 @@ Stream::~Stream(){
 	free(buffer);
 	free(dummy_buffer);
 	free(in_buffer);
-	sws_freeContext(ctx);
+	if (ctx != 0)
+		sws_freeContext(ctx);
 }
 
 
 void* Stream::resize(void){
 
-	while (!should_stop) {
+	while (1) {
 
 		//Check if the original frame is ready
 		pthread_mutex_lock(&orig_frame_ready_mutex);
-		while (!orig_frame_ready && !should_stop) {
+		while (!orig_frame_ready) {
 		    pthread_cond_wait(&orig_frame_ready_cond, &orig_frame_ready_mutex);
 		}
 
 		orig_frame_ready = false;
 		pthread_mutex_unlock(&orig_frame_ready_mutex);
 
-		if (should_stop){
-			break;
-		}
-		
 		pthread_rwlock_rdlock(stream_resize_rwlock_ref);
             
 			//Scale
@@ -90,7 +86,6 @@ void* Stream::resize(void){
 
 	}
 
-	pthread_exit((void *)NULL);   
 }
 
 void Stream::set_stream_to_default(){
@@ -124,7 +119,6 @@ void Stream::set_stream_to_default(){
 	curr_cp = PIX_FMT_RGB24;
 	needs_displaying = false;
 	orig_frame_ready = false;
-	should_stop = false;
 	sws_freeContext(ctx);
 }
 

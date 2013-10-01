@@ -82,7 +82,6 @@ void* mixer::run(void) {
 		diff = ((finish.tv_sec - start.tv_sec)*1000000 + finish.tv_usec - start.tv_usec)/1000; // In ms
 	}
 
-	
 	stop_receiver(receiver);
 	stop_out_manager();
 	destroy_participant_list(src_p_list);
@@ -92,8 +91,7 @@ void* mixer::run(void) {
 }
 
 void mixer::init(int layout_width, int layout_height, int max_streams, uint32_t in_port, uint32_t out_port){
-	layout = new Layout();
-	layout->init(layout_width, layout_height, PIX_FMT_RGB24, max_streams);
+	layout = new Layout(layout_width, layout_height, PIX_FMT_RGB24, max_streams);
 	src_p_list = init_participant_list();
 	dst_p_list = init_participant_list();
 	receiver = init_receiver(src_p_list, in_port);
@@ -114,9 +112,6 @@ void mixer::stop(){
 }
 
 int mixer::add_source(int width, int height, int new_w, int new_h, int x, int y, int layer, codec_t codec){
-	if (layout == NULL)
-		return -1;
-
 	int id = layout->introduce_stream(width, height, PIX_FMT_RGB24, new_w, new_h, x, y, PIX_FMT_RGB24, layer);
 	if (id == -1){
 		printf("You have reached the max number of simultaneous streams in the Mixer: %u\n", layout->get_max_streams());
@@ -270,4 +265,12 @@ void SaveFrame(AVFrame *pFrame, int width, int height, int iFrame) {
 
 void mixer::show_stream_info(){
 	layout->print_active_stream_info();
+}
+
+uint8_t mixer::get_state(){
+	return state;
+}
+
+void mixer::set_state(uint8_t s){
+	state = s;
 }

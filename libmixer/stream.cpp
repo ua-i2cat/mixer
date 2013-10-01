@@ -12,7 +12,7 @@ extern "C" {
 
 using namespace std;
 
-Stream::Stream(int identifier, pthread_t thr, pthread_rwlock_t* lock){
+Stream::Stream(int identifier, pthread_t *thr, pthread_rwlock_t* lock){
 	id = identifier;
 	orig_w = 0;
 	orig_h = 0;
@@ -30,9 +30,11 @@ Stream::Stream(int identifier, pthread_t thr, pthread_rwlock_t* lock){
 	orig_frame = avcodec_alloc_frame();
 	curr_frame = avcodec_alloc_frame();
 	dummy_frame = avcodec_alloc_frame();
+	ctx = sws_alloc_context();
 	buffer = NULL;
 	dummy_buffer = NULL;
 	in_buffer = NULL;
+	should_stop = false;
 	pthread_mutex_init(&orig_frame_ready_mutex, NULL);
 	pthread_mutex_init(&in_buffer_mutex, NULL);
 	pthread_cond_init(&orig_frame_ready_cond, NULL);
@@ -41,18 +43,14 @@ Stream::Stream(int identifier, pthread_t thr, pthread_rwlock_t* lock){
 }
 
 Stream::~Stream(){
-	pthread_cancel(thread);
-	pthread_mutex_lock(&orig_frame_ready_mutex);
-	pthread_cond_signal(&orig_frame_ready_cond);
-	pthread_mutex_unlock(&orig_frame_ready_mutex);
+	printf("Stream %d destructor\n", id);
 	avcodec_free_frame(&orig_frame);
 	avcodec_free_frame(&curr_frame);
 	avcodec_free_frame(&dummy_frame);
 	free(buffer);
 	free(dummy_buffer);
 	free(in_buffer);
-	if (ctx != 0)
-		sws_freeContext(ctx);
+	sws_freeContext(ctx);
 }
 
 
@@ -85,7 +83,6 @@ void* Stream::resize(void){
 		pthread_rwlock_unlock(stream_resize_rwlock_ref);
 
 	}
-
 }
 
 void Stream::set_stream_to_default(){
@@ -229,11 +226,11 @@ void Stream::set_needs_displaying(bool set_needs_displaying){
 	needs_displaying = set_needs_displaying;
 }
 
-pthread_t Stream::get_thread(){
+pthread_t* Stream::get_thread(){
 	return thread;
 }
 
-void Stream::set_thread(pthread_t thr){
+void Stream::set_thread(pthread_t* thr){
 	thread = thr;
 }
 

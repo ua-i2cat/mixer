@@ -11,6 +11,7 @@ extern "C" {
 #include <math.h>
 #include <iostream>
 #include <assert.h>
+#include <stdlib.h>
 
 using namespace std;
 
@@ -33,13 +34,13 @@ Layout::Layout(int width, int height, enum PixelFormat colorspace, int max_str){
 	overlap = false;
 	pthread_rwlock_init(&resize_rwlock, NULL);
 
-	pthread_t thr[max_streams];
+	thr = (pthread_t*)malloc(max_streams*sizeof(pthread_t));
 
 	for (i=0; i<max_streams; i++){
 
 		free_streams_id.push_back(i);
 
-		Stream* stream = new Stream(i, thr[i], &resize_rwlock);
+		Stream* stream = new Stream(i, &thr[i], &resize_rwlock);
 		streams[i] = stream;
 
 		//Thread creation
@@ -761,13 +762,14 @@ void Layout::print_active_stream_info(){
 Layout::~Layout(){
   	int i;
   	for (i=0; i<max_streams; i++){
-  		printf("Pointer: %p ID: %d\n", streams[i]->get_thread(), streams[i]->get_id());
-		pthread_cancel(streams[i]->get_thread());
+  		pthread_cancel(*streams[i]->get_thread());
+  		pthread_join(*streams[i]->get_thread(), NULL);
   		delete streams[i];
   	}
   	avcodec_free_frame(&layout_frame);
   	free(lay_buffer);
   	free(out_buffer);
-  	pthread_rwlock_destroy(&resize_rwlock);
+  	if (thr != NULL)
+  		free(thr);
 	printf("Layout_destructor\n");
 }

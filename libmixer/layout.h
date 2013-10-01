@@ -34,6 +34,7 @@ class Layout {
 	    uint8_t *lay_buffer, *out_buffer;
 	    unsigned int lay_buffsize;
 	    pthread_rwlock_t resize_rwlock;
+        pthread_t* thr;
 
 	    bool check_init_layout(int width, int height, enum AVPixelFormat colorspace, int max_streams);
     	int check_active_stream(int stream_id);

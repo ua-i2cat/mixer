@@ -22,8 +22,8 @@ class Stream {
 		int id, orig_w, orig_h, curr_w, curr_h, x_pos, y_pos, layer;
 		enum AVPixelFormat orig_cp, curr_cp;
 		AVFrame *orig_frame, *curr_frame, *dummy_frame;
-		bool needs_displaying, orig_frame_ready;
-		pthread_t thread;
+		bool needs_displaying, orig_frame_ready, should_stop;
+		pthread_t* thread;
 		pthread_mutex_t in_buffer_mutex, orig_frame_ready_mutex;
 		pthread_rwlock_t needs_displaying_rwlock, *stream_resize_rwlock_ref;
 		pthread_cond_t  orig_frame_ready_cond;
@@ -34,7 +34,7 @@ class Stream {
 
 
 	public:
-		Stream(int identifier, pthread_t thr, pthread_rwlock_t* lock);
+		Stream(int identifier, pthread_t *thr, pthread_rwlock_t* lock);
 		~Stream();
 		int get_id();
 		void set_id(int set_id);
@@ -74,8 +74,8 @@ class Stream {
 		void set_in_buffer(uint8_t* buff);
 		bool get_needs_displaying();
 		void set_needs_displaying(bool set_needs_displaying);
-		pthread_t get_thread();
-		void set_thread(pthread_t thr);
+		pthread_t* get_thread();
+		void set_thread(pthread_t *thr);
 		bool is_orig_frame_ready();
 		void set_orig_frame_ready(bool ready);
 		pthread_mutex_t* get_orig_frame_ready_mutex();

@@ -19,12 +19,13 @@ mixer* mixer::mixer_instance;
 void SaveFrame(AVFrame *pFrame, int width, int height, int iFrame);
 
 void* mixer::run(void) {
-	int i;
+	int i, ret;
 	struct participant_data* part;
-	bool have_new_frame = false;
+	have_new_frame = false;
 	should_stop = false;
 	struct timeval start, finish;
 	float diff = 0, min_diff = 0;
+	pthread_mutex_init(&active_flag_mutex, NULL);
 
 	min_diff = ((float)1/(float)max_frame_rate)*1000; // In ms
 
@@ -56,6 +57,10 @@ void* mixer::run(void) {
 
 		pthread_rwlock_unlock(&src_p_list->lock);
 
+		if(set_active_flag == true){
+			have_new_frame = true;
+		}
+
 		if (have_new_frame){
 			layout->merge_frames();		
 			pthread_rwlock_rdlock(&dst_p_list->lock);
@@ -63,7 +68,14 @@ void* mixer::run(void) {
 			part = dst_p_list->first;
 
 			for (i=0; i<dst_p_list->count; i++){
-				if(pthread_mutex_trylock(&part->lock)==0){
+				if(set_active_flag==true){
+					ret = pthread_mutex_lock(&part->lock);
+					set_active_flag == false;
+				} else {
+					ret = pthread_mutex_trylock(&part->lock);
+				}
+				
+				if(ret==0){
 				    memcpy((uint8_t*)part->frame, (uint8_t*)layout->get_layout_bytestream(), layout->get_buffsize());
 				    part->frame_length = layout->get_buffsize();
 				    part->new_frame = 1;
@@ -73,9 +85,10 @@ void* mixer::run(void) {
 			}
 
 			pthread_rwlock_unlock(&dst_p_list->lock);
+			
+			have_new_frame = false;
 		}
         
-		have_new_frame = false;
         
 		gettimeofday(&finish, NULL);
 
@@ -214,8 +227,13 @@ int mixer::set_stream_active(int id, uint8_t active_flag){
 	if (layout == NULL)
 		return -1;
 
+	pthread_rwlock_wrlock(&src_p_list->lock);
 	set_active_participant(get_participant_id(src_p_list, id), active_flag);
 	layout->set_active(id, active_flag);
+	pthread_mutex_lock(&active_flag_mutex);
+	set_active_flag = true;
+	pthread_mutex_unlock(&active_flag_mutex);
+	pthread_rwlock_unlock(&src_p_list->lock);
 	return 0;
 }
 

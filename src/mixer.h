@@ -51,6 +51,8 @@ class mixer {
 		void set_state(uint8_t s);
 
 	private:
+		pthread_mutex_t active_flag_mutex;
+		bool have_new_frame, set_active_flag;
 		pthread_t thread;
 		receiver_t *receiver;
 		participant_list *src_p_list;

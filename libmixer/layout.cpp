@@ -532,8 +532,8 @@ int Layout::set_active(int stream_id, uint8_t active_flag){
 		pthread_rwlock_unlock(&resize_rwlock);
 		return 0;
 	} else if (active_flag == 0){ //disable stream
-		print_frame(streams[id]->get_x_pos(), streams[id]->get_y_pos(), streams[id]->get_curr_w(), streams[id]->get_curr_h(), streams[id]->get_dummy_frame(), layout_frame);
 		streams[id]->set_active(0);
+		print_frame(streams[id]->get_x_pos(), streams[id]->get_y_pos(), streams[id]->get_curr_w(), streams[id]->get_curr_h(), streams[id]->get_dummy_frame(), layout_frame);
 		pthread_rwlock_unlock(&resize_rwlock);
 		return 0;
 	} else {

@@ -97,7 +97,6 @@ void* mixer::run(void) {
 
 	stop_receiver(receiver);
 	stop_out_manager();
-	destroy_participant_list(src_p_list);
 	destroy_participant_list(dst_p_list);
 	delete layout;
 

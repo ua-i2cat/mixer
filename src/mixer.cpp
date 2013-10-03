@@ -98,6 +98,7 @@ void* mixer::run(void) {
 	stop_receiver(receiver);
 	stop_out_manager();
 	destroy_participant_list(dst_p_list);
+	destinations.clear();
 	delete layout;
 
 }
@@ -150,12 +151,13 @@ int mixer::add_destination(codec_t codec, char *ip, uint32_t port){
 		return -1;
 
 	pthread_rwlock_wrlock(&dst_p_list->lock);
-	int ret =  add_participant(dst_p_list, dst_counter++, layout->get_w(), layout->get_h(), codec, ip, port, OUTPUT);
+	int ret =  add_participant(dst_p_list, dst_counter, layout->get_w(), layout->get_h(), codec, ip, port, OUTPUT);
 	if(ret != -1){
 		Dst dest = {ip,port};
 		destinations[dst_counter] = dest; 
 	}
 	pthread_rwlock_unlock(&dst_p_list->lock);
+	dst_counter++;
 	return ret;
 }
 

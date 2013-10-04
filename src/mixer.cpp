@@ -57,9 +57,11 @@ void* mixer::run(void) {
 
 		pthread_rwlock_unlock(&src_p_list->lock);
 
+		pthread_mutex_lock(&active_flag_mutex);
 		if(set_active_flag == true){
 			have_new_frame = true;
 		}
+		pthread_mutex_unlock(&active_flag_mutex);
 
 		if (have_new_frame){
 			layout->merge_frames();		

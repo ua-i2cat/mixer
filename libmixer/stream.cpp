@@ -44,9 +44,12 @@ Stream::Stream(int identifier, pthread_t *thr, pthread_rwlock_t* lock){
 
 Stream::~Stream(){
 	printf("Stream %d destructor\n", id);
-	avcodec_free_frame(&orig_frame);
-	avcodec_free_frame(&curr_frame);
-	avcodec_free_frame(&dummy_frame);
+	if (orig_frame != NULL)
+		avcodec_free_frame(&orig_frame);
+	if (curr_frame != NULL)
+		avcodec_free_frame(&curr_frame);
+	if (dummy_frame != NULL)
+		avcodec_free_frame(&dummy_frame);
 	if (buffer != NULL)
 		free(buffer);
 	if (dummy_buffer != NULL)

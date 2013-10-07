@@ -41,6 +41,7 @@ void get_stream(Jzon::Object rootNode, Jzon::Object *outRootNode);
 void get_destinations(Jzon::Object rootNode, Jzon::Object *outRootNode);
 void get_destination(Jzon::Object rootNode, Jzon::Object *outRootNode);
 void get_layout(Jzon::Object rootNode, Jzon::Object *outRootNode);
+void get_state(Jzon::Object rootNode, Jzon::Object *outRootNode);
 void exit_mixer(Jzon::Object rootNode, Jzon::Object *outRootNode);
 void initialize_action_mapping();
 int get_socket(int port, int *sock);
@@ -149,6 +150,7 @@ void initialize_action_mapping() {
     commands["get_destinations"] = get_destinations;
     commands["get_destination"] = get_destination;
     commands["get_layout"] = get_layout;
+    commands["get_state"] = get_state;
     commands["exit_mixer"] = exit_mixer;
 }
 
@@ -422,6 +424,15 @@ void get_layout(Jzon::Object rootNode, Jzon::Object *outRootNode){
         }else {
             outRootNode->Add("error", "Error while getting layout size");
         }
+    }
+}
+
+void get_state(Jzon::Object rootNode, Jzon::Object *outRootNode){
+    uint8_t state = m->get_state();
+    if (state == 1 || state == 0){
+        outRootNode->Add("state", state);
+    }else{
+        outRootNode->Add("error", "Error while getting mixer state");
     }
 }
 

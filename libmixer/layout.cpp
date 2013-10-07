@@ -774,5 +774,4 @@ Layout::~Layout(){
   	free(out_buffer);
   	if (thr != NULL)
   		free(thr);
-	printf("Layout_destructor\n");
 }

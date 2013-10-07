@@ -43,7 +43,6 @@ Stream::Stream(int identifier, pthread_t *thr, pthread_rwlock_t* lock){
 }
 
 Stream::~Stream(){
-	printf("Stream %d destructor\n", id);
 	if (orig_frame != NULL)
 		avcodec_free_frame(&orig_frame);
 	if (curr_frame != NULL)
@@ -102,12 +101,15 @@ void Stream::set_stream_to_default(){
 
 	if (buffer != NULL){
 		free(buffer);
+		buffer = NULL;
 	}
 	if (dummy_buffer != NULL){
 		free(dummy_buffer);
+		dummy_buffer = NULL;
 	}
 	if (in_buffer != NULL){
 		free(in_buffer);
+		in_buffer = NULL;
 	}
 
 	pthread_mutex_unlock(&in_buffer_mutex);
@@ -124,6 +126,7 @@ void Stream::set_stream_to_default(){
 	needs_displaying = false;
 	orig_frame_ready = false;
 	sws_freeContext(ctx);
+	ctx = NULL;
 }
 
 void* Stream::execute_resize(void *context){

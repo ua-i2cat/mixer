@@ -766,12 +766,12 @@ Layout::~Layout(){
   		pthread_join(*streams[i]->get_thread(), NULL);
   		delete streams[i];
   	}
-  	if (layout_frame != NULL);
+  	if (layout_frame != NULL)
   		avcodec_free_frame(&layout_frame);
   	if (lay_buffer != NULL)
   		free(lay_buffer);
-  	if (out_buffer != NULL);
-  	free(out_buffer);
+  	if (out_buffer != NULL)
+  		free(out_buffer);
   	if (thr != NULL)
   		free(thr);
 }

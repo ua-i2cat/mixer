@@ -116,7 +116,7 @@ void mixer::init(int layout_width, int layout_height, int max_streams, uint32_t 
 
 void mixer::exec(){
 	start_receiver(receiver);
-	start_out_manager(dst_p_list, 15);
+	start_out_manager(dst_p_list, 10);
 	pthread_create(&thread, NULL, mixer::execute_run, this);
 }
 
@@ -131,7 +131,7 @@ int mixer::add_source(int width, int height, int new_w, int new_h, int x, int y,
 		return -1;
 	}
 	pthread_rwlock_wrlock(&src_p_list->lock);
-	int ret = add_participant(src_p_list, id, width, height, codec, NULL, 0, INPUT);
+	int ret = add_participant(src_p_list, id, 0, 0, codec, NULL, 0, INPUT);
 	pthread_rwlock_unlock(&src_p_list->lock);
 	return ret;
 }

@@ -14,7 +14,7 @@
 #include <string>
 #include "layout.h"
 extern "C"{
-	#include <ug-modules/io_mngr/receiver.h>
+	#include <io_mngr/receiver.h>
 }
 
 

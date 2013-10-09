@@ -11,7 +11,7 @@
 #include "mixer.h"
 #include <sys/time.h>
 extern "C"{
-	#include <ug-modules/io_mngr/transmitter.h>
+	#include <io_mngr/transmitter.h>
 }
 
 using namespace std;

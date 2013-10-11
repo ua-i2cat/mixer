@@ -114,10 +114,6 @@ int Layout::modify_layout (int width, int height, enum AVPixelFormat colorspace,
 		out_buffer = (uint8_t*)malloc(lay_buffsize);
 		avpicture_fill((AVPicture *)layout_frame, lay_buffer, lay_colorspace, lay_width, lay_height);
 
-#ifdef ENABLE_DEBUG
-		cout << "Resizing of streams and layout succeed" << endl;
-#endif
-
 	} else{
 		//Modify layout fields
 		lay_width = width;
@@ -134,10 +130,6 @@ int Layout::modify_layout (int width, int height, enum AVPixelFormat colorspace,
 			streams[active_streams_id[i]]->set_needs_displaying(true);
 			pthread_rwlock_unlock(streams[active_streams_id[i]]->get_needs_displaying_rwlock());
 		}
-
-#ifdef ENABLE_DEBUG
-		cout << "Resizing of layout succeed" << endl;
-#endif
 
 	}
 
@@ -264,17 +256,11 @@ int Layout::introduce_stream (int orig_w, int orig_h, enum AVPixelFormat orig_cp
 	int id;
 	//Check if width, height and color space are valid
 	if (!check_introduce_stream_values(orig_w, orig_h, orig_cp, new_w, new_h, new_cp, x, y)){
-#ifdef ENABLE_DEBUG
-		cout << "Stream introduction failed: introduced values not valid" << endl;
-#endif
 		pthread_rwlock_unlock(&resize_rwlock);
 		return -1;
 	}
 	//Check if there are available threads
 	if ((int)active_streams_id.size() == max_streams){
-#ifdef ENABLE_DEBUG
-		cout << "Stream introduction failed: the maximum of streams are active" << endl;
-#endif
 		pthread_rwlock_unlock(&resize_rwlock);
 		return -1; //There are no free streams
 	}
@@ -286,8 +272,6 @@ int Layout::introduce_stream (int orig_w, int orig_h, enum AVPixelFormat orig_cp
 
 	//Fill stream fields
 	streams[id]->set_id(id);
-	streams[id]->set_orig_w(orig_w);
-	streams[id]->set_orig_h(orig_h);
 	streams[id]->set_orig_cp(orig_cp);
 	streams[id]->set_curr_w(new_w);
 	streams[id]->set_curr_h(new_h);
@@ -295,18 +279,24 @@ int Layout::introduce_stream (int orig_w, int orig_h, enum AVPixelFormat orig_cp
 	streams[id]->set_x_pos(x);
 	streams[id]->set_y_pos(y);
 	streams[id]->set_layer(layer);
-	streams[id]->set_active(1);
+	streams[id]->set_active(0);
 
 	//Generate AVFrame structures
-	streams[id]->set_in_buffsize(avpicture_get_size(streams[id]->get_orig_cp(), streams[id]->get_orig_w(), streams[id]->get_orig_h()) * sizeof(uint8_t));
-	streams[id]->set_in_buffer((uint8_t*)malloc(streams[id]->get_in_buffsize()));
 	streams[id]->set_buffsize(avpicture_get_size(streams[id]->get_curr_cp(), streams[id]->get_curr_w(), streams[id]->get_curr_h()) * sizeof(uint8_t));
 	streams[id]->set_buffer((uint8_t*)malloc(*streams[id]->get_buffsize()));
 	streams[id]->set_dummy_buffer((uint8_t*)malloc(*streams[id]->get_buffsize()));
-	avpicture_fill((AVPicture *)streams[id]->get_orig_frame(), streams[id]->get_in_buffer(), streams[id]->get_orig_cp(), streams[id]->get_orig_w(), streams[id]->get_orig_h());
 	avpicture_fill((AVPicture *)streams[id]->get_current_frame(), streams[id]->get_buffer(), streams[id]->get_curr_cp(), streams[id]->get_curr_w(), streams[id]->get_curr_h());
 	avpicture_fill((AVPicture *)streams[id]->get_dummy_frame(), streams[id]->get_dummy_buffer(), streams[id]->get_curr_cp(), streams[id]->get_curr_w(), streams[id]->get_curr_h());
-	streams[id]->set_ctx(sws_getContext(orig_w, orig_h, orig_cp, new_w, new_h, new_cp, SWS_BILINEAR, NULL, NULL, NULL));
+
+	if(orig_w != 0 && orig_h != 0){
+		streams[id]->set_orig_w(orig_w);
+		streams[id]->set_orig_h(orig_h);
+		streams[id]->set_in_buffsize(avpicture_get_size(streams[id]->get_orig_cp(), streams[id]->get_orig_w(), streams[id]->get_orig_h()) * sizeof(uint8_t));
+		streams[id]->set_in_buffer((uint8_t*)malloc(streams[id]->get_in_buffsize()));
+		avpicture_fill((AVPicture *)streams[id]->get_orig_frame(), streams[id]->get_in_buffer(), streams[id]->get_orig_cp(), streams[id]->get_orig_w(), streams[id]->get_orig_h());
+		streams[id]->set_ctx(sws_getContext(orig_w, orig_h, orig_cp, new_w, new_h, new_cp, SWS_BILINEAR, NULL, NULL, NULL));
+		streams[id]->set_active(1);
+	}
 
 	pthread_rwlock_unlock(&resize_rwlock);
 
@@ -331,6 +321,39 @@ int Layout::introduce_stream (int orig_w, int orig_h, enum AVPixelFormat orig_cp
 
 
 	return id;
+}
+
+int Layout::introduce_stream (enum AVPixelFormat orig_cp, int new_w, int new_h, int x, int y, enum  AVPixelFormat new_cp, int layer){
+	return introduce_stream(0, 0, orig_cp, new_w, new_h, x, y, new_cp, layer);
+}
+
+int Layout::update_stream(int stream_id, int width, int height){
+	pthread_rwlock_wrlock(&resize_rwlock);
+
+	int id;
+
+	id = check_active_stream(stream_id);
+	if (id==-1){
+		pthread_rwlock_unlock(&resize_rwlock);
+		return -1; //selected stream is not active
+	}
+
+	streams[id]->set_orig_w(width);
+	streams[id]->set_orig_h(height);
+	streams[id]->set_in_buffsize(avpicture_get_size(streams[id]->get_orig_cp(), streams[id]->get_orig_w(), streams[id]->get_orig_h()) * sizeof(uint8_t));
+	streams[id]->set_in_buffer((uint8_t*)malloc(streams[id]->get_in_buffsize()));
+	avpicture_fill((AVPicture *)streams[id]->get_orig_frame(), streams[id]->get_in_buffer(), streams[id]->get_orig_cp(), streams[id]->get_orig_w(), streams[id]->get_orig_h());
+	streams[id]->set_ctx(sws_getContext(
+							streams[id]->get_orig_w(), 
+							streams[id]->get_orig_h(),
+							streams[id]->get_orig_cp(), 
+							streams[id]->get_curr_w(), 
+							streams[id]->get_curr_h(),
+							streams[id]->get_curr_cp(), 
+							SWS_BILINEAR, NULL, NULL, NULL));
+	streams[id]->set_active(1);
+	pthread_rwlock_unlock(&resize_rwlock);
+	return 0;
 }
 
 int Layout::modify_stream (int stream_id, int width, int height, enum AVPixelFormat colorspace, int x_pos, int y_pos, int layer, bool keepAspectRatio){
@@ -665,7 +688,7 @@ bool Layout::check_modify_stream_values(int width, int height, enum AVPixelForma
 }
 
 bool Layout::check_introduce_stream_values(int orig_w, int orig_h, enum AVPixelFormat orig_cp, int new_w, int new_h, enum  AVPixelFormat new_cp, int x, int y){
-	if (orig_w <= 0 || orig_h <= 0){
+	if (orig_w < 0 || orig_h < 0){
 		return false;
 	}
 	if (new_w <=0 || new_w > lay_width){

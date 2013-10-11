@@ -44,14 +44,19 @@ void* mixer::run(void) {
 		part = src_p_list->first;
 
 		for (i=0; i<src_p_list->count; i++){
-			if(pthread_mutex_lock(&part->lock)==0){
+			pthread_mutex_lock(&part->lock);
+
 			    if (part->new_frame == 1){
+					if (layout->get_stream(part->id)->get_orig_w() == 0 && layout->get_stream(part->id)->get_orig_h() == 0 ){
+						layout->update_stream(part->id, part->width, part->height);
+						printf("Stream %u updated with part->width = %u and part->height = %u\n", part->id, part->width, part->height);
+					}
+
 				    layout->introduce_frame(part->id, (uint8_t*)part->frame, part->frame_length);
 				    have_new_frame = true;
 				    part->new_frame = 0;
 			    }
-			    pthread_mutex_unlock(&part->lock);
-			}
+			pthread_mutex_unlock(&part->lock);
 			part = part->next;
 		}
 
@@ -113,12 +118,12 @@ void mixer::init(int layout_width, int layout_height, int max_streams, uint32_t 
 	_in_port = in_port;
 	_out_port = out_port;
 	dst_counter = 0;
-	max_frame_rate = 25;
+	max_frame_rate = 20;
 }
 
 void mixer::exec(){
 	start_receiver(receiver);
-	start_out_manager(dst_p_list, 10);
+	start_out_manager(dst_p_list, 15);
 	pthread_create(&thread, NULL, mixer::execute_run, this);
 }
 
@@ -126,8 +131,8 @@ void mixer::stop(){
 	should_stop = true;
 }
 
-int mixer::add_source(int width, int height, int new_w, int new_h, int x, int y, int layer, codec_t codec){
-	int id = layout->introduce_stream(width, height, PIX_FMT_RGB24, new_w, new_h, x, y, PIX_FMT_RGB24, layer);
+int mixer::add_source(int new_w, int new_h, int x, int y, int layer, codec_t codec){
+	int id = layout->introduce_stream(PIX_FMT_RGB24, new_w, new_h, x, y, PIX_FMT_RGB24, layer);
 	if (id == -1){
 		printf("You have reached the max number of simultaneous streams in the Mixer: %u\n", layout->get_max_streams());
 		return -1;

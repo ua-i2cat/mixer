@@ -52,7 +52,9 @@ class Layout {
     	int introduce_frame (int stream_id, uint8_t *data_buffer, int data_length);
     	int merge_frames();
     	int introduce_stream (int orig_w, int orig_h, enum PixelFormat orig_cp, int new_w, int new_h, int x, int y, enum PixelFormat new_cp, int layer);
+        int introduce_stream (enum AVPixelFormat orig_cp, int new_w, int new_h, int x, int y, enum  AVPixelFormat new_cp, int layer);
     	int modify_stream (int stream_id, int width, int height, enum PixelFormat colorspace, int xpos, int ypos, int layer, bool keepAspectRatio);
+        int update_stream(int stream_id, int width, int height);
     	int remove_stream (int stream_id);
     	uint8_t* get_layout_bytestream();
     	int modify_layout (int width, int height, enum PixelFormat colorspace, bool resize_streams);

@@ -5,6 +5,6 @@ SUBDIRS = libmixer
 
 bin_PROGRAMS = controller
 controller_SOURCES = src/controller.cpp src/mixer.cpp src/Jzon.cpp
-controller_CPPFLAGS = -D__STDC_CONSTANT_MACROS -Ilibmixer -I. -Wall
+controller_CPPFLAGS = -D__STDC_CONSTANT_MACROS -Ilibmixer -I. -I../src -I../src/rtp -I../src/utils -Wall
 controller_LDFLAGS=  -Llibmixer -lmixer -lrtp -lvcompress -lvdecompress -liomanager
 controller_DEPENDENCIES= libmixer/libmixer.la

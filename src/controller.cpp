@@ -194,7 +194,7 @@ void add_stream(Jzon::Object rootNode, Jzon::Object *outRootNode){
         int x = rootNode.Get("params").Get("x").ToInt();
         int y = rootNode.Get("params").Get("y").ToInt();
         int layer = rootNode.Get("params").Get("layer").ToInt();
-        if (m->add_source(width, height, new_w, new_h, x, y, layer, H264) == -1){
+        if (m->add_source(new_w, new_h, x, y, layer, H264) == -1){
             outRootNode->Add("error", "errore");
         }else {
             outRootNode->Add("error", Jzon::null);

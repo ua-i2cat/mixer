@@ -111,12 +111,12 @@ void mixer::init(int layout_width, int layout_height, int max_streams, uint32_t 
 	_in_port = in_port;
 	_out_port = out_port;
 	dst_counter = 0;
-	max_frame_rate = 25;
+	max_frame_rate = 30;
 }
 
 void mixer::exec(){
 	start_receiver(receiver);
-	start_out_manager(dst_p_list, 15);
+	start_out_manager(dst_p_list, 25);
 	pthread_create(&thread, NULL, mixer::execute_run, this);
 }
 

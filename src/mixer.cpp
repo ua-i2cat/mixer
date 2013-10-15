@@ -71,11 +71,9 @@ void* mixer::run(void) {
 
 			for (i=0; i<dst_p_list->count; i++){
 				if(set_active_flag==true){
-					ret = pthread_mutex_lock(&part->lock);
 					set_active_flag == false;
-				} else {
-					ret = pthread_mutex_trylock(&part->lock);
 				}
+				ret = pthread_mutex_lock(&part->lock);
 				
 				if(ret==0){
 				    memcpy((uint8_t*)part->frame, (uint8_t*)layout->get_layout_bytestream(), layout->get_buffsize());

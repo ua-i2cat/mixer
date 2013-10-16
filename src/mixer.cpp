@@ -34,7 +34,7 @@ void* mixer::run(void) {
 	    min_diff = ((float)1/(float)max_frame_rate)*1000;
 
 		if (diff < min_diff){
-			usleep((min_diff - diff)*1000); // We sleep a 10% of the minimum diff between loops
+			usleep((min_diff - diff)*1000); 
 		}
 
 		gettimeofday(&start, NULL);
@@ -62,12 +62,6 @@ void* mixer::run(void) {
 
 		pthread_rwlock_unlock(&src_p_list->lock);
 
-		pthread_mutex_lock(&active_flag_mutex);
-		if(set_active_flag == true){
-			have_new_frame = true;
-		}
-		pthread_mutex_unlock(&active_flag_mutex);
-
 		if (have_new_frame){
 			layout->merge_frames();		
 			pthread_rwlock_rdlock(&dst_p_list->lock);
@@ -75,17 +69,13 @@ void* mixer::run(void) {
 			part = dst_p_list->first;
 
 			for (i=0; i<dst_p_list->count; i++){
-				if(set_active_flag==true){
-					set_active_flag == false;
-				}
-				ret = pthread_mutex_lock(&part->lock);
+				pthread_mutex_lock(&part->lock);
 				
-				if(ret==0){
-				    memcpy((uint8_t*)part->frame, (uint8_t*)layout->get_layout_bytestream(), layout->get_buffsize());
-				    part->frame_length = layout->get_buffsize();
-				    part->new_frame = 1;
-				    pthread_mutex_unlock(&part->lock);
-				}
+				memcpy((uint8_t*)part->frame, (uint8_t*)layout->get_layout_bytestream(), layout->get_buffsize());
+				part->frame_length = layout->get_buffsize();
+				part->new_frame = 1;
+				pthread_mutex_unlock(&part->lock);
+
 				part = part->next;
 			}
 
@@ -116,12 +106,12 @@ void mixer::init(int layout_width, int layout_height, int max_streams, uint32_t 
 	_in_port = in_port;
 	_out_port = out_port;
 	dst_counter = 0;
-	max_frame_rate = 20;
+	max_frame_rate = 30;
 }
 
 void mixer::exec(){
 	start_receiver(receiver);
-	start_out_manager(dst_p_list, 10);
+	start_out_manager(dst_p_list, 25);
 	pthread_create(&thread, NULL, mixer::execute_run, this);
 }
 
@@ -233,13 +223,33 @@ int mixer::set_stream_active(int id, uint8_t active_flag){
 	if (layout == NULL)
 		return -1;
 
+	int i;
+	struct participant_data* part;
+
 	pthread_rwlock_wrlock(&src_p_list->lock);
 	set_active_participant(get_participant_id(src_p_list, id), active_flag);
 	layout->set_active(id, active_flag);
-	pthread_mutex_lock(&active_flag_mutex);
-	set_active_flag = true;
-	pthread_mutex_unlock(&active_flag_mutex);
 	pthread_rwlock_unlock(&src_p_list->lock);
+
+	if (active_flag == 0){
+		pthread_rwlock_rdlock(&dst_p_list->lock);
+
+		part = dst_p_list->first;
+
+		for (i=0; i<dst_p_list->count; i++){
+			pthread_mutex_lock(&part->lock);
+				
+			memcpy((uint8_t*)part->frame, (uint8_t*)layout->get_layout_bytestream(), layout->get_buffsize());
+			part->frame_length = layout->get_buffsize();
+			part->new_frame = 1;
+			pthread_mutex_unlock(&part->lock);
+
+			part = part->next;
+		}
+
+		pthread_rwlock_unlock(&dst_p_list->lock);
+	}
+	
 	return 0;
 }
 

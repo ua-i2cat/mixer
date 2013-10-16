@@ -498,6 +498,16 @@ int Layout::modify_stream (int stream_id, int width, int height, enum AVPixelFor
 	return 0;
 }
 
+int mod (int a, int b)
+{
+   if(b < 0) //you can check for b == 0 separately and do what you want
+     return mod(-a, -b);   
+   int ret = a % b;
+   if(ret < 0)
+     ret+=b;
+   return ret;
+}
+
 int Layout::remove_stream (int stream_id){
 
 	int id;
@@ -557,6 +567,7 @@ int Layout::set_active(int stream_id, uint8_t active_flag){
 	} else if (active_flag == 0){ //disable stream
 		streams[id]->set_active(0);
 		print_frame(streams[id]->get_x_pos(), streams[id]->get_y_pos(), streams[id]->get_curr_w(), streams[id]->get_curr_h(), streams[id]->get_dummy_frame(), layout_frame);
+		memcpy (streams[id]->get_buffer(), streams[id]->get_dummy_buffer(), *streams[id]->get_buffsize());
 		pthread_rwlock_unlock(&resize_rwlock);
 		return 0;
 	} else {

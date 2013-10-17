@@ -702,10 +702,10 @@ bool Layout::check_introduce_stream_values(int orig_w, int orig_h, enum AVPixelF
 	if (orig_w < 0 || orig_h < 0){
 		return false;
 	}
-	if (new_w <=0 || new_w > lay_width){
+	if (new_w <=0){
 		return false;
 	}
-	if (new_h <=0 || new_h > lay_height){
+	if (new_h <=0){
 		return false;
 	}
 	if (x<0 || x>=lay_width){

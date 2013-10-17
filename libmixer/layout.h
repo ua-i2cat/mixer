@@ -15,7 +15,7 @@ extern "C" {
 	#include <libavutil/avutil.h>
 }
 #include "stream.h"
-#include <vector>
+#include <map>
 
 #define MAX_STREAMS 8
 
@@ -25,16 +25,15 @@ class Layout {
 
 	private:
 		int lay_width, lay_height, max_streams, max_layers, i, j;
-		std::vector<int> active_streams_id;
-	    std::vector<int> free_streams_id;
 	    enum PixelFormat lay_colorspace;
-	    std::vector<Stream*> streams;
 	    AVFrame *layout_frame;
 	    bool overlap;
 	    uint8_t *lay_buffer, *out_buffer;
 	    unsigned int lay_buffsize;
 	    pthread_rwlock_t resize_rwlock;
         pthread_t* thr;
+        map<uint32_t, *Stream> streams;
+        map<uint32_t, *Stream>::iterator it;
 
 	    bool check_init_layout(int width, int height, enum AVPixelFormat colorspace, int max_streams);
     	int check_active_stream(int stream_id);

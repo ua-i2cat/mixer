@@ -12,34 +12,53 @@ extern "C" {
 
 using namespace std;
 
-Stream::Stream(int identifier, pthread_t *thr, pthread_rwlock_t* lock){
+Stream::Stream(uint32_t identifier, pthread_rwlock_t* lock, uint32_t orig_width, uint32_t orig_height, 
+				enum AVPixelFormat orig_colorspace, uint32_t new_width, uint32_t new_height, 
+				enum AVPixelFormat new_colorspace, uint32_t x, uint32_t y, uint32_t print_layer){
+	
+	//Set stream info
 	id = identifier;
-	orig_w = 0;
-	orig_h = 0;
-	curr_w = 0;
-	curr_h = 0;
-	x_pos = 0;
-	y_pos = 0;
-	layer = 0;
+	orig_w = orig_width;
+	orig_h = orig_height;
+	curr_w = new_width;
+	curr_h = new_height;
+	x_pos = x;
+	y_pos = y;
+	layer = print_layer;
 	active = 0;
-	orig_cp = PIX_FMT_NONE;
-	curr_cp = PIX_FMT_RGB24;
-	needs_displaying = false;
-	orig_frame_ready = false;
-	thread = thr;
+	orig_cp = orig_colorspace;
+	curr_cp = new_colorspace;
+	
+	//Generate AVFrame structures
 	orig_frame = avcodec_alloc_frame();
 	curr_frame = avcodec_alloc_frame();
 	dummy_frame = avcodec_alloc_frame();
 	ctx = sws_alloc_context();
-	buffer = NULL;
-	dummy_buffer = NULL;
 	in_buffer = NULL;
-	should_stop = false;
+	buffsize = avpicture_get_size(curr_cp, curr_w, curr_h) * sizeof(uint8_t);
+	buffer = (uint8_t*)malloc(buffsize);
+	dummy_buffer = (uint8_t*)malloc(buffsize);
+	avpicture_fill((AVPicture *)curr_frame, buffer, curr_cp, curr_w, curr_h);
+	avpicture_fill((AVPicture *)dummy_frame, dummy_buffer, curr_cp, curr_w, curr_h);
+	in_buffsize = avpicture_get_size(orig_cp, orig_w, orig_h) * sizeof(uint8_t);
+	in_buffer = (uint8_t*)malloc(in_buffsize);
+	avpicture_fill((AVPicture *)orig_frame, in_buffer, orig_cp, orig_w, orig_h);
+	ctx = sws_getContext(orig_w, orig_h, orig_cp, new_w, new_h, new_cp, SWS_BILINEAR, NULL, NULL, NULL);
+
+	//Init concurrence mutex and flags
+	needs_displaying = false;
+	orig_frame_ready = false;
 	pthread_mutex_init(&orig_frame_ready_mutex, NULL);
 	pthread_mutex_init(&in_buffer_mutex, NULL);
 	pthread_cond_init(&orig_frame_ready_cond, NULL);
 	pthread_rwlock_init(&needs_displaying_rwlock, NULL);
 	stream_resize_rwlock_ref = lock;
+	
+	//Create resizing thread
+	pthread_create(&thread, NULL, Stream::execute_resize, stream);
+
+	pthread_rwlock_unlock(&resize_rwlock);
+
 }
 
 Stream::~Stream(){

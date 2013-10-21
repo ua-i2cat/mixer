@@ -43,21 +43,17 @@ Stream::Stream(uint32_t identifier, pthread_rwlock_t* lock, uint32_t orig_width,
 	in_buffsize = avpicture_get_size(orig_cp, orig_w, orig_h) * sizeof(uint8_t);
 	in_buffer = (uint8_t*)malloc(in_buffsize);
 	avpicture_fill((AVPicture *)orig_frame, in_buffer, orig_cp, orig_w, orig_h);
-	ctx = sws_getContext(orig_w, orig_h, orig_cp, new_w, new_h, new_cp, SWS_BILINEAR, NULL, NULL, NULL);
+	ctx = sws_getContext(orig_w, orig_h, orig_cp, curr_w, curr_h, curr_cp, SWS_BILINEAR, NULL, NULL, NULL);
 
 	//Init concurrence mutex and flags
-	needs_displaying = false;
 	orig_frame_ready = false;
 	pthread_mutex_init(&orig_frame_ready_mutex, NULL);
 	pthread_mutex_init(&in_buffer_mutex, NULL);
 	pthread_cond_init(&orig_frame_ready_cond, NULL);
-	pthread_rwlock_init(&needs_displaying_rwlock, NULL);
 	stream_resize_rwlock_ref = lock;
 	
 	//Create resizing thread
-	pthread_create(&thread, NULL, Stream::execute_resize, stream);
-
-	pthread_rwlock_unlock(&resize_rwlock);
+	pthread_create(&thread, NULL, Stream::execute_resize, this);
 
 }
 
@@ -142,7 +138,6 @@ void Stream::set_stream_to_default(){
 	layer = 0;
 	orig_cp = PIX_FMT_NONE;
 	curr_cp = PIX_FMT_RGB24;
-	needs_displaying = false;
 	orig_frame_ready = false;
 	sws_freeContext(ctx);
 	ctx = NULL;
@@ -152,66 +147,66 @@ void* Stream::execute_resize(void *context){
 	return ((Stream *)context)->resize();
 }
 
-int Stream::get_id(){
+uint32_t Stream::get_id(){
 	return id;
 }
 
-void Stream::set_id(int set_id){
+void Stream::set_id(uint32_t set_id){
 	id = set_id;
 }
 
-int Stream::get_orig_w(){
+uint32_t Stream::get_orig_w(){
 	return orig_w;
 }
 
-void Stream::set_orig_w(int set_orig_w){
+void Stream::set_orig_w(uint32_t set_orig_w){
 	orig_w = set_orig_w;
 }
 
-int Stream::get_orig_h(){
+uint32_t Stream::get_orig_h(){
 	return orig_h;
 }
 
-void Stream::set_orig_h(int set_orig_h){
+void Stream::set_orig_h(uint32_t set_orig_h){
 	orig_h = set_orig_h;
 }
 
-int Stream::get_curr_w(){
+uint32_t Stream::get_curr_w(){
 	return curr_w;
 }
 
-void Stream::set_curr_w(int set_curr_w){
+void Stream::set_curr_w(uint32_t set_curr_w){
 	curr_w = set_curr_w;
 }
 
-int Stream::get_curr_h(){
+uint32_t Stream::get_curr_h(){
 	return curr_h;
 }
-void Stream::set_curr_h(int set_curr_h){
+void Stream::set_curr_h(uint32_t set_curr_h){
 	curr_h = set_curr_h;
 }
 
-int Stream::get_x_pos(){
+uint32_t Stream::get_x_pos(){
 	return x_pos;
 }
 
-void Stream::set_x_pos(int set_x_pos){
+void Stream::set_x_pos(uint32_t set_x_pos){
 	x_pos = set_x_pos;
 }
 
-int Stream::get_y_pos(){
+uint32_t Stream::get_y_pos(){
 	return y_pos;
 }
 
-void Stream::set_y_pos(int set_y_pos){
+void Stream::set_y_pos(uint32_t set_y_pos){
 	y_pos = set_y_pos;
 }
 
-int Stream::get_layer(){
+uint32_t Stream::get_layer(){
 	return layer;
 }
 
-void Stream::set_layer(int set_layer){
+void Stream::set_layer(uint32_t set_layer){
 	layer = set_layer;
 }
 
@@ -247,19 +242,11 @@ void Stream::set_current_frame(AVFrame *set_curr_frame){
 	curr_frame = set_curr_frame;
 }
 
-bool Stream::get_needs_displaying(){
-	return needs_displaying;
-}
-
-void Stream::set_needs_displaying(bool set_needs_displaying){
-	needs_displaying = set_needs_displaying;
-}
-
-pthread_t* Stream::get_thread(){
+pthread_t Stream::get_thread(){
 	return thread;
 }
 
-void Stream::set_thread(pthread_t* thr){
+void Stream::set_thread(pthread_t thr){
 	thread = thr;
 }
 
@@ -295,26 +282,18 @@ void Stream::set_in_buffer_mutex(pthread_mutex_t mutex){
 	in_buffer_mutex = mutex;
 }
 
-pthread_rwlock_t* Stream::get_needs_displaying_rwlock(){
-	return &needs_displaying_rwlock;
+uint32_t Stream::get_buffsize(){
+	return buffsize;
 }
 
-void Stream::set_needs_displaying_rwlock(pthread_rwlock_t lock){
-	needs_displaying_rwlock = lock;
-}
-
-unsigned int* Stream::get_buffsize(){
-	return &buffsize;
-}
-
-void Stream::set_buffsize(unsigned int bsize){
+void Stream::set_buffsize(uint32_t bsize){
 	buffsize = bsize;
 }
 
-unsigned int Stream::get_in_buffsize(){
+uint32_t Stream::get_in_buffsize(){
 	return in_buffsize;
 }
-void Stream::set_in_buffsize (unsigned int bsize){
+void Stream::set_in_buffsize (uint32_t bsize){
 	in_buffsize = bsize;
 }
 

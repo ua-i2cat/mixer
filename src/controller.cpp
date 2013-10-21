@@ -276,7 +276,7 @@ void disable_stream(Jzon::Object rootNode, Jzon::Object *outRootNode){
     if (m->get_state() == 0){
         outRootNode->Add("error", "Mixer is not running!");
     } else{
-        int id = rootNode.Get("params").Get("id").ToInt();
+        uint32_t id = rootNode.Get("params").Get("id").ToInt();
         if (check_stream_id(id) == -1){
             outRootNode->Add("error", "Introduced ID doesn't match any mixer stream ID");
         }else {
@@ -295,7 +295,7 @@ void add_destination(Jzon::Object rootNode, Jzon::Object *outRootNode){
         outRootNode->Add("error", "Mixer is not running!");
     } else{
         std::string ip_string = rootNode.Get("params").Get("ip").ToString();
-        int port = rootNode.Get("params").Get("port").ToInt();
+        uint32_t port = rootNode.Get("params").Get("port").ToInt();
         char *ip = new char[ip_string.length() + 1];
         strcpy(ip, ip_string.c_str());
         if (m->add_destination(H264, ip, port) == -1){
@@ -311,7 +311,7 @@ void remove_destination(Jzon::Object rootNode, Jzon::Object *outRootNode){
     if (m->get_state() == 0){
         outRootNode->Add("error", "Mixer is not running!");
     } else{
-        int id = rootNode.Get("params").Get("id").ToInt();
+        uint32_t id = rootNode.Get("params").Get("id").ToInt();
         outRootNode->Add("error", Jzon::null);
         if (m->remove_destination(id) == -1){
             outRootNode->Add("error", "errore");
@@ -326,25 +326,25 @@ void get_streams(Jzon::Object rootNode, Jzon::Object *outRootNode){
     if (m->get_state() == 0){
         outRootNode->Add("error", "Mixer is not running!");
     } else{
-        int i;
+        uint32_t i;
         Jzon::Array list;
-        std::vector<int> streams_id = m->get_streams_id();
+        std::vector<uint32_t> streams_id = m->get_streams_id();
         if(streams_id.empty()){
             outRootNode->Add("streams", list);
         }else {
             for (i=0; i<streams_id.size(); i++){
                 Jzon::Object stream;
-                std::map<std::string, int> stream_map;
+                map<string,uint32_t> stream_map;
                 m->get_stream_info(stream_map, streams_id[i]);
-                stream.Add("id", stream_map["id"]);
-                stream.Add("orig_width", stream_map["orig_width"]);
-                stream.Add("orig_height", stream_map["orig_height"]);
-                stream.Add("width", stream_map["width"]);
-                stream.Add("height", stream_map["height"]);
-                stream.Add("x", stream_map["x"]);
-                stream.Add("y", stream_map["y"]);
-                stream.Add("layer", stream_map["layer"]);
-                stream.Add("active", stream_map["active"]);
+                stream.Add("id", (int)stream_map["id"]);
+                stream.Add("orig_width", (int)stream_map["orig_width"]);
+                stream.Add("orig_height", (int)stream_map["orig_height"]);
+                stream.Add("width", (int)stream_map["width"]);
+                stream.Add("height", (int)stream_map["height"]);
+                stream.Add("x", (int)stream_map["x"]);
+                stream.Add("y", (int)stream_map["y"]);
+                stream.Add("layer", (int)stream_map["layer"]);
+                stream.Add("active", (int)stream_map["active"]);
                 list.Add(stream);
             }
             outRootNode->Add("streams", list);
@@ -360,17 +360,17 @@ void get_stream(Jzon::Object rootNode, Jzon::Object *outRootNode){
         if (check_stream_id(id) == -1){
     	   outRootNode->Add("error", "Introduced ID doesn't match any mixer stream ID");
         }else {
-    	   std::map<std::string, int> stream_map;
+    	   std::map<std::string, uint32_t> stream_map;
     	   m->get_stream_info(stream_map, id);
-    	   outRootNode->Add("id", stream_map["id"]);
-    	   outRootNode->Add("orig_width", stream_map["orig_width"]);
-    	   outRootNode->Add("orig_height", stream_map["orig_height"]);
-    	   outRootNode->Add("width", stream_map["width"]);
-    	   outRootNode->Add("height", stream_map["height"]);
-    	   outRootNode->Add("x", stream_map["x"]);
-    	   outRootNode->Add("y", stream_map["y"]);
-    	   outRootNode->Add("layer", stream_map["layer"]);
-    	   outRootNode->Add("active", stream_map["active"]);
+    	   outRootNode->Add("id", (int)stream_map["id"]);
+    	   outRootNode->Add("orig_width", (int)stream_map["orig_width"]);
+    	   outRootNode->Add("orig_height", (int)stream_map["orig_height"]);
+    	   outRootNode->Add("width", (int)stream_map["width"]);
+    	   outRootNode->Add("height", (int)stream_map["height"]);
+    	   outRootNode->Add("x", (int)stream_map["x"]);
+    	   outRootNode->Add("y", (int)stream_map["y"]);
+    	   outRootNode->Add("layer", (int)stream_map["layer"]);
+    	   outRootNode->Add("active", (int)stream_map["active"]);
         }
     }
 }
@@ -436,9 +436,9 @@ void get_state(Jzon::Object rootNode, Jzon::Object *outRootNode){
     }
 }
 
-int check_stream_id(int id){
+int check_stream_id(uint32_t id){
 	int i;
-	std::vector<int> streams_id = m->get_streams_id();
+	std::vector<uint32_t> streams_id = m->get_streams_id();
 	for (i=0; i<streams_id.size(); i++){
 		if (streams_id[i] == id){
 			return 0;

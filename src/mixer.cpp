@@ -19,7 +19,7 @@ mixer* mixer::mixer_instance;
 void SaveFrame(AVFrame *pFrame, int width, int height, int iFrame);
 
 void* mixer::run(void) {
-	int i, ret;
+	int i;
 	struct participant_data* part;
 	have_new_frame = false;
 	should_stop = false;
@@ -98,7 +98,7 @@ void* mixer::run(void) {
 
 }
 
-void mixer::init(int layout_width, int layout_height, int max_streams, uint32_t in_port, uint32_t out_port){
+void mixer::init(uint32_t layout_width, uint32_t layout_height, uint32_t max_streams, uint32_t in_port, uint32_t out_port){
 	layout = new Layout(layout_width, layout_height, PIX_FMT_RGB24, max_streams);
 	src_p_list = init_participant_list();
 	dst_p_list = init_participant_list();
@@ -119,7 +119,7 @@ void mixer::stop(){
 	should_stop = true;
 }
 
-int mixer::add_source(int new_w, int new_h, int x, int y, int layer, codec_t codec){
+int mixer::add_source(uint32_t new_w, uint32_t new_h, uint32_t x, uint32_t y, uint32_t layer, codec_t codec){
 	int id = layout->introduce_stream(PIX_FMT_RGB24, new_w, new_h, x, y, PIX_FMT_RGB24, layer);
 	if (id == -1){
 		printf("You have reached the max number of simultaneous streams in the Mixer: %u\n", layout->get_max_streams());
@@ -169,25 +169,25 @@ int mixer::remove_destination(uint32_t id){
 	return ret;
 }
 
-int mixer::modify_stream (int id, int width, int height, int x, int y, int layer, bool keep_aspect_ratio){
+int mixer::modify_stream (uint32_t id, uint32_t width, uint32_t height, uint32_t x, uint32_t y, uint32_t layer, bool keep_aspect_ratio){
 	if (layout == NULL)
 		return -1;
 
 	return layout->modify_stream(id, width, height, PIX_FMT_RGB24, x, y, layer, keep_aspect_ratio);
 }
 
-int mixer::resize_output (int width, int height, bool resize_streams){
+int mixer::resize_output (uint32_t width, uint32_t height, bool resize_streams){
 	if (layout == NULL)
 		return -1;
 
 	return layout->modify_layout(width,height, PIX_FMT_RGB24, resize_streams);
 }
 
-void mixer::change_max_framerate(int frame_rate){
+void mixer::change_max_framerate(uint32_t frame_rate){
 	max_frame_rate = frame_rate;
 }
 
-void mixer::get_stream_info(std::map<string, int> &str_map, int id){
+void mixer::get_stream_info(std::map<string, uint32_t> &str_map, uint32_t id){
 	str_map["id"] = id;
 	str_map["orig_width"] = layout->get_stream(id)->get_orig_w();
 	str_map["orig_height"] = layout->get_stream(id)->get_orig_h();
@@ -196,12 +196,12 @@ void mixer::get_stream_info(std::map<string, int> &str_map, int id){
 	str_map["x"] = layout->get_stream(id)->get_x_pos();
 	str_map["y"] = layout->get_stream(id)->get_y_pos();
 	str_map["layer"] = layout->get_stream(id)->get_layer();
-	str_map["active"] = layout->get_stream(id)->get_active();
+	str_map["active"] = (uint32_t)layout->get_stream(id)->get_active();
 }
 
-std::vector<int> mixer::get_streams_id(){
+vector<uint32_t> mixer::get_streams_id(){
 	if (layout == NULL)
-		return std::vector<int>();
+		return std::vector<uint32_t>();
 
 	return layout->get_streams_id();
 }
@@ -219,7 +219,7 @@ map<uint32_t, mixer::Dst> mixer::get_destinations(){
 	return destinations;
 }
 
-int mixer::set_stream_active(int id, uint8_t active_flag){
+int mixer::set_stream_active(uint32_t id, uint8_t active_flag){
 	if (layout == NULL)
 		return -1;
 
@@ -273,32 +273,6 @@ mixer* mixer::get_instance(){
 
 void* mixer::execute_run(void *context){
 	return ((mixer *)context)->run();
-}
-
-void SaveFrame(AVFrame *pFrame, int width, int height, int iFrame) {
-  FILE *pFile;
-  char szFilename[64];
-  int  y;
-
-  // Open file
-  sprintf(szFilename, "/home/palau/TFG/layout_prints/layout%d.ppm", iFrame);
-  pFile=fopen(szFilename, "wb");
-  if(pFile==NULL)
-    return;
-
-  // Write header
-  fprintf(pFile, "P6\n%d %d\n255\n", width, height);
-
-  // Write pixel data
-  for(y=0; y<height; y++)
-    fwrite(pFrame->data[0]+y*pFrame->linesize[0], 1, width*3, pFile);
-
-  // Close file
-  fclose(pFile);
-}
-
-void mixer::show_stream_info(){
-	layout->print_active_stream_info();
 }
 
 uint8_t mixer::get_state(){

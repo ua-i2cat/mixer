@@ -19,41 +19,43 @@ extern "C" {
 class Stream {
 
 	private:
-		int id, orig_w, orig_h, curr_w, curr_h, x_pos, y_pos, layer;
+		uint32_t id, orig_w, orig_h, curr_w, curr_h, x_pos, y_pos, layer;
 		enum AVPixelFormat orig_cp, curr_cp;
 		AVFrame *orig_frame, *curr_frame, *dummy_frame;
-		bool needs_displaying, orig_frame_ready;
-		pthread_t* thread;
+		bool orig_frame_ready;
+		pthread_t thread;
 		pthread_mutex_t in_buffer_mutex, orig_frame_ready_mutex;
-		pthread_rwlock_t needs_displaying_rwlock, *stream_resize_rwlock_ref;
+		pthread_rwlock_t *stream_resize_rwlock_ref;
 		pthread_cond_t  orig_frame_ready_cond;
-		unsigned int buffsize, in_buffsize;
+		uint32_t buffsize, in_buffsize;
 		uint8_t *buffer, *dummy_buffer, *in_buffer;
 		struct SwsContext *ctx;
 		uint8_t active;
 
 
 	public:
-		Stream(int identifier, pthread_t *thr, pthread_rwlock_t* lock);
+		Stream(uint32_t identifier, pthread_rwlock_t* lock, uint32_t orig_width, uint32_t orig_height, 
+				enum AVPixelFormat orig_colorspace, uint32_t new_width, uint32_t new_height, 
+				enum AVPixelFormat new_colorspace, uint32_t x, uint32_t y, uint32_t print_layer);
 		~Stream();
-		int get_id();
-		void set_id(int set_id);
-		int get_orig_w();
-		void set_orig_w(int set_orig_w);
-		int get_orig_h();
-		void set_orig_h(int set_orig_h);
-		int get_curr_w();
-		void set_curr_w(int set_curr_w);
-		int get_curr_h();
-		void set_curr_h(int set_curr_h);
-		int get_x_pos();
-		void set_x_pos(int set_x_pos);
-		int get_y_pos();
-		void set_y_pos(int set_y_pos);
-		int get_layer();
-		void set_layer(int set_layer);
-		unsigned int* get_buffsize();
-		void set_buffsize(unsigned int bsize);
+		uint32_t get_id();
+		void set_id(uint32_t set_id);
+		uint32_t get_orig_w();
+		void set_orig_w(uint32_t set_orig_w);
+		uint32_t get_orig_h();
+		void set_orig_h(uint32_t set_orig_h);
+		uint32_t get_curr_w();
+		void set_curr_w(uint32_t set_curr_w);
+		uint32_t get_curr_h();
+		void set_curr_h(uint32_t set_curr_h);
+		uint32_t get_x_pos();
+		void set_x_pos(uint32_t set_x_pos);
+		uint32_t get_y_pos();
+		void set_y_pos(uint32_t set_y_pos);
+		uint32_t get_layer();
+		void set_layer(uint32_t set_layer);
+		uint32_t get_buffsize();
+		void set_buffsize(uint32_t bsize);
 		unsigned int get_in_buffsize();
 		void set_in_buffsize (unsigned int bsize);
 		uint8_t* get_buffer();
@@ -72,10 +74,8 @@ class Stream {
 		void  set_dummy_buffer(uint8_t* buff);
 		uint8_t* get_in_buffer();
 		void set_in_buffer(uint8_t* buff);
-		bool get_needs_displaying();
-		void set_needs_displaying(bool set_needs_displaying);
-		pthread_t* get_thread();
-		void set_thread(pthread_t *thr);
+		pthread_t get_thread();
+		void set_thread(pthread_t thr);
 		bool is_orig_frame_ready();
 		void set_orig_frame_ready(bool ready);
 		pthread_mutex_t* get_orig_frame_ready_mutex();
@@ -84,14 +84,11 @@ class Stream {
 		void  set_orig_frame_ready_cond(pthread_cond_t cond);
 		pthread_mutex_t* get_in_buffer_mutex();
 		void set_in_buffer_mutex(pthread_mutex_t mutex);
-		pthread_rwlock_t* get_needs_displaying_rwlock();
-		void set_needs_displaying_rwlock(pthread_rwlock_t lock);
 		void set_stream_to_default();
 		struct SwsContext* get_ctx();
 		void set_ctx(struct SwsContext *context);
 		uint8_t get_active();
 		void set_active(uint8_t active_flag);
-
 
 		void *resize(void);
 		static void *execute_resize(void *context);

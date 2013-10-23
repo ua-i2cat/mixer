@@ -55,6 +55,8 @@ class mixer {
 		bool have_new_frame, set_active_flag;
 		pthread_t thread;
 		receiver_t *receiver;
+		stream_list *src_str_list;
+		stream_list *dst_str_list
 		participant_list *src_p_list;
 		participant_list *dst_p_list;
 		Layout *layout;

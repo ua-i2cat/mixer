@@ -16,16 +16,14 @@ extern "C"{
 
 using namespace std;
 mixer* mixer::mixer_instance;
-void SaveFrame(AVFrame *pFrame, int width, int height, int iFrame);
 
 void* mixer::run(void) {
 	int i;
-	struct participant_data* part;
+	stream_data_t *stream;
 	have_new_frame = false;
 	should_stop = false;
 	struct timeval start, finish;
 	float diff = 0, min_diff = 0;
-	pthread_mutex_init(&active_flag_mutex, NULL);
 
 	min_diff = ((float)1/(float)max_frame_rate)*1000; // In ms
 
@@ -36,55 +34,67 @@ void* mixer::run(void) {
 		if (diff < min_diff){
 			usleep((min_diff - diff)*1000); 
 		}
-
 		gettimeofday(&start, NULL);
 
-		pthread_rwlock_rdlock(&src_p_list->lock);
+		pthread_rwlock_rdlock(&input_str_list->lock);
 
-		part = src_p_list->first;
+		stream = input_str_list->first;
 
-		for (i=0; i<src_p_list->count; i++){
-			pthread_mutex_lock(&part->lock);
+		for (i=0; i<input_str_list->count; i++){
+			pthread_rwlock_rdlock(&stream->lock);
 
-			    if (part->new_frame == 1){
-					if (layout->get_stream(part->id)->get_orig_w() == 0 && layout->get_stream(part->id)->get_orig_h() == 0 ){
-						layout->update_stream(part->id, part->width, part->height);
-						printf("Stream %u updated with part->width = %u and part->height = %u\n", part->id, part->width, part->height);
-					}
+			if(!check_if_layout_stream(stream->id)){
+				pthread_rwlock_rdlock(stream->video.lock);
+				introduce_stream(stream->id, stream->video.width, stream->video.height, PIX_FMT_RGB24, 
+					stream->video.width, stream->video.height, PIX_FMT_RGB24, 0, 0, 0);
+				pthread_rwlock_unlock(stream->video.lock);
+			}
 
-				    layout->introduce_frame(part->id, (uint8_t*)part->frame, part->frame_length);
-				    have_new_frame = true;
-				    part->new_frame = 0;
-			    }
-			pthread_mutex_unlock(&part->lock);
-			part = part->next;
+			pthread_mutex_lock(&stream->video.new_decoded_frame_lock)
+			if (stream->video.new_decoded_frame){
+				pthread_rwlock_rdlock(stream->video.lock);
+				layout->introduce_frame(stream->id, (uint8_t*)stream->video.decoded_frame, stream->video.decoded_frame_len);
+				pthread_rwlock_unlock(stream->video.lock);
+				have_new_frame = true;
+				stream->video.new_decoded_frame = FALSE;
+			}
+			pthread_mutex_unlock(&stream->video.new_decoded_frame_lock);
+
+			pthread_mutex_unlock(&stream->lock);
+
+			stream = stream->next;
 		}
 
-		pthread_rwlock_unlock(&src_p_list->lock);
+		pthread_rwlock_unlock(&input_str_list->lock);
 
 		if (have_new_frame){
 			layout->merge_frames();		
-			pthread_rwlock_rdlock(&dst_p_list->lock);
+			pthread_rwlock_rdlock(&dst_str_list->lock);
 
-			part = dst_p_list->first;
+			stream = dst_str_list->first;
 
-			for (i=0; i<dst_p_list->count; i++){
-				pthread_mutex_lock(&part->lock);
-				
-				memcpy((uint8_t*)part->frame, (uint8_t*)layout->get_layout_bytestream(), layout->get_buffsize());
-				part->frame_length = layout->get_buffsize();
-				part->new_frame = 1;
-				pthread_mutex_unlock(&part->lock);
+			for (i=0; i<dst_str_list->count; i++){
+				pthread_rwlock_rdlock(&stream->lock);
 
-				part = part->next;
+				pthread_rwlock_wrlock(&stream->video.lock);
+				memcpy((uint8_t*)stream->video.decoded_frame, (uint8_t*)layout->get_layout_bytestream(), layout->get_buffsize());
+				stream->video.decoded_frame_len = layout->get_buffsize();
+				pthread_rwlock_unlock(&stream->video.lock);
+
+				pthread_mutex_lock(&stream->video.new_decoded_frame_lock);
+				stream->video.new_decoded_frame = TRUE;
+				pthread_mutex_unlock(&stream->video.new_decoded_frame_lock);
+
+				pthread_rwlock_unlock(&stream->lock);
+
+				stream = stream->next;
 			}
 
-			pthread_rwlock_unlock(&dst_p_list->lock);
+			pthread_rwlock_unlock(&dst_str_list->lock);
 			
 			have_new_frame = false;
 		}
-        
-        
+             
 		gettimeofday(&finish, NULL);
 
 		diff = ((finish.tv_sec - start.tv_sec)*1000000 + finish.tv_usec - start.tv_usec)/1000; // In ms
@@ -92,6 +102,9 @@ void* mixer::run(void) {
 
 	stop_receiver(receiver);
 	stop_out_manager();
+	destroy_stream_list(src_str_list);
+	destroy_stream_list(dst_str_list);
+
 	destroy_participant_list(dst_p_list);
 	destinations.clear();
 	delete layout;
@@ -100,6 +113,8 @@ void* mixer::run(void) {
 
 void mixer::init(uint32_t layout_width, uint32_t layout_height, uint32_t max_streams, uint32_t in_port, uint32_t out_port){
 	layout = new Layout(layout_width, layout_height, PIX_FMT_RGB24, max_streams);
+	input_str_list = init_stream_list();
+	output_str_list = init_stream_list();
 	src_p_list = init_participant_list();
 	dst_p_list = init_participant_list();
 	receiver = init_receiver(src_p_list, in_port);
@@ -120,11 +135,8 @@ void mixer::stop(){
 }
 
 int mixer::add_source(uint32_t new_w, uint32_t new_h, uint32_t x, uint32_t y, uint32_t layer, codec_t codec){
-	int id = layout->introduce_stream(PIX_FMT_RGB24, new_w, new_h, x, y, PIX_FMT_RGB24, layer);
-	if (id == -1){
-		printf("You have reached the max number of simultaneous streams in the Mixer: %u\n", layout->get_max_streams());
-		return -1;
-	}
+	//TODO: generate ID for participant
+	//TODO: maybe we can generate at this point the stream in order to clean receiver code
 	pthread_rwlock_wrlock(&src_p_list->lock);
 	int ret = add_participant(src_p_list, id, 0, 0, codec, NULL, 0, INPUT);
 	pthread_rwlock_unlock(&src_p_list->lock);

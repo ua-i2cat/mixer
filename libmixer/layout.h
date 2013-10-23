@@ -12,6 +12,11 @@
 #include <map>
 #include <vector>
 
+#ifndef TRUE
+#define FALSE    0
+#define TRUE    1
+#endif /* TRUE */
+
 #define MAX_STREAMS 8
 
 class Stream;
@@ -56,6 +61,7 @@ class Layout {
     	uint32_t get_max_streams();
         int set_active(uint32_t stream_id, uint8_t active_flag);
         std::vector<uint32_t> get_streams_id();
+        uint8_t check_if_layout_stream(uint32_t id);
         ~Layout();
         Layout(uint32_t width, uint32_t height, enum PixelFormat colorspace, uint32_t max_str);
 

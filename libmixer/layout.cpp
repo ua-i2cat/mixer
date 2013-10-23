@@ -461,7 +461,19 @@ std::vector<uint32_t> Layout::get_streams_id(){
 }
 
 Stream* Layout::get_stream(uint32_t stream_id){
-	return streams[stream_id];
+	std::map<uint32_t, Stream*>::iterator it = streams.find(stream_id);
+	if (it == streams.end()){
+		return NULL;
+	}
+	return it->second;
+}
+
+uint8_t Layout::check_if_layout_stream(uint32_t id){
+	std::map<uint32_t, Stream*>::iterator it = streams.find(id);
+	if (it == streams.end()){
+		return FALSE;
+	}
+	return TRUE;
 }
 
 uint32_t Layout::get_buffsize(){

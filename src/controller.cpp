@@ -46,7 +46,7 @@ void exit_mixer(Jzon::Object rootNode, Jzon::Object *outRootNode);
 void initialize_action_mapping();
 int get_socket(int port, int *sock);
 int listen_socket(int sock, int *newsock);
-int check_stream_id(int id);
+int check_stream_id(uint32_t id);
 
 std::map<std::string, void(*)(Jzon::Object, Jzon::Object*)> commands;
 Jzon::Object rootNode, root_response;
@@ -194,7 +194,7 @@ void add_stream(Jzon::Object rootNode, Jzon::Object *outRootNode){
         int x = rootNode.Get("params").Get("x").ToInt();
         int y = rootNode.Get("params").Get("y").ToInt();
         int layer = rootNode.Get("params").Get("layer").ToInt();
-        if (m->add_source(new_w, new_h, x, y, layer, H264) == -1){
+        if (m->add_source() == -1){
             outRootNode->Add("error", "errore");
         }else {
             outRootNode->Add("error", Jzon::null);
@@ -262,7 +262,7 @@ void enable_stream(Jzon::Object rootNode, Jzon::Object *outRootNode){
         if (check_stream_id(id) == -1){
             outRootNode->Add("error", "Introduced ID doesn't match any mixer stream ID");
         } else {
-            if(m->set_stream_active(id, 1) == -1){
+            if(m->change_stream_state(id, ACTIVE) == -1){
                 outRootNode->Add("error", "Error enabling stream");
             } else {
                 outRootNode->Add("error", Jzon::null);
@@ -280,7 +280,7 @@ void disable_stream(Jzon::Object rootNode, Jzon::Object *outRootNode){
         if (check_stream_id(id) == -1){
             outRootNode->Add("error", "Introduced ID doesn't match any mixer stream ID");
         }else {
-            if(m->set_stream_active(id, 0) == -1){
+            if(m->change_stream_state(id, NON_ACTIVE) == -1){
                 outRootNode->Add("error", "Error enabling stream");
             }else {
                 outRootNode->Add("error", Jzon::null);
@@ -298,7 +298,7 @@ void add_destination(Jzon::Object rootNode, Jzon::Object *outRootNode){
         uint32_t port = rootNode.Get("params").Get("port").ToInt();
         char *ip = new char[ip_string.length() + 1];
         strcpy(ip, ip_string.c_str());
-        if (m->add_destination(H264, ip, port) == -1){
+        if (m->add_destination(ip, port) == -1){
             outRootNode->Add("error", "errore");
         }else {
             outRootNode->Add("error", Jzon::null);

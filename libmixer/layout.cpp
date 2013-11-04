@@ -12,6 +12,7 @@ extern "C" {
 #include <iostream>
 #include <assert.h>
 #include <stdlib.h>
+#include <sys/time.h>
 
 using namespace std;
 
@@ -361,6 +362,7 @@ int Layout::set_active(uint32_t id, uint8_t active_flag){
 int Layout::print_frame(uint32_t x_pos, uint32_t y_pos, uint32_t width, uint32_t height, AVFrame *stream_frame, AVFrame *layout_frame){
 
 	uint32_t y, contTFrame, contSFrame, max_x, max_y, byte_init_point, byte_offset_line;
+
 	y=0;
 	contTFrame = 0;
 	contSFrame = 0;
@@ -372,6 +374,7 @@ int Layout::print_frame(uint32_t x_pos, uint32_t y_pos, uint32_t width, uint32_t
 	if (height + y_pos > lay_height){
 		max_y = lay_height - y_pos;
 	}
+
 	byte_init_point = y_pos*layout_frame->linesize[0] + x_pos*3;  //Per 3 because every pixel is represented by 3 bytes
 	byte_offset_line = layout_frame->linesize[0] - max_x*3; //Per 3 because every pixel is represented by 3 bytes
 	contTFrame = byte_init_point;

@@ -127,7 +127,7 @@ int mixer::remove_source(uint32_t stream_id){
 	uint32_t part_id;
 	part_id = get_participant_from_stream_id(receiver->participant_list, stream_id);
 	if (part_id >= 0){
-		int ret = remove_participant(receiver->participant_list, part_id);
+		remove_participant(receiver->participant_list, part_id);
 	}
 	remove_stream(src_str_list, stream_id);
 	layout->remove_stream(stream_id);
@@ -140,7 +140,6 @@ int mixer::add_destination(char *ip, uint32_t port){
 		return -1;
 
 	int ret = add_transmitter_participant(transmitter, dst_counter, ip, port);
-	printf("Return : %d\n",ret);
 	if(ret != FALSE){
 		participant_data_t *participant = get_participant_id(transmitter->participants, dst_counter);
 		add_participant_stream(participant, dst_str_list->first);
@@ -156,9 +155,10 @@ int mixer::remove_destination(uint32_t id){
 		return -1;
 
 	int ret = remove_participant(transmitter->participants, id);
-	if(ret != -1){
+	if(ret != FALSE){
 		destinations.erase(id); 
 	}
+	
 	return ret;
 }
 

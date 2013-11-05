@@ -343,6 +343,7 @@ int Layout::set_active(uint32_t id, uint8_t active_flag){
 	}
 
 	if (active_flag == 1){ //enable stream
+		memcpy (streams[id]->get_buffer(), streams[id]->get_dummy_buffer(), streams[id]->get_buffsize());
 		streams[id]->set_active(1);
 		pthread_rwlock_unlock(&resize_rwlock);
 		return 0;

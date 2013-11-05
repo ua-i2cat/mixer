@@ -25,7 +25,6 @@ void* mixer::run(void) {
 	min_diff = ((float)1/(float)max_frame_rate)*1000; // In ms
 
 	while (!should_stop){
-	
 	    min_diff = ((float)1/(float)max_frame_rate)*1000;
 
 		if (diff < min_diff){
@@ -48,7 +47,6 @@ void* mixer::run(void) {
 				layout->introduce_stream(stream->id, stream->video->width, stream->video->height, PIX_FMT_RGB24, 
 					stream->video->width, stream->video->height, PIX_FMT_RGB24, 0, 0, 0);
 				pthread_rwlock_unlock(&stream->video->lock);
-				printf("Stream added to layout\n");
 			}
 
 			pthread_mutex_lock(&stream->video->new_decoded_frame_lock);
@@ -128,14 +126,11 @@ int mixer::remove_source(uint32_t stream_id){
 
 	uint32_t part_id;
 	part_id = get_participant_from_stream_id(receiver->participant_list, stream_id);
-
-	remove_stream(src_str_list, stream_id);
-	layout->remove_stream(stream_id);
-	
 	if (part_id >= 0){
 		int ret = remove_participant(receiver->participant_list, part_id);
-		return ret;
 	}
+	remove_stream(src_str_list, stream_id);
+	layout->remove_stream(stream_id);
 
 	return TRUE;
 }

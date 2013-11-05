@@ -305,17 +305,14 @@ int Layout::modify_stream (uint32_t stream_id, uint32_t width, uint32_t height, 
 }
 
 int Layout::remove_stream (uint32_t id){
-
 	pthread_rwlock_wrlock(&resize_rwlock);
 	if (streams.count(id) <= 0) {
 		pthread_rwlock_unlock(&resize_rwlock);
 		return -1;
 	}
-
 	Stream *stream = streams[id];
 
 	print_frame(stream->get_x_pos(), stream->get_y_pos(), stream->get_curr_w(), stream->get_curr_h(), stream->get_dummy_frame(), layout_frame);
-	pthread_rwlock_unlock(&resize_rwlock);
 
 	std::multimap<uint32_t,uint32_t>::iterator it = layers.find(stream->get_layer());  
 	while (it->second != id){
@@ -325,6 +322,7 @@ int Layout::remove_stream (uint32_t id){
 	
 	delete stream;
 	streams.erase(id);
+	pthread_rwlock_unlock(&resize_rwlock);
 
 	return 0;
 }

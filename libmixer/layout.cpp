@@ -193,8 +193,6 @@ int Layout::modify_stream (uint32_t stream_id, uint32_t width, uint32_t height, 
 	pthread_rwlock_wrlock(&resize_rwlock);
 
 //TODO: resize rwlock podria ser un read lock si fem un wrlock d'un mutex intern de l'stream
-
-	uint32_t old_x_pos = 0, old_y_pos = 0, old_width = 0, old_height = 0;
 	
 	if (streams.count(stream_id) <= 0) {
 		pthread_rwlock_unlock(&resize_rwlock);
@@ -208,6 +206,10 @@ int Layout::modify_stream (uint32_t stream_id, uint32_t width, uint32_t height, 
 	}
 
 	Stream *stream = streams[stream_id];
+	uint32_t old_x_pos = stream->get_x_pos();
+	uint32_t old_y_pos = stream->get_y_pos();
+	uint32_t old_width = stream->get_curr_w(); 
+	uint32_t old_height = stream->get_curr_h();
 	bool size_modified = false, pos_modified = false;
 
 	//Modify stream features (the ones which have changed)
@@ -243,7 +245,6 @@ int Layout::modify_stream (uint32_t stream_id, uint32_t width, uint32_t height, 
 		stream->set_layer(layer);
 		layers.insert(pair<uint32_t, uint32_t>(layer,stream_id));
 	}
-
 
 	if (keepAspectRatio){
 		//modify curr h in order to keep the same aspect ratio of orig_w and orig_h

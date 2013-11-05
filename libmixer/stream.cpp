@@ -9,6 +9,7 @@ extern "C" {
 #include "stream.h"
 #include <iostream>
 #include <stdio.h>
+#include <sys/time.h>
 
 using namespace std;
 
@@ -76,6 +77,8 @@ Stream::~Stream(){
 
 
 void* Stream::resize(void){
+//	struct timeval start, finish;
+//	float diff = 0;
 
 	while (1) {
 
@@ -89,7 +92,7 @@ void* Stream::resize(void){
 		pthread_mutex_unlock(&orig_frame_ready_mutex);
 
 		pthread_rwlock_rdlock(stream_resize_rwlock_ref);
-            
+//        gettimeofday(&start, NULL);    
 			//Scale
 			sws_scale(
 				ctx,
@@ -100,7 +103,9 @@ void* Stream::resize(void){
 				curr_frame->data,
 				curr_frame->linesize
 			);
-
+//		gettimeofday(&finish, NULL);
+//		diff = ((finish.tv_sec - start.tv_sec)*1000000 + finish.tv_usec - start.tv_usec); // In ms
+//		printf("Diff: %f\n", diff);
 		pthread_rwlock_unlock(stream_resize_rwlock_ref);
 
 	}

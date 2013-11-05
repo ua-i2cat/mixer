@@ -43,12 +43,12 @@ void* mixer::run(void) {
 			}
 
 			pthread_rwlock_rdlock(&stream->lock);
-
 			if(!layout->check_if_layout_stream(stream->id) && stream->video->decoder != NULL){
 				pthread_rwlock_rdlock(&stream->video->lock);
 				layout->introduce_stream(stream->id, stream->video->width, stream->video->height, PIX_FMT_RGB24, 
 					stream->video->width, stream->video->height, PIX_FMT_RGB24, 0, 0, 0);
 				pthread_rwlock_unlock(&stream->video->lock);
+				printf("Stream added to layout\n");
 			}
 
 			pthread_mutex_lock(&stream->video->new_decoded_frame_lock);
@@ -70,11 +70,10 @@ void* mixer::run(void) {
 
 		if (have_new_frame){
 			layout->merge_frames();		
-
 			pthread_rwlock_wrlock(&dst_str_list->first->video->decoded_frame_lock);
 			memcpy((uint8_t*)dst_str_list->first->video->decoded_frame, (uint8_t*)layout->get_layout_bytestream(), layout->get_buffsize());
 			pthread_rwlock_unlock(&dst_str_list->first->video->decoded_frame_lock);
-			
+			sem_post(&dst_str_list->first->video->encoder->input_sem);
 			have_new_frame = false;
 		}
              
@@ -98,9 +97,10 @@ void mixer::init(uint32_t layout_width, uint32_t layout_height, uint32_t max_str
 	src_str_list = init_stream_list();
 	dst_str_list = init_stream_list();
 	stream_data_t *stream = init_stream(VIDEO, OUTPUT, rand(), ACTIVE);
+	set_video_data(stream->video, H264, 1280, 720);
 	add_stream(dst_str_list, stream);
 	receiver = init_receiver(src_str_list, in_port);
-	transmitter = init_transmitter(dst_str_list, 0);
+	transmitter = init_transmitter(dst_str_list, 25);
 	_in_port = in_port;
 	_out_port = out_port;
 	dst_counter = 0;
@@ -119,27 +119,34 @@ void mixer::stop(){
 
 int mixer::add_source(){
 	uint32_t id = rand();
-	return add_participant(receiver->participant_list, id, INPUT, NULL, 0);
+	return add_receiver_participant(receiver, id);
 }
 
-int mixer::remove_source(uint32_t id){
+int mixer::remove_source(uint32_t stream_id){
 	if (layout == NULL)
 		return -1;
-	int str_id = get_participant_stream_id(receiver->participant_list, id);
-	if (str_id >= 0){
-		remove_stream(src_str_list, str_id);
-		layout->remove_stream(str_id);
+
+	uint32_t part_id;
+	part_id = get_participant_from_stream_id(receiver->participant_list, stream_id);
+
+	remove_stream(src_str_list, stream_id);
+	layout->remove_stream(stream_id);
+	
+	if (part_id >= 0){
+		int ret = remove_participant(receiver->participant_list, part_id);
+		return ret;
 	}
-	int ret = remove_participant(receiver->participant_list, id);
-	return ret;
+
+	return TRUE;
 }
 
 int mixer::add_destination(char *ip, uint32_t port){
 	if (layout == NULL)
 		return -1;
 
-	int ret =  add_participant(transmitter->participants, dst_counter, OUTPUT, ip, port);
-	if(ret != -1){
+	int ret = add_transmitter_participant(transmitter, dst_counter, ip, port);
+	printf("Return : %d\n",ret);
+	if(ret != FALSE){
 		participant_data_t *participant = get_participant_id(transmitter->participants, dst_counter);
 		add_participant_stream(participant, dst_str_list->first);
 		Dst dest = {ip,port};

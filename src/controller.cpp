@@ -329,6 +329,7 @@ void get_streams(Jzon::Object rootNode, Jzon::Object *outRootNode){
         uint32_t i;
         Jzon::Array list;
         std::vector<uint32_t> streams_id = m->get_streams_id();
+        printf("CONTROLLER: %d\n", streams_id.size());
         if(streams_id.empty()){
             outRootNode->Add("streams", list);
         }else {

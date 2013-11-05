@@ -1,6 +1,7 @@
 #include "layout.h"
 
 #include <stdio.h>
+#include <unistd.h>
 
 int load_video(const char *path, AVFormatContext *pFormatCtx, AVCodecContext *pCodecCtx);
 int read_frame(AVFormatContext *pFormatCtx, int videostream, AVCodecContext *pCodecCtx, uint8_t *buff);
@@ -45,7 +46,7 @@ int main(int argc, char *argv[]){
 	
 	Layout *layout = new Layout(layout_width, layout_height, PIX_FMT_RGB24, max_streams); 
 
-	layout->introduce_stream(1, cctx1.width, cctx1.height, cctx1.pix_fmt, 854, 480, PIX_FMT_RGB24, 0, 0, 0);
+	layout->introduce_stream(1, cctx1.width, cctx1.height, cctx1.pix_fmt, 500, 500, PIX_FMT_RGB24, 0, 0, 0);
 	layout->introduce_stream(2, cctx2.width, cctx2.height, cctx2.pix_fmt, 854, 480, PIX_FMT_RGB24, 300, 300, 0);
 
 	printf("Introduced streams\n");
@@ -56,32 +57,32 @@ int main(int argc, char *argv[]){
     	read_frame(fctx2, v2, &cctx2, b2);
 
     	layout->introduce_frame(1, b1, bsize1);
-    	layout->introduce_frame(2, b2, bsize2);
+	  	layout->introduce_frame(2, b2, bsize2);
 
     	layout->merge_frames();
 
 		if (F_video_rx == NULL) {
 			printf("recording rx frame...\n");
-			F_video_rx = fopen(OUTPUT_PATH, "wb");
+		 	F_video_rx = fopen(OUTPUT_PATH, "wb");
 		}
 
 		if (cont == 1200){
-			layout->set_active(1, 0);
-			printf("Modified stream\n");
+		 	layout->set_active(1, 0);
+		 	printf("Modified stream\n");
 		}
 
 		if (cont == 1280){
 			layout->set_active(1, 1);
-			printf("Modified stream\n");
+		 	printf("Modified stream\n");
 		}
 
 		if (cont > 1000){
-			fwrite(layout->get_layout_bytestream(), layout->get_buffsize(), 1, F_video_rx);
+		 	fwrite(layout->get_layout_bytestream(), layout->get_buffsize(), 1, F_video_rx);
 		}
 
 		cont++;
 
-		if (cont > 4000){
+		if (cont > 100){
 			printf("Frame recording finished");
 			return 0;
 		}

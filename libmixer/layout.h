@@ -20,11 +20,15 @@
 #define MAX_STREAMS 8
 
 class Stream;
+class Crop;
 
 class Layout {
 
 	private:
-		uint32_t lay_width, lay_height, max_streams, max_layers, i, j;
+		uint32_t width, height;
+
+        Stream *out_stream;
+
 	    enum PixelFormat lay_colorspace;
 	    AVFrame *layout_frame;
 	    uint8_t *lay_buffer, *out_buffer;

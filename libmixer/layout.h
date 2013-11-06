@@ -26,6 +26,7 @@ class Layout {
 
 	private:
 		uint32_t width, height;
+        Mat layout_img;
 
         Stream *out_stream;
 

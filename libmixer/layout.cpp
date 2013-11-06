@@ -501,6 +501,4 @@ Layout::~Layout(){
   		free(lay_buffer);
   	if (out_buffer != NULL)
   		free(out_buffer);
-  	if (thr != NULL)
-  		free(thr);
 }

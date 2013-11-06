@@ -139,9 +139,9 @@ int mixer::add_destination(char *ip, uint32_t port){
 	if (layout == NULL)
 		return -1;
 
-	int ret = add_transmitter_participant(transmitter, dst_counter, ip, port);
+	participant_data_t *participant = init_participant(dst_counter, OUTPUT, ip, port);
+	int ret = add_transmitter_participant(transmitter, participant);
 	if(ret != FALSE){
-		participant_data_t *participant = get_participant_id(transmitter->participants, dst_counter);
 		add_participant_stream(participant, dst_str_list->first);
 		Dst dest = {ip,port};
 		destinations[dst_counter] = dest; 
@@ -154,8 +154,8 @@ int mixer::remove_destination(uint32_t id){
 	if (layout == NULL)
 		return -1;
 
-	int ret = remove_participant(transmitter->participants, id);
-	if(ret != FALSE){
+	int ret = destroy_transmitter_participant(transmitter, id);
+	if(ret == TRUE){
 		destinations.erase(id); 
 	}
 	

@@ -30,7 +30,6 @@ class Layout {
 	    uint8_t *lay_buffer, *out_buffer;
 	    unsigned int lay_buffsize;
 	    pthread_rwlock_t resize_rwlock;
-        pthread_t* thr;
         std::map<uint32_t, Stream*> streams;
         std::multimap<uint32_t, uint32_t> layers;
 

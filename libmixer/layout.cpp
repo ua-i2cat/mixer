@@ -1,10 +1,3 @@
-
-extern "C" {
-	#include <libavcodec/avcodec.h>
-	#include <libavformat/avformat.h>
-	#include <libswscale/swscale.h>
-	#include <libavutil/avutil.h>
-}
 #include <pthread.h>
 #include "stream.h"
 #include "layout.h"
@@ -15,6 +8,84 @@ extern "C" {
 #include <sys/time.h>
 
 using namespace std;
+
+Layout(uint32_t width, uint32_t height){
+	lay_width = width;
+	lay_height = height;
+	out_stream = new Stream(rand(), width, height); 
+	out_stream.add_crop(rand(), width, height, 0, 0, width, height, 0, 0);
+}
+
+int add_stream(uint32_t stream_id, uint32_t width, uint32_t height){
+	if (streams.count(stream_id) > 0) {
+		return FALSE;
+	}
+
+	Stream *stream = new Stream(stream_id, width, height);
+	Crop *crop = stream.add_crop(rand(), width, height, 0, 0, 0, lay_width, lay_height, 0, 0);
+	crops_by_layers.insert(pair<uint32_t, uint32_t>(crop->layer, crop->id));
+
+	return TRUE;
+
+}
+
+Stream *get_stream_by_id(uint32_t stream_id){
+	if (streams.count(stream_id) <= 0) {
+		return NULL;
+	}
+
+	return streams[stream_id];
+}
+
+int remove_stream(uint32_t stream_id){
+	if (streams.count(stream_id) <= 0) {
+		return NULL;
+	}
+
+	Stream *stream = streams[stream_id];
+
+	for (map<uint32_t, Crop*>::iterator str_it = stream->crops.begin(); str_it != stream->crops.end(); str_it++){
+		multimap<uint32_t,`Crop*>::iterator it = crops_by_layers.find(str_it->second->get_layer());  
+		while (it->second->id != str_it->second->id){
+			it++;
+		}
+		crops_by_layers.erase(it);
+		stream->remove_crop(str_it->first);
+	}
+	return TRUE;
+}
+
+int add_crop_to_stream(uint32_t stream_id, uint32_t crop_width, uint32_t crop_height, uint32_t crop_x, uint32_t crop_y, 
+					uint32_t layer, uint32_t dst_width, uint32_t dst_height, uint32_t dst_x, uint32_t dst_y){
+
+	if (streams.count(stream_id) <= 0) {
+		return FALSE;
+	}
+
+	//TODO: check if introced values are valid
+
+	Stream *stream = streams[stream_id];
+	Crop *crop = stream.add_crop(rand(), crop_width, crop_height, crop_x, crop_y, layer, dst_width, dst_height, dst_x, dst_y);
+	crops_by_layers.insert(pair<uint32_t, uint32_t>(crop->layer, crop->id));
+
+	return TRUE;
+
+}
+
+int remove_crop_from_stream(uint32_t stream_id, uint32_t crop_id){
+	if (streams.count(stream_id) <= 0) {
+		return FALSE;
+	}
+
+	Stream *stream = streams[stream_id];
+	Crop *crop = stream->get_crop_by_id(crop_id){
+
+	if (stream.remove_crop())
+}
+
+Stream *get_out_stream();
+
+int compose_layout();
 
 Layout::Layout(uint32_t width, uint32_t height, enum AVPixelFormat colorspace, uint32_t max_str){
 

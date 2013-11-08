@@ -25,7 +25,7 @@ class Crop;
 class Layout {
 
 	private:
-		uint32_t width, height;
+		uint32_t lay_width, lay_height;
         Mat layout_img;
         Stream *out_stream;
         multimap<uint32_t, Crop*> crops_by_layers;
@@ -58,6 +58,9 @@ class Layout {
         int add_stream(uint32_t stream_id, uint32_t width, uint32_t height);
         Stream *get_stream_by_id(uint32_t stream_id);
         int remove_stream(uint32_t stream_id);
+
+        int add_crop_to_stream(uint32_t stream_id);
+        int remove_crop_from_stream(uint32_t stream_id, uint32_t crop_id);
 
         Stream *get_out_stream();
 

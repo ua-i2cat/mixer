@@ -5,6 +5,54 @@
 #include <sys/time.h>
 
 using namespace std;
+using namespace cv;
+
+Stream(uint32_t stream_id, uint32_t stream_width, uint32_t stream_height){
+	id = stream_id;
+	sz = Size(stream_width, stream_height);
+} 
+
+Crop* Stream::add_crop(uint32_t id, uint32_t crop_width, uint32_t crop_height, uint32_t crop_x, uint32_t crop_y,
+				uint32_t layer, uint32_t dst_width, uint32_t dst_height, uint32_t dst_x, uint32_t dst y, Mat *layout_img_ref){
+
+	if (crops.count(crop_id) > 0) {
+		return FALSE;
+	}
+
+	Crop *crop = new Crop(id, crop_width, crop_height, crop_x, crop_y, layer, dst_width, dst_height, dst_x, dst_y, &img);
+	crops[id] = crop;
+
+	return crop;
+}
+
+Crop* Stream::get_crop_by_id(uint32_t crop_id){
+	map<uint32_t, Crop*>::iterator it = crops.find(crop_id);
+	if (it == crops.end()){
+		return NULL;
+	}
+	return it->second;
+}
+
+int Stream::remove_crop(uint32_t crop_id){
+	if (crops.count(crop_id) <= 0) {
+		return FALSE;
+	}
+
+	delete crop;
+	crops.erase(id);
+
+	return TRUE;
+}
+
+int introduce_frame(uint8_t* buffer, uint32_t buffer_length){
+	//TODO: check buffer
+
+	img.data = buffer;
+
+	//TODO: signal new frame (cond broadcast)
+	return TRUE;
+
+}
 
 Stream::Stream(uint32_t identifier, pthread_rwlock_t* lock, uint32_t orig_width, uint32_t orig_height, 
 				enum AVPixelFormat orig_colorspace, uint32_t new_width, uint32_t new_height, 

@@ -44,16 +44,16 @@ void* mixer::run(void) {
 			pthread_rwlock_rdlock(&stream->lock);
 			if(!layout->check_if_layout_stream(stream->id) && stream->video->decoder != NULL){
 				pthread_rwlock_rdlock(&stream->video->lock);
-				layout->introduce_stream(stream->id, stream->video->width, stream->video->height, PIX_FMT_RGB24, 
-					stream->video->width, stream->video->height, PIX_FMT_RGB24, 0, 0, 0);
+				layout->introduce_stream(stream->id, stream->video->decoded_frame->width, stream->video->decoded_frame->height, 
+					PIX_FMT_RGB24, stream->video->decoded_frame->width, stream->video->decoded_frame->height, PIX_FMT_RGB24, 0, 0, 0);
 				pthread_rwlock_unlock(&stream->video->lock);
 			}
 
 			pthread_mutex_lock(&stream->video->new_decoded_frame_lock);
 			if (stream->video->new_decoded_frame){
-				pthread_rwlock_rdlock(&stream->video->decoded_frame_lock);
-				layout->introduce_frame(stream->id, (uint8_t*)stream->video->decoded_frame, stream->video->decoded_frame_len);
-				pthread_rwlock_unlock(&stream->video->decoded_frame_lock);
+				pthread_rwlock_rdlock(&stream->video->decoded_frame->lock);
+				layout->introduce_frame(stream->id, (uint8_t*)stream->video->decoded_frame->buffer, stream->video->decoded_frame->buffer_len);
+				pthread_rwlock_unlock(&stream->video->decoded_frame->lock);
 				have_new_frame = true;
 				stream->video->new_decoded_frame = FALSE;
 			}
@@ -68,9 +68,9 @@ void* mixer::run(void) {
 
 		if (have_new_frame){
 			layout->merge_frames();		
-			pthread_rwlock_wrlock(&dst_str_list->first->video->decoded_frame_lock);
-			memcpy((uint8_t*)dst_str_list->first->video->decoded_frame, (uint8_t*)layout->get_layout_bytestream(), layout->get_buffsize());
-			pthread_rwlock_unlock(&dst_str_list->first->video->decoded_frame_lock);
+			pthread_rwlock_wrlock(&dst_str_list->first->video->decoded_frame->lock);
+			memcpy((uint8_t*)dst_str_list->first->video->decoded_frame->buffer, (uint8_t*)layout->get_layout_bytestream(), layout->get_buffsize());
+			pthread_rwlock_unlock(&dst_str_list->first->video->decoded_frame->lock);
 			sem_post(&dst_str_list->first->video->encoder->input_sem);
 			have_new_frame = false;
 		}
@@ -94,8 +94,10 @@ void mixer::init(uint32_t layout_width, uint32_t layout_height, uint32_t max_str
 	layout = new Layout(layout_width, layout_height, PIX_FMT_RGB24, max_streams);
 	src_str_list = init_stream_list();
 	dst_str_list = init_stream_list();
-	stream_data_t *stream = init_stream(VIDEO, OUTPUT, rand(), ACTIVE);
-	set_video_data(stream->video, H264, 1280, 720);
+	stream_data_t *stream = init_stream(VIDEO, OUTPUT, rand(), ACTIVE, NULL);
+	set_video_data_frame(stream->video->decoded_frame, RAW, layout_width, layout_height);
+    set_video_data_frame(stream->video->coded_frame, H264, layout_width, layout_height);
+    init_encoder(stream->video);
 	add_stream(dst_str_list, stream);
 	receiver = init_receiver(src_str_list, in_port);
 	transmitter = init_transmitter(dst_str_list, 25);
@@ -117,7 +119,8 @@ void mixer::stop(){
 
 int mixer::add_source(){
 	uint32_t id = rand();
-	return add_receiver_participant(receiver, id);
+	int ret = add_receiver_participant(receiver, id);
+	return ret;
 }
 
 int mixer::remove_source(uint32_t stream_id){

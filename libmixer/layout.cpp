@@ -180,7 +180,6 @@ int Layout::introduce_stream (uint32_t id, uint32_t orig_w, uint32_t orig_h, enu
 
 	pthread_rwlock_wrlock(&resize_rwlock);
 	streams[id] = stream;
-	stream->set_active(1);
 	layers.insert(pair<uint32_t, uint32_t>(layer,id));
 	pthread_rwlock_unlock(&resize_rwlock);
 

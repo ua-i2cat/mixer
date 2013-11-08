@@ -80,10 +80,21 @@ int remove_crop_from_stream(uint32_t stream_id, uint32_t crop_id){
 	Stream *stream = streams[stream_id];
 	Crop *crop = stream->get_crop_by_id(crop_id){
 
-	if (stream.remove_crop())
+	if (stream.remove_crop() == TRUE){
+		std::multimap<uint32_t, Crop*>::iterator it = layers.find(crop->get_layer());  
+		while (it->second->get_id() != crop->get_id()){
+			it++;
+		}
+		layers.erase(it);
+		return TRUE;
+	}
+
+	return FALSE;
 }
 
-Stream *get_out_stream();
+Stream *get_out_stream(){
+	return out_stream;
+}
 
 int compose_layout();
 

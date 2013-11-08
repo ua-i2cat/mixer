@@ -20,6 +20,10 @@ class Stream {
 		Size sz;
 		Mat img;
 		std::map<uint32_t, Crop*> crops;
+		pthread_rwlock_t lock;
+		pthread_cond_t new_frame_cond;
+		pthread_mutex_t new_frame_lock;
+		uint8_t new_frame;
 
 	public:
 		Stream(uint32_t stream_id, uint32_t stream_width, uint32_t stream_height); 

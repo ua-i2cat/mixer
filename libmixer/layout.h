@@ -30,6 +30,8 @@ class Layout {
         Stream *out_stream;
         multimap<uint32_t, Crop*> crops_by_layers;
         map<uint32_t, Stream*> streams;
+        pthread_rwlock_t layers_lock;
+        pthread_rwlock_t streams_lock;
 
 
 
@@ -59,8 +61,13 @@ class Layout {
         Stream *get_stream_by_id(uint32_t stream_id);
         int remove_stream(uint32_t stream_id);
 
-        int add_crop_to_stream(uint32_t stream_id);
+        int add_crop_to_stream(uint32_t stream_id, uint32_t crop_width, uint32_t crop_height, uint32_t crop_x, uint32_t crop_y, 
+                    uint32_t layer, uint32_t dst_width, uint32_t dst_height, uint32_t dst_x, uint32_t dst_y);
         int remove_crop_from_stream(uint32_t stream_id, uint32_t crop_id);
+        int modify_orig_crop_from_stream(uint32_t stream_id, uint32_t crop_id, uint32_t new_crop_width, uint32_t new_crop_height,
+                    uint32_t new_crop_x, uint32_t new_crop_y);
+        int modify_dst_crop_from_stream(uint32_t stream_id, uint32_t crop_id, uint32_t new_crop_width, uint32_t new_crop_height,
+                    uint32_t new_crop_x, uint32_t new_crop_y, uint32_t new_layer);
 
         Stream *get_out_stream();
 

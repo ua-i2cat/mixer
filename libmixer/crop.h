@@ -27,6 +27,7 @@ class Crop {
 		uint8_t *new_frame;
 		uint8_t run;
 		pthread_t thread;
+		uint8_t active;
 	    
 	public:
         Crop(uint32_t crop_id, uint32_t crop_width, uint32_t crop_height, uint32_t crop_x, uint32_t crop_y, 
@@ -50,6 +51,9 @@ class Crop {
 		pthread_rwlock_t* get_lock();
 		pthread_t get_thread();
 		void stop();
+		uint8_t is_active();
+		uint8_t set_active(uint8_t act);
+
 
 
 };

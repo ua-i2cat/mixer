@@ -39,7 +39,7 @@ Crop* Stream::add_crop(uint32_t id, uint32_t crop_width, uint32_t crop_height, u
 
 Crop* Stream::get_crop_by_id(uint32_t crop_id)
 {
-	pthread_rwlock_wrlock(&crops_lock);
+	pthread_rwlock_rdlock(&crops_lock);
 
 	if (crops.count(crop_id) <= 0) {
 		pthread_rwlock_unlock(&crops_lock);

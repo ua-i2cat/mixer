@@ -74,32 +74,32 @@ int main(int argc, char *argv[]){
 		}
 
 		cont++;
-		printf("Frame %d\n", cont);
+		//printf("Frame %d\n", cont);
 
-		if (cont == 1300){
-		 	layout->add_crop_to_stream(1, 300, 300, 100, 100, 10, 200, 200, 1080, 0);
-		 	printf("New src crop\n");
-		}
+		// if (cont == 1300){
+		//  	layout->add_crop_to_stream(1, 300, 300, 100, 100, 10, 200, 200, 1080, 0);
+		//  	printf("New src crop\n");
+		// }
 
-		if (cont == 1100){
-			layout->add_crop_to_stream(2, 300, 300, 100, 100, 20, 300, 300, 980, 420);
-			printf("New src crop\n");
-		}
+		// if (cont == 1100){
+		// 	layout->add_crop_to_stream(2, 300, 300, 100, 100, 20, 300, 300, 980, 420);
+		// 	printf("New src crop\n");
+		// }
 
-		if (cont == 1500){
-			layout->modify_orig_crop_from_stream(1, layout->get_stream_by_id(1)->get_crops().begin()->first, 300, 300, 150, 50);
-			printf("Crop orig modified\n");
-		}
+		// if (cont == 1500){
+		// 	layout->disable_crop_from_stream(1, layout->get_stream_by_id(1)->get_crops().begin()->first);
+		// 	printf("Crop disabled\n");
+		// }
 
-		if (cont == 1700){
-			layout->remove_crop_from_stream(1, layout->get_stream_by_id(1)->get_crops().rbegin()->first);
-			printf("Crop removed\n");
-		}
+		// if (cont == 1700){
+		// 	layout->enable_crop_from_stream(1, layout->get_stream_by_id(1)->get_crops().begin()->first);
+		// 	printf("Crop enabled\n");
+		// }
 
-		if (cont > 2000){
-			printf("Frame recording finished");
-			return 0;
-		}
+		// if (cont > 2000){
+		// 	printf("Frame recording finished");
+		// 	return 0;
+		// }
 	}
 }
 

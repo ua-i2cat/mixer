@@ -20,6 +20,7 @@ Crop::Crop(uint32_t crop_id, uint32_t c_width, uint32_t c_height, uint32_t c_x, 
 	new_frame_cond = str_cond_ref;
 	new_frame = str_new_frame_ref;
 	run = TRUE;
+	active = TRUE;
 
 	pthread_create(&thread, NULL, Crop::execute_resize, this);
 }
@@ -124,5 +125,14 @@ void Crop::stop(){
 	*new_frame = TRUE;
 	pthread_cond_signal(new_frame_cond);
 	pthread_mutex_unlock(new_frame_lock);
+}
+
+uint8_t Crop::is_active()
+{
+	return active;
+}
+uint8_t Crop::set_active(uint8_t act)
+{
+	active = act;
 }
 

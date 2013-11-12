@@ -238,11 +238,58 @@ int Layout::introduce_frame_to_stream(uint32_t stream_id, uint8_t* buffer, uint3
 	return ret;
 }
 
-int enable_crop_from_stream(uint32_t stream_id, uint32_t crop_id)
+int Layout::enable_crop_from_stream(uint32_t stream_id, uint32_t crop_id)
 {
-	
+	Stream *stream = get_stream_by_id(stream_id);
+
+	if (stream == NULL){
+		return FALSE;
+	}
+
+	Crop *crop = stream->get_crop_by_id(crop_id);
+
+	if (crop == NULL){
+		return FALSE;
+	}
+
+	pthread_rwlock_rdlock(crop->get_lock());
+	pthread_rwlock_wrlock(&layers_lock);
+	crops_by_layers.insert(pair<uint32_t, Crop*>(crop->get_layer(), crop));
+	pthread_rwlock_unlock(&layers_lock);
+	pthread_rwlock_unlock(crop->get_lock());
+
+	return TRUE;
 }
-int disable_crop_from_stream(uint32_t stream_id, uint32_t crop_id);
+int Layout::disable_crop_from_stream(uint32_t stream_id, uint32_t crop_id)
+{
+	Stream *stream = get_stream_by_id(stream_id);
+
+	if (stream == NULL){
+		return FALSE;
+	}
+
+	Crop *crop = stream->get_crop_by_id(crop_id);
+
+	if (crop == NULL){
+		return FALSE;
+	}
+
+	pthread_rwlock_rdlock(crop->get_lock());
+	pthread_rwlock_wrlock(&layers_lock);
+	std::multimap<uint32_t, Crop*>::iterator it = crops_by_layers.find(crop->get_layer());  
+	while (it->second->get_id() != crop->get_id()){
+		it++;
+	}
+	crops_by_layers.erase(it);
+	pthread_rwlock_unlock(&layers_lock);
+	pthread_rwlock_unlock(crop->get_lock());
+
+	pthread_rwlock_wrlock(&layout_img_lock);
+	layout_img(Rect(crop->get_dst_x(), crop->get_dst_y(), crop->get_dst_width(), crop->get_dst_height())) = Mat::zeros(crop->get_dst_height(), crop->get_dst_width(), CV_8UC3);
+	pthread_rwlock_unlock(&layout_img_lock);
+
+	return TRUE;
+}
 
 uint8_t* Layout::get_buffer()
 {

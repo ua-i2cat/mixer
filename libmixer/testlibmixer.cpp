@@ -7,11 +7,14 @@ extern "C" {
 
 #include <stdio.h>
 #include <unistd.h>
+#include <sys/time.h>
 
 int load_video(const char *path, AVFormatContext *pFormatCtx, AVCodecContext *pCodecCtx);
 int read_frame(AVFormatContext *pFormatCtx, int videostream, AVCodecContext *pCodecCtx, uint8_t *buff);
 
 int main(int argc, char *argv[]){
+	struct timeval start, finish;
+	float diff = 0, avg_diff = 0, diff_count = 0;
 
 	char *OUTPUT_PATH = "rx_frame.yuv";
 	char *OUTPUT_PATH1 = "out1.rgb";
@@ -58,12 +61,20 @@ int main(int argc, char *argv[]){
     	read_frame(fctx1, v1, &cctx1, b1);
     	read_frame(fctx2, v2, &cctx2, b2);
 
+    	gettimeofday(&start, NULL);    
+
     	layout->introduce_frame_to_stream(1, b1, bsize1);
     	layout->introduce_frame_to_stream(2, b2, bsize2);
 
     	layout->compose_layout();
 
+    	gettimeofday(&finish, NULL);
+		
 		if (cont > 1000){
+
+			diff = ((finish.tv_sec - start.tv_sec)*1000000 + finish.tv_usec - start.tv_usec); // In us
+			avg_diff += diff;
+			diff_count++;
 
 			if (F_video_rx == NULL) {
 				printf("recording rx frame...\n");
@@ -74,7 +85,7 @@ int main(int argc, char *argv[]){
 		}
 
 		cont++;
-		//printf("Frame %d\n", cont);
+		
 
 		// if (cont == 1300){
 		//  	layout->add_crop_to_stream(1, 300, 300, 100, 100, 10, 200, 200, 1080, 0);
@@ -96,10 +107,12 @@ int main(int argc, char *argv[]){
 		// 	printf("Crop enabled\n");
 		// }
 
-		// if (cont > 2000){
-		// 	printf("Frame recording finished");
-		// 	return 0;
-		// }
+		if (cont > 2000){
+			avg_diff = avg_diff/diff_count;
+			printf("Average time %f (us)\n", avg_diff);
+			printf("Frame recording finished");
+		 	return 0;
+		}
 	}
 }
 

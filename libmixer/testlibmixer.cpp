@@ -116,9 +116,12 @@ int main(int argc, char *argv[]){
 		if (cont > 2000){
 			avg_diff_intr = avg_diff_intr/diff_count;
 			avg_diff_merge = avg_diff_merge/diff_count;
+			float avg_time = layout->get_stream_by_id(1)->get_crops().begin()->second->diff_avg;
+			avg_time = avg_time/layout->get_stream_by_id(1)->get_crops().begin()->second->diff_count;
+			printf("Average resize time %f (us)\n", avg_time);
 			printf("Average intr time %f (us)\n", avg_diff_intr);
 			printf("Average merge time %f (us)\n", avg_diff_merge);
-			printf("Frame recording finished");
+			printf("Frame recording finished\n");
 		 	return 0;
 		}
 	}

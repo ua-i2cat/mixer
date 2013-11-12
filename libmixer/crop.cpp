@@ -1,5 +1,6 @@
 #include "crop.h"
 #include <stdio.h>
+#include <sys/time.h>
 
 Crop::Crop(uint32_t crop_id, uint32_t c_width, uint32_t c_height, uint32_t c_x, uint32_t c_y, 
         	uint32_t dst_layer, uint32_t d_width, uint32_t d_height, uint32_t d_x, uint32_t d_y, Mat stream_img_ref, 
@@ -21,6 +22,9 @@ Crop::Crop(uint32_t crop_id, uint32_t c_width, uint32_t c_height, uint32_t c_x, 
 	new_frame = str_new_frame_ref;
 	run = TRUE;
 	active = TRUE;
+	diff = 0;
+	diff_avg = 0;
+	diff_count = 0;
 
 	pthread_create(&thread, NULL, Crop::execute_resize, this);
 }
@@ -49,6 +53,7 @@ void* Crop::execute_resize(void *context)
 
 void* Crop::resize_routine(void)
 {
+	struct timeval start, finish;
 
 	while (run) {
 		//Check if the original frame is ready
@@ -60,18 +65,24 @@ void* Crop::resize_routine(void)
 		*new_frame = FALSE;
 		pthread_mutex_unlock(new_frame_lock);
 
+
 		if (!run){
 			break;
 		}
 
 		pthread_rwlock_rdlock(stream_lock);
 		pthread_rwlock_wrlock(&lock);
+		gettimeofday(&start, NULL);    
 
         resize(src_img(Rect(crop_x, crop_y, crop_img_size.width, crop_img_size.height)), crop_img, dst_img_size, 0, 0, INTER_LINEAR);
 
+		gettimeofday(&finish, NULL);    
 		pthread_rwlock_unlock(&lock);
 		pthread_rwlock_unlock(stream_lock);
 
+		diff = ((finish.tv_sec - start.tv_sec)*1000000 + finish.tv_usec - start.tv_usec); // In us
+		diff_avg += diff;
+		diff_count++;
 	}
 }
 

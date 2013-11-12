@@ -30,6 +30,11 @@ class Crop {
 		uint8_t active;
 	    
 	public:
+
+		float diff;
+		int diff_count;
+		float diff_avg;
+
         Crop(uint32_t crop_id, uint32_t crop_width, uint32_t crop_height, uint32_t crop_x, uint32_t crop_y, 
         	  uint32_t layer, uint32_t dst_width, uint32_t dst_height, uint32_t dst_x, uint32_t dst_y, Mat stream_img_ref, 
         	   pthread_rwlock_t *str_lock_ref, pthread_cond_t *str_cond_ref, pthread_mutex_t *str_new_frame_lock_ref, uint8_t *str_new_frame_ref);

@@ -39,6 +39,9 @@ class Stream {
 
 		map<uint32_t, Crop*> get_crops();
 		pthread_rwlock_t* get_lock();
+		Mat get_img();
+		uint32_t get_width();
+		uint32_t get_height();
 
 };
 

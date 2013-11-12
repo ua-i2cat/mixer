@@ -89,4 +89,20 @@ pthread_rwlock_t* Stream::get_lock()
 	return &lock;
 }
 
+Mat Stream::get_img()
+{
+	return img;
+}
+
+uint32_t Stream::get_width()
+{
+	return sz.width;
+}
+		
+uint32_t Stream::get_height()
+{
+	return sz.height;
+}
+
+
 

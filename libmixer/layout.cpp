@@ -30,7 +30,7 @@ int Layout::add_stream(uint32_t stream_id, uint32_t width, uint32_t height){
 
 	Stream *stream = new Stream(stream_id, width, height);
 	uint32_t id = rand();
-	Crop *crop = stream->add_crop(id, width, height, 0, 0, 0, 1280, 720, 0, 0);
+	Crop *crop = stream->add_crop(id, width, height, 0, 0, 0, lay_width, lay_height, 0, 0);
 	streams[stream_id] = stream;
 	pthread_rwlock_unlock(&streams_lock);
 
@@ -98,10 +98,19 @@ int Layout::add_crop_to_stream(uint32_t stream_id, uint32_t crop_width, uint32_t
 		return FALSE;
 	}
 
-	//TODO: check if introced values are valid
+	if (!check_values(lay_width, lay_height, dst_width, dst_height, dst_x, dst_y)){
+		pthread_rwlock_unlock(&streams_lock);
+		return FALSE;
+	}
 
 	Stream *stream = streams[stream_id];
 	pthread_rwlock_wrlock(stream->get_lock());
+	if (!check_values(stream->get_width(), stream->get_height(), crop_width, crop_height, crop_x, crop_y)){
+		pthread_rwlock_unlock(stream->get_lock());
+		pthread_rwlock_unlock(&streams_lock);
+		return FALSE;
+	}
+
 	Crop *crop = stream->add_crop(rand(), crop_width, crop_height, crop_x, crop_y, layer, dst_width, dst_height, dst_x, dst_y);
 	pthread_rwlock_unlock(stream->get_lock());
 	pthread_rwlock_unlock(&streams_lock);
@@ -154,7 +163,6 @@ int Layout::remove_crop_from_stream(uint32_t stream_id, uint32_t crop_id){
 int Layout::modify_orig_crop_from_stream(uint32_t stream_id, uint32_t crop_id, uint32_t new_crop_width, 
 									uint32_t new_crop_height, uint32_t new_crop_x, uint32_t new_crop_y){
 
-	//TODO:check if values are valid
 	pthread_rwlock_rdlock(&streams_lock);
 	if (streams.count(stream_id) <= 0) {
 		pthread_rwlock_unlock(&streams_lock);
@@ -169,7 +177,14 @@ int Layout::modify_orig_crop_from_stream(uint32_t stream_id, uint32_t crop_id, u
 		return FALSE;
 	}
 
-	crop->modify_crop(new_crop_width, new_crop_height, new_crop_x, new_crop_y);
+	pthread_rwlock_rdlock(stream->get_lock());
+	if (!check_values(stream->get_width(), stream->get_height(), new_crop_width, new_crop_height, new_crop_x, new_crop_y)){
+		pthread_rwlock_unlock(stream->get_lock());
+		return FALSE;
+	}
+
+	crop->modify_crop(new_crop_width, new_crop_height, new_crop_x, new_crop_y, stream->get_img());
+	pthread_rwlock_unlock(stream->get_lock());
 
 	return TRUE;
 
@@ -178,7 +193,6 @@ int Layout::modify_orig_crop_from_stream(uint32_t stream_id, uint32_t crop_id, u
 int Layout::modify_dst_crop_from_stream(uint32_t stream_id, uint32_t crop_id, uint32_t new_crop_width, uint32_t new_crop_height,
                     uint32_t new_crop_x, uint32_t new_crop_y, uint32_t new_layer){
 
-//TODO:check if values are valid
 	pthread_rwlock_rdlock(&streams_lock);
 	if (streams.count(stream_id) <= 0) {
 		pthread_rwlock_unlock(&streams_lock);
@@ -190,6 +204,10 @@ int Layout::modify_dst_crop_from_stream(uint32_t stream_id, uint32_t crop_id, ui
 	pthread_rwlock_unlock(&streams_lock);
 
 	if (crop == NULL){
+		return FALSE;
+	}
+
+	if (!check_values(lay_width, lay_height, new_crop_width, new_crop_height, new_crop_x, new_crop_y)){
 		return FALSE;
 	}
 
@@ -302,4 +320,17 @@ uint8_t* Layout::get_buffer()
 uint32_t Layout::get_buffer_size()
 {
 	return (layout_img.step * lay_height * sizeof(uint8_t));
+}
+
+uint8_t Layout::check_values(uint32_t max_width, uint32_t max_height, uint32_t width, uint32_t height, uint32_t x, uint32_t y)
+{
+	if (x < 0 || y <0 || width <= 0 || height <= 0){
+		return FALSE;
+	}
+
+	if ((width + x > max_width) || (height + y > max_height)){
+		return FALSE;
+	}
+
+	return TRUE;
 }

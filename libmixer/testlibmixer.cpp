@@ -52,19 +52,19 @@ int main(int argc, char *argv[]){
 	Layout *layout = new Layout(layout_width, layout_height); 
 
 	layout->add_stream(1, cctx1.width, cctx1.height);
-//	layout->add_stream(2, cctx2.width, cctx2.height);
+	layout->add_stream(2, cctx2.width, cctx2.height);
 
 	printf("Introduced streams\n");
 
 	while(1){
 
     	read_frame(fctx1, v1, &cctx1, b1);
-//    	read_frame(fctx2, v2, &cctx2, b2);
+    	read_frame(fctx2, v2, &cctx2, b2);
 
     	gettimeofday(&start_intr, NULL);    
 
     	layout->introduce_frame_to_stream(1, b1, bsize1);
-//    	layout->introduce_frame_to_stream(2, b2, bsize2);
+    	layout->introduce_frame_to_stream(2, b2, bsize2);
 
     	gettimeofday(&finish_intr, NULL);
 
@@ -98,6 +98,11 @@ int main(int argc, char *argv[]){
 		//  	printf("New src crop\n");
 		// }
 
+		if (cont == 1300){
+		 	int ret = layout->modify_orig_crop_from_stream(2, layout->get_stream_by_id(2)->get_crops().begin()->first, 1000, 1000, 100, 100);
+			printf("Return: %d\n", ret);
+		}
+
 		// if (cont == 1100){
 		// 	layout->add_crop_to_stream(2, 300, 300, 100, 100, 20, 300, 300, 980, 420);
 		// 	printf("New src crop\n");
@@ -116,9 +121,6 @@ int main(int argc, char *argv[]){
 		if (cont > 2000){
 			avg_diff_intr = avg_diff_intr/diff_count;
 			avg_diff_merge = avg_diff_merge/diff_count;
-			float avg_time = layout->get_stream_by_id(1)->get_crops().begin()->second->diff_avg;
-			avg_time = avg_time/layout->get_stream_by_id(1)->get_crops().begin()->second->diff_count;
-			printf("Average resize time %f (us)\n", avg_time);
 			printf("Average intr time %f (us)\n", avg_diff_intr);
 			printf("Average merge time %f (us)\n", avg_diff_merge);
 			printf("Frame recording finished\n");

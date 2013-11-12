@@ -1,6 +1,5 @@
 #include "crop.h"
 #include <stdio.h>
-#include <sys/time.h>
 
 Crop::Crop(uint32_t crop_id, uint32_t c_width, uint32_t c_height, uint32_t c_x, uint32_t c_y, 
         	uint32_t dst_layer, uint32_t d_width, uint32_t d_height, uint32_t d_x, uint32_t d_y, Mat stream_img_ref, 
@@ -12,9 +11,9 @@ Crop::Crop(uint32_t crop_id, uint32_t c_width, uint32_t c_height, uint32_t c_x, 
 	layer = dst_layer;
 	dst_x = d_x;
 	dst_y = d_y;
-	src_img = stream_img_ref;
 	dst_img_size = Size(d_width, d_height);
 	crop_img_size = Size(c_width, c_height);
+	src_cropped_img = stream_img_ref(Rect(c_x, c_y, c_width, c_height));
 	pthread_rwlock_init(&lock, NULL);
 	stream_lock = str_lock_ref;
 	new_frame_lock = str_new_frame_lock_ref;
@@ -22,19 +21,17 @@ Crop::Crop(uint32_t crop_id, uint32_t c_width, uint32_t c_height, uint32_t c_x, 
 	new_frame = str_new_frame_ref;
 	run = TRUE;
 	active = TRUE;
-	diff = 0;
-	diff_avg = 0;
-	diff_count = 0;
 
 	pthread_create(&thread, NULL, Crop::execute_resize, this);
 }
 
-void Crop::modify_crop(uint32_t new_crop_width, uint32_t new_crop_height, uint32_t new_crop_x, uint32_t new_crop_y)
+void Crop::modify_crop(uint32_t new_crop_width, uint32_t new_crop_height, uint32_t new_crop_x, uint32_t new_crop_y, Mat stream_img_ref)
 {
 	crop_img_size.width = new_crop_width;
 	crop_img_size.height = new_crop_height;
 	crop_x = new_crop_x;
 	crop_y = new_crop_y;
+	src_cropped_img = stream_img_ref(Rect(new_crop_x, new_crop_y, new_crop_width, new_crop_height));
 }
 
 void Crop::modify_dst(uint32_t new_dst_width, uint32_t new_dst_height, uint32_t new_dst_x, uint32_t new_dst_y, uint32_t new_layer)
@@ -53,8 +50,6 @@ void* Crop::execute_resize(void *context)
 
 void* Crop::resize_routine(void)
 {
-	struct timeval start, finish;
-
 	while (run) {
 		//Check if the original frame is ready
 		pthread_mutex_lock(new_frame_lock);
@@ -65,24 +60,17 @@ void* Crop::resize_routine(void)
 		*new_frame = FALSE;
 		pthread_mutex_unlock(new_frame_lock);
 
-
 		if (!run){
 			break;
 		}
 
 		pthread_rwlock_rdlock(stream_lock);
 		pthread_rwlock_wrlock(&lock);
-		gettimeofday(&start, NULL);    
 
-        resize(src_img(Rect(crop_x, crop_y, crop_img_size.width, crop_img_size.height)), crop_img, dst_img_size, 0, 0, INTER_LINEAR);
+        resize(src_cropped_img, crop_img, dst_img_size, 0, 0, INTER_LINEAR);
 
-		gettimeofday(&finish, NULL);    
 		pthread_rwlock_unlock(&lock);
 		pthread_rwlock_unlock(stream_lock);
-
-		diff = ((finish.tv_sec - start.tv_sec)*1000000 + finish.tv_usec - start.tv_usec); // In us
-		diff_avg += diff;
-		diff_count++;
 	}
 }
 

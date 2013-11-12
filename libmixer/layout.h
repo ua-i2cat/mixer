@@ -62,6 +62,8 @@ class Layout {
 
         void compose_layout();
 
+        uint8_t check_values(uint32_t max_width, uint32_t max_height, uint32_t width, uint32_t height, uint32_t x, uint32_t y);
+
 
 };
 

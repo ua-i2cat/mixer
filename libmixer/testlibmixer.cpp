@@ -13,8 +13,8 @@ int load_video(const char *path, AVFormatContext *pFormatCtx, AVCodecContext *pC
 int read_frame(AVFormatContext *pFormatCtx, int videostream, AVCodecContext *pCodecCtx, uint8_t *buff);
 
 int main(int argc, char *argv[]){
-	struct timeval start, finish;
-	float diff = 0, avg_diff = 0, diff_count = 0;
+	struct timeval start_intr, finish_intr, start_merge, finish_merge;
+	float diff_intr = 0, avg_diff_intr = 0, diff_merge = 0, avg_diff_merge = 0, diff_count = 0;
 
 	char *OUTPUT_PATH = "rx_frame.yuv";
 	char *OUTPUT_PATH1 = "out1.rgb";
@@ -61,19 +61,25 @@ int main(int argc, char *argv[]){
     	read_frame(fctx1, v1, &cctx1, b1);
     	read_frame(fctx2, v2, &cctx2, b2);
 
-    	gettimeofday(&start, NULL);    
+    	gettimeofday(&start_intr, NULL);    
 
     	layout->introduce_frame_to_stream(1, b1, bsize1);
     	layout->introduce_frame_to_stream(2, b2, bsize2);
 
+    	gettimeofday(&finish_intr, NULL);
+
+    	gettimeofday(&start_merge, NULL);    
+
     	layout->compose_layout();
 
-    	gettimeofday(&finish, NULL);
+    	gettimeofday(&finish_merge, NULL);    
 		
 		if (cont > 1000){
 
-			diff = ((finish.tv_sec - start.tv_sec)*1000000 + finish.tv_usec - start.tv_usec); // In us
-			avg_diff += diff;
+			diff_intr = ((finish_intr.tv_sec - start_intr.tv_sec)*1000000 + finish_intr.tv_usec - start_intr.tv_usec); // In us
+			avg_diff_intr += diff_intr;
+			diff_merge = ((finish_merge.tv_sec - start_merge.tv_sec)*1000000 + finish_merge.tv_usec - start_merge.tv_usec); // In us
+			avg_diff_merge += diff_merge;
 			diff_count++;
 
 			if (F_video_rx == NULL) {
@@ -108,8 +114,10 @@ int main(int argc, char *argv[]){
 		// }
 
 		if (cont > 2000){
-			avg_diff = avg_diff/diff_count;
-			printf("Average time %f (us)\n", avg_diff);
+			avg_diff_intr = avg_diff_intr/diff_count;
+			avg_diff_merge = avg_diff_merge/diff_count;
+			printf("Average intr time %f (us)\n", avg_diff_intr);
+			printf("Average merge time %f (us)\n", avg_diff_merge);
 			printf("Frame recording finished");
 		 	return 0;
 		}

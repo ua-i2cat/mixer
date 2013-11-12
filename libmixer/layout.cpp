@@ -30,7 +30,7 @@ int Layout::add_stream(uint32_t stream_id, uint32_t width, uint32_t height){
 
 	Stream *stream = new Stream(stream_id, width, height);
 	uint32_t id = rand();
-	Crop *crop = stream->add_crop(id, width, height, 0, 0, 0, width, height, 0, 0);
+	Crop *crop = stream->add_crop(id, width, height, 0, 0, 0, 1280, 720, 0, 0);
 	streams[stream_id] = stream;
 	pthread_rwlock_unlock(&streams_lock);
 

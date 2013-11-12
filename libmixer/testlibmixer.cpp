@@ -52,19 +52,19 @@ int main(int argc, char *argv[]){
 	Layout *layout = new Layout(layout_width, layout_height); 
 
 	layout->add_stream(1, cctx1.width, cctx1.height);
-	layout->add_stream(2, cctx2.width, cctx2.height);
+//	layout->add_stream(2, cctx2.width, cctx2.height);
 
 	printf("Introduced streams\n");
 
 	while(1){
 
     	read_frame(fctx1, v1, &cctx1, b1);
-    	read_frame(fctx2, v2, &cctx2, b2);
+//    	read_frame(fctx2, v2, &cctx2, b2);
 
     	gettimeofday(&start_intr, NULL);    
 
     	layout->introduce_frame_to_stream(1, b1, bsize1);
-    	layout->introduce_frame_to_stream(2, b2, bsize2);
+//    	layout->introduce_frame_to_stream(2, b2, bsize2);
 
     	gettimeofday(&finish_intr, NULL);
 

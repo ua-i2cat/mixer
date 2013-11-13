@@ -130,8 +130,22 @@ uint8_t Crop::is_active()
 {
 	return active;
 }
+
 uint8_t Crop::set_active(uint8_t act)
 {
 	active = act;
+}
+
+uint8_t* Crop::get_buffer()
+{
+	pthread_rwlock_rdlock(&lock);
+	uint8_t* out_buffer = (uint8_t*)crop_img.data;
+	pthread_rwlock_unlock(&lock);
+	return out_buffer;
+}
+
+uint32_t Crop::get_buffer_size()
+{
+	return (crop_img.step * dst_img_size.height * sizeof(uint8_t));
 }
 

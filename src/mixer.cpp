@@ -44,15 +44,14 @@ void* mixer::run(void) {
 			pthread_rwlock_rdlock(&stream->lock);
 			if(!layout->check_if_layout_stream(stream->id) && stream->video->decoder != NULL){
 				pthread_rwlock_rdlock(&stream->video->lock);
-				layout->introduce_stream(stream->id, stream->video->width, stream->video->height, PIX_FMT_RGB24, 
-					stream->video->width, stream->video->height, PIX_FMT_RGB24, 0, 0, 0);
+				layout->add_stream(stream->id, stream->video->width, stream->video->height);
 				pthread_rwlock_unlock(&stream->video->lock);
 			}
 
 			pthread_mutex_lock(&stream->video->new_decoded_frame_lock);
 			if (stream->video->new_decoded_frame){
 				pthread_rwlock_rdlock(&stream->video->decoded_frame_lock);
-				layout->introduce_frame(stream->id, (uint8_t*)stream->video->decoded_frame, stream->video->decoded_frame_len);
+				layout->introduce_frame_to_stream(stream->id, (uint8_t*)stream->video->decoded_frame, stream->video->decoded_frame_len);
 				pthread_rwlock_unlock(&stream->video->decoded_frame_lock);
 				have_new_frame = true;
 				stream->video->new_decoded_frame = FALSE;
@@ -67,7 +66,13 @@ void* mixer::run(void) {
 		pthread_rwlock_unlock(&src_str_list->lock);
 
 		if (have_new_frame){
-			layout->merge_frames();		
+			layout->compose_layout();
+
+			for (i=0; i<dst_str_list->count; i++){
+
+			}
+
+			stream_list *dst_str_list;		
 			pthread_rwlock_wrlock(&dst_str_list->first->video->decoded_frame_lock);
 			memcpy((uint8_t*)dst_str_list->first->video->decoded_frame, (uint8_t*)layout->get_layout_bytestream(), layout->get_buffsize());
 			pthread_rwlock_unlock(&dst_str_list->first->video->decoded_frame_lock);

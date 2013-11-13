@@ -53,7 +53,6 @@ class Crop {
 		void stop();
 		uint8_t is_active();
 		uint8_t set_active(uint8_t act);
-
-
-
+		uint8_t* get_buffer();
+		uint32_t get_buffer_size();
 };

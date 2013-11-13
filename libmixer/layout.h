@@ -25,14 +25,11 @@ class Crop;
 class Layout {
 
 	private:
-		uint32_t lay_width, lay_height;
-        Mat layout_img;
         Stream *out_stream;
         multimap<uint32_t, Crop*> crops_by_layers;
         map<uint32_t, Stream*> streams;
         pthread_rwlock_t layers_lock;
         pthread_rwlock_t streams_lock;
-        pthread_rwlock_t layout_img_lock;
 
 	public:
         Layout(uint32_t width, uint32_t height);
@@ -52,6 +49,11 @@ class Layout {
         int modify_dst_crop_from_stream(uint32_t stream_id, uint32_t crop_id, uint32_t new_crop_width, uint32_t new_crop_height,
                     uint32_t new_crop_x, uint32_t new_crop_y, uint32_t new_layer);
 
+        int add_crop_to_output_stream(uint32_t crop_width, uint32_t crop_height, uint32_t crop_x, uint32_t crop_y, uint32_t dst_width, uint32_t dst_height);
+        int modify_crop_from_output_stream(uint32_t crop_id, uint32_t new_crop_width, uint32_t new_crop_height, uint32_t new_crop_x, uint32_t new_crop_y);
+        int modify_crop_resize_from_output_stream(uint32_t crop_id, uint32_t new_crop_width, uint32_t new_crop_height);
+        int remove_crop_from_output_stream(uint32_t crop_id);
+
         int enable_crop_from_stream(uint32_t stream_id, uint32_t crop_id);
         int disable_crop_from_stream(uint32_t stream_id, uint32_t crop_id);
 
@@ -63,6 +65,8 @@ class Layout {
         void compose_layout();
 
         uint8_t check_values(uint32_t max_width, uint32_t max_height, uint32_t width, uint32_t height, uint32_t x, uint32_t y);
+
+        uint8_t check_if_stream(uint32_t stream_id);
 
 
 };

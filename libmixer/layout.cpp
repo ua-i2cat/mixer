@@ -307,7 +307,7 @@ int Layout::disable_crop_from_stream(uint32_t stream_id, uint32_t crop_id)
 	return TRUE;
 }
 
-int Layout::add_crop_to_output_stream(uint32_t crop_width, uint32_t crop_height, uint32_t crop_x, uint32_t crop_y, uint32_t dst_width, uint32_t dst_height)
+uint32_t Layout::add_crop_to_output_stream(uint32_t crop_width, uint32_t crop_height, uint32_t crop_x, uint32_t crop_y, uint32_t dst_width, uint32_t dst_height)
 {
 	pthread_rwlock_wrlock(out_stream->get_lock());
 	if (!check_values(out_stream->get_width(), out_stream->get_height(), crop_width, crop_height, crop_x, crop_y)){
@@ -316,8 +316,9 @@ int Layout::add_crop_to_output_stream(uint32_t crop_width, uint32_t crop_height,
 	}
 
 	//TODO: check if dst_widht and dsT_height are bigger thant MAX SIZE ?
+	uint32_t crop_id = rand();
 
-	Crop *crop = out_stream->add_crop(rand(), crop_width, crop_height, crop_x, crop_y, 0, dst_width, dst_height, 0, 0);
+	Crop *crop = out_stream->add_crop(crop_id, crop_width, crop_height, crop_x, crop_y, 0, dst_width, dst_height, 0, 0);
 
 	if (crop == NULL){
 		pthread_rwlock_unlock(out_stream->get_lock());
@@ -325,7 +326,7 @@ int Layout::add_crop_to_output_stream(uint32_t crop_width, uint32_t crop_height,
 	}
 
 	pthread_rwlock_unlock(out_stream->get_lock());
-	return TRUE;
+	return crop_id;
 }
 
 int Layout::modify_crop_from_output_stream(uint32_t crop_id, uint32_t new_crop_width, uint32_t new_crop_height, uint32_t new_crop_x, uint32_t new_crop_y)
@@ -417,4 +418,40 @@ uint8_t Layout::check_if_stream(uint32_t stream_id)
 
 	pthread_rwlock_unlock(&streams_lock);
 	return TRUE;
+}
+
+uint8_t* Layout::get_output_crop_buffer(uint32_t crop_id)
+{
+	pthread_rwlock_rdlock(out_stream->get_lock());
+	Crop *crop = out_stream->get_crop_by_id(crop_id);
+
+	if (crop == NULL){
+		pthread_rwlock_unlock(out_stream->get_lock());
+		return FALSE;
+	}
+
+	pthread_rwlock_rdlock(crop->get_lock());
+	uint8_t* buffer = crop->get_buffer();
+	pthread_rwlock_unlock(crop->get_lock());
+
+	pthread_rwlock_unlock(out_stream->get_lock());
+
+	return buffer;
+}
+        
+uint32_t Layout::get_output_crop_buffer_size(uint32_t crop_id)
+{
+	pthread_rwlock_rdlock(out_stream->get_lock());
+	Crop *crop = out_stream->get_crop_by_id(crop_id);
+
+	if (crop == NULL){
+		pthread_rwlock_unlock(out_stream->get_lock());
+		return FALSE;
+	}
+
+	pthread_rwlock_rdlock(crop->get_lock());
+	uint32_t buffer_size = crop->get_buffer_size();
+	pthread_rwlock_unlock(crop->get_lock());
+
+	return buffer_size;
 }

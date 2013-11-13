@@ -33,7 +33,6 @@ class Layout {
 
 	public:
         Layout(uint32_t width, uint32_t height);
-        ~Layout();
 
         int add_stream(uint32_t stream_id, uint32_t width, uint32_t height);
         Stream *get_stream_by_id(uint32_t stream_id);
@@ -43,16 +42,19 @@ class Layout {
 
         int add_crop_to_stream(uint32_t stream_id, uint32_t crop_width, uint32_t crop_height, uint32_t crop_x, uint32_t crop_y, 
                     uint32_t layer, uint32_t dst_width, uint32_t dst_height, uint32_t dst_x, uint32_t dst_y);
-        int remove_crop_from_stream(uint32_t stream_id, uint32_t crop_id);
         int modify_orig_crop_from_stream(uint32_t stream_id, uint32_t crop_id, uint32_t new_crop_width, uint32_t new_crop_height,
                     uint32_t new_crop_x, uint32_t new_crop_y);
         int modify_dst_crop_from_stream(uint32_t stream_id, uint32_t crop_id, uint32_t new_crop_width, uint32_t new_crop_height,
                     uint32_t new_crop_x, uint32_t new_crop_y, uint32_t new_layer);
+        int remove_crop_from_stream(uint32_t stream_id, uint32_t crop_id);
 
-        int add_crop_to_output_stream(uint32_t crop_width, uint32_t crop_height, uint32_t crop_x, uint32_t crop_y, uint32_t dst_width, uint32_t dst_height);
+        uint32_t add_crop_to_output_stream(uint32_t crop_width, uint32_t crop_height, uint32_t crop_x, uint32_t crop_y, uint32_t dst_width, uint32_t dst_height);
         int modify_crop_from_output_stream(uint32_t crop_id, uint32_t new_crop_width, uint32_t new_crop_height, uint32_t new_crop_x, uint32_t new_crop_y);
         int modify_crop_resize_from_output_stream(uint32_t crop_id, uint32_t new_crop_width, uint32_t new_crop_height);
         int remove_crop_from_output_stream(uint32_t crop_id);
+
+        uint8_t* get_output_crop_buffer(uint32_t crop_id);
+        uint32_t get_output_crop_buffer_size(uint32_t crop_id);
 
         int enable_crop_from_stream(uint32_t stream_id, uint32_t crop_id);
         int disable_crop_from_stream(uint32_t stream_id, uint32_t crop_id);

@@ -282,8 +282,8 @@ void modify_crop_resizing_from_stream(Jzon::Object rootNode, Jzon::Object *outRo
         return;
     }
 
-    int stream_id = rootNode.Get("params").Get("id").ToInt();
-    int crop_id = rootNode.Get("params").Get("id").ToInt();
+    int stream_id = rootNode.Get("params").Get("stream_id").ToInt();
+    int crop_id = rootNode.Get("params").Get("crop_id").ToInt();
     int new_crop_width = rootNode.Get("params").Get("width").ToInt();
     int new_crop_height = rootNode.Get("params").Get("height").ToInt();
     int new_crop_x = rootNode.Get("params").Get("x").ToInt();

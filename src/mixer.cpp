@@ -20,16 +20,13 @@ void* mixer::run(void) {
 	have_new_frame = false;
 	should_stop = false;
 	struct timeval start, finish;
-	float diff = 0, min_diff = 0;
+	long diff = 0, min_diff = 0;
 
-	min_diff = ((float)1/(float)max_frame_rate)*1000; // In ms
+	min_diff = ((float)1/(float)max_frame_rate)*1000000; // In us
 
 	while (!should_stop){
-	    min_diff = ((float)1/(float)max_frame_rate)*1000;
+	    min_diff = ((float)1/(float)max_frame_rate)*1000000;
 
-		if (diff < min_diff){
-			usleep((min_diff - diff)*1000); 
-		}
 		gettimeofday(&start, NULL);
 
 		pthread_rwlock_rdlock(&src_str_list->lock);
@@ -66,18 +63,26 @@ void* mixer::run(void) {
 
 		pthread_rwlock_unlock(&src_str_list->lock);
 
+
 		if (have_new_frame){
 			layout->merge_frames();		
 			pthread_rwlock_wrlock(&dst_str_list->first->video->decoded_frame->lock);
 			memcpy((uint8_t*)dst_str_list->first->video->decoded_frame->buffer, (uint8_t*)layout->get_layout_bytestream(), layout->get_buffsize());
 			pthread_rwlock_unlock(&dst_str_list->first->video->decoded_frame->lock);
 			sem_post(&dst_str_list->first->video->encoder->input_sem);
+			pthread_mutex_lock(&dst_str_list->first->video->new_decoded_frame_lock);
+			dst_str_list->first->video->new_decoded_frame = TRUE;
+			pthread_mutex_unlock(&dst_str_list->first->video->new_decoded_frame_lock);
+
 			have_new_frame = false;
 		}
-             
 		gettimeofday(&finish, NULL);
 
-		diff = ((finish.tv_sec - start.tv_sec)*1000000 + finish.tv_usec - start.tv_usec)/1000; // In ms
+		diff = ((finish.tv_sec - start.tv_sec)*1000000 + finish.tv_usec - start.tv_usec); // In us
+
+		if (diff < min_diff){
+			usleep(min_diff - diff); 
+		}
 	}
 
 	stop_receiver(receiver);

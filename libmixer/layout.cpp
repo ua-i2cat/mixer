@@ -265,6 +265,14 @@ int Layout::enable_crop_from_stream(uint32_t stream_id, uint32_t crop_id)
 		return FALSE;
 	}
 
+	if (crop->is_active()){
+		return FALSE;
+	}
+
+	pthread_rwlock_wrlock(crop->get_lock());
+	crop->set_active(TRUE);
+	pthread_rwlock_unlock(crop->get_lock());
+
 	pthread_rwlock_rdlock(crop->get_lock());
 	pthread_rwlock_wrlock(&layers_lock);
 	crops_by_layers.insert(pair<uint32_t, Crop*>(crop->get_layer(), crop));
@@ -286,6 +294,14 @@ int Layout::disable_crop_from_stream(uint32_t stream_id, uint32_t crop_id)
 	if (crop == NULL){
 		return FALSE;
 	}
+
+	if (!crop->is_active()){
+		return FALSE;
+	}
+
+	pthread_rwlock_wrlock(crop->get_lock());
+	crop->set_active(FALSE);
+	pthread_rwlock_unlock(crop->get_lock());
 
 	pthread_rwlock_rdlock(crop->get_lock());
 	pthread_rwlock_wrlock(&layers_lock);

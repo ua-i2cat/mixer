@@ -48,6 +48,7 @@ int main(int argc, char *argv[]){
 	b2=(uint8_t *)av_malloc(bsize2);
 	
 	Layout *layout = new Layout(layout_width, layout_height); 
+	uint32_t id = layout->add_crop_to_output_stream(layout_width, layout_height, 0, 0, layout_width, layout_height);
 
 	layout->add_stream(1, cctx1.width, cctx1.height);
 //	layout->add_stream(2, cctx2.width, cctx2.height);
@@ -91,8 +92,6 @@ int main(int argc, char *argv[]){
 			diff_merge = ((finish_merge.tv_sec - start_merge.tv_sec)*1000000 + finish_merge.tv_usec - start_merge.tv_usec); // In us
 			avg_diff_merge += diff_merge;
 			diff_count++;
-
-
 
 		 	fwrite(layout->get_out_stream()->get_crops().begin()->second->get_buffer(), 
 		 			layout->get_out_stream()->get_crops().begin()->second->get_buffer_size(), 1, F_video_rx1);

@@ -24,8 +24,10 @@ using namespace std;
 class mixer {
 	public:
 		struct Dst{
+			uint32_t id;
 			char *ip;
-			int port;
+			uint32_t port;
+			uint32_t stream_id;
 		};
 
 		static mixer* get_instance();
@@ -54,12 +56,12 @@ class mixer {
 		int add_destination(char *ip, uint32_t port, uint32_t stream_id);
 		int remove_destination(uint32_t id);
 
+		Layout* get_layout();
+		vector<Dst>* get_destinations();
+
 		void change_max_framerate(uint32_t frame_rate);
 		void show_stream_info();
 		void get_stream_info(std::map<string,uint32_t> &str_map, uint32_t id);
-		int get_destination(int id, std::string &ip, int *port);
-		std::vector<uint32_t> get_streams_id();
-		map<uint32_t, Dst> get_destinations();
 		int change_stream_state(uint32_t id, stream_state_t state);
 		int get_layout_size(int *width, int *height);
 		void* run(void);
@@ -81,8 +83,6 @@ class mixer {
 		uint32_t _in_port;
 		uint32_t _out_port;
 		uint8_t state;
-
-		map<uint32_t, Dst> destinations;
 
 		static mixer* mixer_instance;
 		mixer();

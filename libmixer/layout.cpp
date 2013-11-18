@@ -12,9 +12,10 @@ using namespace std;
 Layout::Layout(uint32_t width, uint32_t height)
 {
 	out_stream = new Stream(rand(), width, height); 
-	out_stream->add_crop(rand(), width, height, 0, 0, 0, width, height, 0, 0);
+	//out_stream->add_crop(rand(), width, height, 0, 0, 0, width, height, 0, 0);
 	pthread_rwlock_init(&layers_lock, NULL);
 	pthread_rwlock_init(&streams_lock, NULL);
+	layers_it = crops_by_layers.begin();
 }
 
 int Layout::add_stream(uint32_t stream_id, uint32_t width, uint32_t height){
@@ -220,18 +221,20 @@ void Layout::compose_layout()
 {
 	pthread_rwlock_rdlock(&layers_lock);
 	pthread_rwlock_wrlock(out_stream->get_lock());
-	for (multimap<uint32_t, Crop*>::iterator it = crops_by_layers.begin(); it != crops_by_layers.end(); it++){
-		Crop *crop = it->second;
-		if (crop->get_crop_img().cols != 0 && crop->get_crop_img().rows != 0){
-			pthread_rwlock_rdlock(crop->get_lock());
-			crop->get_crop_img().copyTo(out_stream->get_img()(Rect(crop->get_dst_x(), crop->get_dst_y(), crop->get_dst_width(), crop->get_dst_height())));
-			pthread_rwlock_unlock(crop->get_lock());
+	for (layers_it = crops_by_layers.begin(); layers_it != crops_by_layers.end(); layers_it++){
+		Crop *crop = layers_it->second;
+		if (crop->get_crop_img().cols == 0 && crop->get_crop_img().rows == 0){
+			continue;
 		}
+		
+		pthread_rwlock_rdlock(crop->get_lock());
+		crop->get_crop_img().copyTo(out_stream->get_img()(Rect(crop->get_dst_x(), crop->get_dst_y(), crop->get_dst_width(), crop->get_dst_height())));
+		pthread_rwlock_unlock(crop->get_lock());
 	}
 	pthread_rwlock_unlock(out_stream->get_lock());
 	pthread_rwlock_unlock(&layers_lock);
 
-	out_stream->introduce_frame(get_buffer(), get_buffer_size());
+	out_stream->wake_up_crops();
 }
 
 Stream* Layout::get_out_stream()
@@ -241,15 +244,9 @@ Stream* Layout::get_out_stream()
 
 int Layout::introduce_frame_to_stream(uint32_t stream_id, uint8_t* buffer, uint32_t buffer_length)
 {
-	Stream *stream = get_stream_by_id(stream_id);
-
-	if (stream == NULL){
-		return FALSE;
-	}
-
-	pthread_rwlock_wrlock(stream->get_lock());
-	int ret = stream->introduce_frame(buffer, buffer_length);
-	pthread_rwlock_unlock(stream->get_lock());
+	pthread_rwlock_wrlock(streams[stream_id]->get_lock());
+	int ret = streams[stream_id]->introduce_frame(buffer, buffer_length);
+	pthread_rwlock_unlock(streams[stream_id]->get_lock());
 
 	return ret;
 }
@@ -453,5 +450,16 @@ uint32_t Layout::get_output_crop_buffer_size(uint32_t crop_id)
 	uint32_t buffer_size = crop->get_buffer_size();
 	pthread_rwlock_unlock(crop->get_lock());
 
+	pthread_rwlock_unlock(out_stream->get_lock());
 	return buffer_size;
+}
+
+map<uint32_t, Stream*> Layout::get_streams()
+{
+	return streams;
+}
+
+pthread_rwlock_t* Layout::get_streams_lock()
+{
+	return &streams_lock;
 }

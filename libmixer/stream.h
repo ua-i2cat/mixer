@@ -25,9 +25,8 @@ class Stream {
 		map<uint32_t, Crop*> crops;
 		pthread_rwlock_t crops_lock;
 		pthread_rwlock_t lock;
-		pthread_cond_t new_frame_cond;
-		pthread_mutex_t new_frame_lock;
 		uint8_t new_frame;
+		map<uint32_t, Crop*>::iterator it;
 
 	public:
 		Stream(uint32_t stream_id, uint32_t stream_width, uint32_t stream_height); 
@@ -36,7 +35,9 @@ class Stream {
 		Crop* get_crop_by_id(uint32_t crop_id);
 		int remove_crop(uint32_t crop_id);
 		int introduce_frame(uint8_t* buffer, uint32_t buffer_length);
+		void wake_up_crops();
 
+		uint32_t get_id();
 		map<uint32_t, Crop*> get_crops();
 		pthread_rwlock_t* get_lock();
 		Mat get_img();

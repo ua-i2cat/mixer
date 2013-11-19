@@ -609,17 +609,6 @@ void get_state(Jzon::Object rootNode, Jzon::Object *outRootNode){
     }
 }
 
-// int check_stream_id(uint32_t id){
-// 	int i;
-// 	std::vector<uint32_t> streams_id = m->get_streams_id();
-// 	for (i=0; i<streams_id.size(); i++){
-// 		if (streams_id[i] == id){
-// 			return 0;
-// 		}
-// 	}
-// 	return -1;
-// }
-
 void exit_mixer(Jzon::Object rootNode, Jzon::Object *outRootNode){
     outRootNode->Add("error", Jzon::null);
     should_stop = true;

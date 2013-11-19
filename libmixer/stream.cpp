@@ -65,14 +65,12 @@ int Stream::remove_crop(uint32_t crop_id)
 	return TRUE;
 }
 
-int Stream::introduce_frame(uint8_t* buffer, uint32_t buffer_length)
+void Stream::introduce_frame(uint8_t* buffer, uint32_t buffer_length)
 {	
 	
 	//img.data = (uint8_t*)buffer;
 	memcpy((uint8_t*)img.data,(uint8_t*)buffer, buffer_length);
 	wake_up_crops();
-	
-	return TRUE;
 
 }
 

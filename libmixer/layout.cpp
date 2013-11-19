@@ -245,10 +245,8 @@ Stream* Layout::get_out_stream()
 int Layout::introduce_frame_to_stream(uint32_t stream_id, uint8_t* buffer, uint32_t buffer_length)
 {
 	pthread_rwlock_wrlock(streams[stream_id]->get_lock());
-	int ret = streams[stream_id]->introduce_frame(buffer, buffer_length);
+	streams[stream_id]->introduce_frame(buffer, buffer_length);
 	pthread_rwlock_unlock(streams[stream_id]->get_lock());
-
-	return ret;
 }
 
 int Layout::enable_crop_from_stream(uint32_t stream_id, uint32_t crop_id)

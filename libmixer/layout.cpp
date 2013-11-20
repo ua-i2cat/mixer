@@ -1,3 +1,25 @@
+/*
+ *  LIBMIXER - A video frame mixing library
+ *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
+ *
+ *  This file is part of thin LIBMIXER.
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *  Authors:  Marc Palau <marc.palau@i2cat.net>,
+ */
+
 #include <pthread.h>
 #include "layout.h"
 #include <math.h>
@@ -318,7 +340,7 @@ int Layout::disable_crop_from_stream(uint32_t stream_id, uint32_t crop_id)
 	return TRUE;
 }
 
-uint32_t Layout::add_crop_to_output_stream(uint32_t crop_width, uint32_t crop_height, uint32_t crop_x, uint32_t crop_y, uint32_t dst_width, uint32_t dst_height)
+int Layout::add_crop_to_output_stream(uint32_t crop_width, uint32_t crop_height, uint32_t crop_x, uint32_t crop_y, uint32_t rsz_width, uint32_t rsz_height)
 {
 	pthread_rwlock_wrlock(out_stream->get_lock());
 	if (!check_values(out_stream->get_width(), out_stream->get_height(), crop_width, crop_height, crop_x, crop_y)){
@@ -326,10 +348,10 @@ uint32_t Layout::add_crop_to_output_stream(uint32_t crop_width, uint32_t crop_he
 		return FALSE;
 	}
 
-	//TODO: check if dst_widht and dsT_height are bigger thant MAX SIZE ?
+	//TODO: check if dst_widht and rsz_height are bigger thant MAX SIZE ?
 	uint32_t crop_id = rand();
 
-	Crop *crop = out_stream->add_crop(crop_id, crop_width, crop_height, crop_x, crop_y, 0, dst_width, dst_height, 0, 0);
+	Crop *crop = out_stream->add_crop(crop_id, crop_width, crop_height, crop_x, crop_y, 0, rsz_width, rsz_height, 0, 0);
 
 	if (crop == NULL){
 		pthread_rwlock_unlock(out_stream->get_lock());

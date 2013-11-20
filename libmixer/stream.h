@@ -1,10 +1,25 @@
 /*
- * Stream.h
+ *  LIBMIXER - A video frame mixing library
+ *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
- *  Created on: Jun 13, 2013
- *      Author: palau
+ *  This file is part of thin LIBMIXER.
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *  Authors:  Marc Palau <marc.palau@i2cat.net>,
  */
-
+ 
 #ifndef STREAM_H_
 #define STREAM_H_
 
@@ -60,7 +75,7 @@ class Stream {
        	* Get a pointer to the crop with the desired id
        	* @param crop_id  Id of the crop which we want the function to return
        	* @return Pointer to the desired crop (NULL if it's not in the stream crop list)
-       	* @see Crop
+       	* @see Crop::Crop()
        	*/
 		Crop* get_crop_by_id(uint32_t crop_id);
 

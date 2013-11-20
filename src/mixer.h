@@ -24,26 +24,44 @@ using namespace std;
 class mixer {
 	public:
 		struct Dst{
+			uint32_t id;
 			char *ip;
-			int port;
+			uint32_t port;
+			uint32_t stream_id;
 		};
 
 		static mixer* get_instance();
-		void init(uint32_t layout_width, uint32_t layout_height, uint32_t max_streams, uint32_t in_port, uint32_t out_port);
+		void init(uint32_t layout_width, uint32_t layout_height, uint32_t in_port, uint32_t out_port);
 		void exec();
 		void stop();
 		int add_source();
 		int remove_source(uint32_t id);
-		int add_destination(char *ip, uint32_t port);
+		
+		int add_crop_to_source(uint32_t id, uint32_t crop_width, uint32_t crop_height, uint32_t crop_x, uint32_t crop_y, 
+								uint32_t layer, uint32_t rsz_width, uint32_t rsz_height, uint32_t rsz_x, uint32_t rsz_y);
+        int modify_crop_from_source(uint32_t stream_id, uint32_t crop_id, uint32_t new_crop_width, 
+        							  uint32_t new_crop_height, uint32_t new_crop_x, uint32_t new_crop_y);
+        int modify_crop_resizing_from_source(uint32_t stream_id, uint32_t crop_id, uint32_t new_crop_width, 
+        									   uint32_t new_crop_height, uint32_t new_crop_x, uint32_t new_crop_y, uint32_t new_layer);
+		int remove_crop_from_source(uint32_t stream_id, uint32_t crop_id);
+
+        int add_crop_to_layout(uint32_t crop_width, uint32_t crop_height, uint32_t crop_x, uint32_t crop_y, uint32_t output_width, uint32_t output_height);
+        int modify_crop_from_layout(uint32_t crop_id, uint32_t new_crop_width, uint32_t new_crop_height, uint32_t new_crop_x, uint32_t new_crop_y);
+        int modify_crop_resizing_from_layout(uint32_t crop_id, uint32_t new_width, uint32_t new_height);
+        int remove_crop_from_layout(uint32_t crop_id);
+
+        int enable_crop_from_source(uint32_t stream_id, uint32_t crop_id);
+        int disable_crop_from_source(uint32_t stream_id, uint32_t crop_id);
+
+		int add_destination(char *ip, uint32_t port, uint32_t stream_id);
 		int remove_destination(uint32_t id);
-		int modify_stream (uint32_t id, uint32_t width, uint32_t height, uint32_t x, uint32_t y, uint32_t layer, bool keep_aspect_ratio);
-		int resize_output (uint32_t width, uint32_t height, bool resize_streams);
+
+		Layout* get_layout();
+		vector<Dst>* get_destinations();
+
 		void change_max_framerate(uint32_t frame_rate);
 		void show_stream_info();
 		void get_stream_info(std::map<string,uint32_t> &str_map, uint32_t id);
-		int get_destination(int id, std::string &ip, int *port);
-		std::vector<uint32_t> get_streams_id();
-		map<uint32_t, Dst> get_destinations();
 		int change_stream_state(uint32_t id, stream_state_t state);
 		int get_layout_size(int *width, int *height);
 		void* run(void);
@@ -65,8 +83,6 @@ class mixer {
 		uint32_t _in_port;
 		uint32_t _out_port;
 		uint8_t state;
-
-		map<uint32_t, Dst> destinations;
 
 		static mixer* mixer_instance;
 		mixer();

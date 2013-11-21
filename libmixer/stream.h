@@ -39,8 +39,6 @@ class Stream {
 		uint32_t id;
 		Size sz;
 		Mat img;
-              pthread_rwlock_t crops_lock;
-              pthread_rwlock_t lock;
               uint8_t new_frame;
               map<uint32_t, Crop*>::iterator it;
 
@@ -103,11 +101,14 @@ class Stream {
        	* Wake up resize routines of the crops associated to the stream.
        	* @see Crop
        	*/
-		void wake_up_crops();
+              void create_resize_crops_routine();
+              void wait_for_resize_crops_routine();
+              void resize_crops();
 
+              uint8_t has_new_frame();
+              void set_new_frame(uint8_t new_flag);
 		uint32_t get_id();
 		map<uint32_t, Crop*> get_crops();
-		pthread_rwlock_t* get_lock();
 		Mat get_img();
 		uint32_t get_width();
 		uint32_t get_height();

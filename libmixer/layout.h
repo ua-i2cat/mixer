@@ -43,9 +43,8 @@ class Crop;
 class Layout {
 
     private:
-        pthread_rwlock_t layers_lock;
-        pthread_rwlock_t streams_lock;
         multimap<uint32_t, Crop*>::iterator layers_it;
+        map<uint32_t, Stream*>::iterator streams_it;
 
         uint8_t check_values(uint32_t max_width, uint32_t max_height, uint32_t width, uint32_t height, uint32_t x, uint32_t y);
 
@@ -95,7 +94,7 @@ class Layout {
         * @param buffer_length Buffer size
         * @see Stream::introduce_frame()
         */
-        int introduce_frame_to_stream(uint32_t stream_id, uint8_t* buffer, uint32_t buffer_length);
+        void introduce_frame_to_stream(uint32_t stream_id, uint8_t* buffer, uint32_t buffer_length);
 
         /**
         * Add a new crop to an input stream
@@ -193,6 +192,11 @@ class Layout {
         * @return return 1 if succeeded and 0 if not
         */
         uint8_t check_if_stream(uint32_t stream_id);
+
+        void resize_input_crops();
+        void split_layout();
+        int set_resized_output_buffer(uint32_t id, uint8_t *buffer);
+
         
         uint8_t* get_output_crop_buffer(uint32_t crop_id);
         uint32_t get_output_crop_buffer_size(uint32_t crop_id);

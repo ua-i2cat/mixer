@@ -531,7 +531,6 @@ void get_streams(Jzon::Object rootNode, Jzon::Object *outRootNode){
     for (stream_it = stream_map.begin(); stream_it != stream_map.end(); stream_it++){
         Jzon::Object stream;
         Jzon::Array crop_list;
-        pthread_rwlock_rdlock(stream_it->second->get_lock());
         stream.Add("id", (int)stream_it->second->get_id());
         stream.Add("width", (int)stream_it->second->get_width());
         stream.Add("height", (int)stream_it->second->get_height());
@@ -552,7 +551,6 @@ void get_streams(Jzon::Object rootNode, Jzon::Object *outRootNode){
         }
         stream.Add("crops", crop_list);
         stream_list.Add(stream);
-        pthread_rwlock_unlock(stream_it->second->get_lock());
     }
     outRootNode->Add("streams", stream_list);
 }
@@ -565,7 +563,6 @@ void get_layout(Jzon::Object rootNode, Jzon::Object *outRootNode){
 
     Jzon::Array crop_list;
     std::map<uint32_t, Crop*>::iterator crop_it;
-    pthread_rwlock_rdlock(m->get_layout()->get_out_stream()->get_lock());
     std::map<uint32_t, Crop*> crp = m->get_layout()->get_out_stream()->get_crops();
 
     Jzon::Object stream;
@@ -588,7 +585,6 @@ void get_layout(Jzon::Object rootNode, Jzon::Object *outRootNode){
     }
     stream.Add("crops", crop_list);
     outRootNode->Add("stream", stream);
-    pthread_rwlock_unlock(m->get_layout()->get_out_stream()->get_lock());
 }
 
 void get_destinations(Jzon::Object rootNode, Jzon::Object *outRootNode){

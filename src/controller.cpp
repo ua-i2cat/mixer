@@ -1,9 +1,27 @@
 /*
- * controller.cpp
+ *  MIXER - A real-time video mixing application
+ *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
- *  Created on: Jul 22, 2013
- *      Author: palau
- */
+ *  This file is part of thin MIXER.
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *  Authors:  Marc Palau <marc.palau@i2cat.net>,
+ *            Ignacio Contreras <ignacio.contreras@i2cat.net>
+ */     
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -61,7 +79,7 @@ Jzon::Object rootNode, root_response;
 Jzon::Parser parser(rootNode);
 Jzon::Writer writer(root_response, Jzon::NoFormat);
 bool should_stop=false;
-mixer *m;
+Mixer *m;
 
 int main(int argc, char *argv[]){
 
@@ -79,7 +97,7 @@ int main(int argc, char *argv[]){
     get_socket(portno, &sockfd);
 
     initialize_action_mapping();
-    m = mixer::get_instance();
+    m = Mixer::get_instance();
     m->set_state(0);
 
     while(!should_stop){
@@ -172,7 +190,7 @@ void initialize_action_mapping() {
 }
 
 void start_mixer(Jzon::Object rootNode, Jzon::Object *outRootNode){
-    m = mixer::get_instance();
+    m = Mixer::get_instance();
     if (m->get_state() == 1){
         outRootNode->Add("error", "Mixer is already running");   
         return;
@@ -181,8 +199,7 @@ void start_mixer(Jzon::Object rootNode, Jzon::Object *outRootNode){
     int width = rootNode.Get("params").Get("width").ToInt();
     int height = rootNode.Get("params").Get("height").ToInt();
     int in_port = rootNode.Get("params").Get("input_port").ToInt();
-    int out_port = 56;
-    m->init(width, height, in_port, out_port); 
+    m->init(width, height, in_port); 
     m->exec();
     m->set_state(1);
     outRootNode->Add("error", Jzon::null);  
@@ -581,13 +598,13 @@ void get_destinations(Jzon::Object rootNode, Jzon::Object *outRootNode){
     }
 
     Jzon::Array list;
-    std::vector<mixer::Dst>* v = m->get_destinations(); 
+    std::vector<Mixer::Dst>* v = m->get_destinations(); 
     if (v->empty()){
         outRootNode->Add("destinations", list);
         return;
     }
 
-    std::vector<mixer::Dst>::iterator it;
+    std::vector<Mixer::Dst>::iterator it;
     for (it = v->begin(); it != v->end(); it++){
         Jzon::Object dst;
         dst.Add("id", (int)it->id);

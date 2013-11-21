@@ -1,9 +1,25 @@
  /*
- * mixer.cpp
+ *  MIXER - A real-time video mixing application
+ *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
- *  Created on: Jul 17, 2013
- *      Author: palau
- */
+ *  This file is part of thin MIXER.
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *  Authors:  Marc Palau <marc.palau@i2cat.net>,
+ *			  Ignacio Contreras <ignacio.contreras@i2cat.net>
+ */		
 
 #include <iostream>
 #include <map>
@@ -12,9 +28,9 @@
 #include <sys/time.h>
 
 using namespace std;
-mixer* mixer::mixer_instance;
+Mixer* Mixer::mixer_instance;
 
-void* mixer::run(void) {
+void* Mixer::run(void) {
 	int i;
 	stream_data_t *stream;
 	have_new_frame = false;
@@ -104,7 +120,7 @@ void* mixer::run(void) {
 
 }
 
-void mixer::init(uint32_t layout_width, uint32_t layout_height, uint32_t in_port, uint32_t out_port){
+void Mixer::init(uint32_t layout_width, uint32_t layout_height, uint32_t in_port){
 	layout = new Layout(layout_width, layout_height);
 	src_str_list = init_stream_list();
 	dst_str_list = init_stream_list();
@@ -117,28 +133,27 @@ void mixer::init(uint32_t layout_width, uint32_t layout_height, uint32_t in_port
 	receiver = init_receiver(src_str_list, in_port);
 	transmitter = init_transmitter(dst_str_list, 25);
 	_in_port = in_port;
-	_out_port = out_port;
 	dst_counter = 0;
 	max_frame_rate = 30;
 }
 
-void mixer::exec(){
+void Mixer::exec(){
 	start_receiver(receiver);
 	start_transmitter(transmitter);
-	pthread_create(&thread, NULL, mixer::execute_run, this);
+	pthread_create(&thread, NULL, Mixer::execute_run, this);
 }
 
-void mixer::stop(){
+void Mixer::stop(){
 	should_stop = true;
 }
 
-int mixer::add_source()
+int Mixer::add_source()
 {
 	uint32_t id = rand();
 	return add_receiver_participant(receiver, id);
 }
 
-int mixer::remove_source(uint32_t id)
+int Mixer::remove_source(uint32_t id)
 {
 	uint32_t part_id;
 	part_id = get_participant_from_stream_id(receiver->participant_list, id);
@@ -151,31 +166,31 @@ int mixer::remove_source(uint32_t id)
 	return TRUE;
 }
 		
-int mixer::add_crop_to_source(uint32_t id, uint32_t crop_width, uint32_t crop_height, uint32_t crop_x, uint32_t crop_y, 
+int Mixer::add_crop_to_source(uint32_t id, uint32_t crop_width, uint32_t crop_height, uint32_t crop_x, uint32_t crop_y, 
    					     uint32_t layer, uint32_t rsz_width, uint32_t rsz_height, uint32_t rsz_x, uint32_t rsz_y)
 {
 	return layout->add_crop_to_stream(id, crop_width, crop_height, crop_x, crop_y, layer, rsz_width, rsz_height, rsz_x, rsz_y);
 
 }
 
-int mixer::modify_crop_from_source(uint32_t stream_id, uint32_t crop_id, uint32_t new_crop_width, 
+int Mixer::modify_crop_from_source(uint32_t stream_id, uint32_t crop_id, uint32_t new_crop_width, 
        					      uint32_t new_crop_height, uint32_t new_crop_x, uint32_t new_crop_y)
 {
 	return layout->modify_orig_crop_from_stream(stream_id, crop_id, new_crop_width, new_crop_height, new_crop_x, new_crop_y);
 }
 
-int mixer::modify_crop_resizing_from_source(uint32_t stream_id, uint32_t crop_id, uint32_t new_rsz_width, 
+int Mixer::modify_crop_resizing_from_source(uint32_t stream_id, uint32_t crop_id, uint32_t new_rsz_width, 
         							   uint32_t new_rsz_height, uint32_t new_rsz_x, uint32_t new_rsz_y, uint32_t new_layer)
 {
 	return layout->modify_dst_crop_from_stream(stream_id, crop_id, new_rsz_width, new_rsz_height, new_rsz_x, new_rsz_y, new_layer);
 }
 
-int mixer::remove_crop_from_source(uint32_t stream_id, uint32_t crop_id)
+int Mixer::remove_crop_from_source(uint32_t stream_id, uint32_t crop_id)
 {
 	return layout->remove_crop_from_stream(stream_id, crop_id);
 }
 
-int mixer::add_crop_to_layout(uint32_t crop_width, uint32_t crop_height, uint32_t crop_x, uint32_t crop_y, uint32_t output_width, uint32_t output_height)
+int Mixer::add_crop_to_layout(uint32_t crop_width, uint32_t crop_height, uint32_t crop_x, uint32_t crop_y, uint32_t output_width, uint32_t output_height)
 {
 	uint32_t id = layout->add_crop_to_output_stream(crop_width, crop_height, crop_x, crop_y, output_width, output_height);
 
@@ -192,19 +207,19 @@ int mixer::add_crop_to_layout(uint32_t crop_width, uint32_t crop_height, uint32_
 	return TRUE;
 }
 
-int mixer::modify_crop_from_layout(uint32_t crop_id, uint32_t new_crop_width, uint32_t new_crop_height, uint32_t new_crop_x, uint32_t new_crop_y)
+int Mixer::modify_crop_from_layout(uint32_t crop_id, uint32_t new_crop_width, uint32_t new_crop_height, uint32_t new_crop_x, uint32_t new_crop_y)
 {
 	return layout->modify_crop_from_output_stream(crop_id, new_crop_width, new_crop_height, new_crop_x, new_crop_y);
 }
 
-int mixer::modify_crop_resizing_from_layout(uint32_t crop_id, uint32_t new_width, uint32_t new_height)
+int Mixer::modify_crop_resizing_from_layout(uint32_t crop_id, uint32_t new_width, uint32_t new_height)
 {
 	//TODO: deactivated until encoder reconfigure implemented
 	//return layout->modify_crop_resize_from_output_stream(crop_id, new_width, new_height);
 	return FALSE;
 }
 
-int mixer::remove_crop_from_layout(uint32_t crop_id)
+int Mixer::remove_crop_from_layout(uint32_t crop_id)
 {
 	if(layout->remove_crop_from_output_stream(crop_id)){
 		remove_stream(dst_str_list, crop_id);
@@ -214,7 +229,7 @@ int mixer::remove_crop_from_layout(uint32_t crop_id)
 	return FALSE;
 }
 
-int mixer::add_destination(char *ip, uint32_t port, uint32_t stream_id)
+int Mixer::add_destination(char *ip, uint32_t port, uint32_t stream_id)
 {
 	participant_data_t *participant = init_participant(dst_counter, OUTPUT, ip, port);
 
@@ -234,7 +249,7 @@ int mixer::add_destination(char *ip, uint32_t port, uint32_t stream_id)
 	return FALSE;	
 }
 
-int mixer::remove_destination(uint32_t id)
+int Mixer::remove_destination(uint32_t id)
 {
 	if(destroy_transmitter_participant(transmitter, id)){
 		return TRUE;
@@ -243,30 +258,30 @@ int mixer::remove_destination(uint32_t id)
 	return FALSE;
 }
 
-int mixer::enable_crop_from_source(uint32_t stream_id, uint32_t crop_id)
+int Mixer::enable_crop_from_source(uint32_t stream_id, uint32_t crop_id)
 {
 	return layout->enable_crop_from_stream(stream_id, crop_id);
 }
 
-int mixer::disable_crop_from_source(uint32_t stream_id, uint32_t crop_id)
+int Mixer::disable_crop_from_source(uint32_t stream_id, uint32_t crop_id)
 {
 	return layout->disable_crop_from_stream(stream_id, crop_id);
 }
 
-void mixer::change_max_framerate(uint32_t frame_rate){
+void Mixer::change_max_framerate(uint32_t frame_rate){
 	max_frame_rate = frame_rate;
 }
 
-Layout* mixer::get_layout()
+Layout* Mixer::get_layout()
 {
 	return layout;
 }
 
-vector<mixer::Dst>* mixer::get_destinations()
+vector<Mixer::Dst>* Mixer::get_destinations()
 {
 	participant_data_t *participant;
 	struct Dst dst;
-	std::vector<mixer::Dst> vect;
+	std::vector<Mixer::Dst> vect;
 	pthread_rwlock_rdlock(&transmitter->participants->lock);
 	participant = transmitter->participants->first;
 
@@ -283,52 +298,23 @@ vector<mixer::Dst>* mixer::get_destinations()
 	return &vect;
 }
 
-// int mixer::change_stream_state(uint32_t id, stream_state_t state){
-// 	if (layout == NULL)
-// 		return -1;
-// 	stream_data_t *stream;
+Mixer::Mixer(){}
 
-// 	stream = get_stream_id(src_str_list, id);
-
-// 	if (stream == NULL)
-// 		return -1;
-
-// 	set_stream_state(stream, state);
-// 	if (state == ACTIVE){
-// 		layout->set_active(id, 1);
-// 	} else if (state == NON_ACTIVE){
-// 		layout->set_active(id, 0);
-// 	}
-	
-// 	return 0;
-// }
-
-// int mixer::get_layout_size(int *width, int *height){
-// 	if (layout == NULL)
-// 		return -1;
-
-// 	*width = layout->get_w();
-//     *height = layout->get_h();
-//     return 0;
-// }
-
-mixer::mixer(){}
-
-mixer* mixer::get_instance(){
+Mixer* Mixer::get_instance(){
 	if (mixer_instance == NULL){
-		mixer_instance = new mixer();
+		mixer_instance = new Mixer();
 	}
 	return mixer_instance;
 }
 
-void* mixer::execute_run(void *context){
-	return ((mixer *)context)->run();
+void* Mixer::execute_run(void *context){
+	return ((Mixer *)context)->run();
 }
 
-uint8_t mixer::get_state(){
+uint8_t Mixer::get_state(){
 	return state;
 }
 
-void mixer::set_state(uint8_t s){
+void Mixer::set_state(uint8_t s){
 	state = s;
 }

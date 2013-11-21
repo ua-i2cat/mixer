@@ -29,9 +29,9 @@
 using namespace cv;
 using namespace std;
 
-class Crop;
 
 /*! Stream class defines a whole stream. It basically contains its width and height and a list of its crops. */ 
+class Crop;
 
 class Stream {
 
@@ -39,11 +39,15 @@ class Stream {
 		uint32_t id;
 		Size sz;
 		Mat img;
-		map<uint32_t, Crop*> crops;
-		pthread_rwlock_t crops_lock;
-		pthread_rwlock_t lock;
-		uint8_t new_frame;
-		map<uint32_t, Crop*>::iterator it;
+              pthread_rwlock_t crops_lock;
+              pthread_rwlock_t lock;
+              uint8_t new_frame;
+              map<uint32_t, Crop*>::iterator it;
+
+       protected:
+		map<uint32_t, Crop*> crops;      //NOTE: Doxygen trick in order to show relationship between classes. There's 
+                                               //      no inheritance between classes in the project so we can consider this 
+                                               //      attribute as private.
 
 	public:
 		/**

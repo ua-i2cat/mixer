@@ -57,7 +57,7 @@ class Crop {
 		static void *execute_resize(void *context);
 	
 	public:
-		/**
+		    /**
        	* Class constructor
        	* @param crop_id  crop id
        	* @param crop_width cropping rectangle width in pixels 
@@ -92,6 +92,7 @@ class Crop {
        	* @param new_dst_height new layout rectangle height in pixels 
        	* @param new_dst_x new layout rectangle upper left corner x coordinate (dummy in case of output stream crops)
        	* @param new_dst_y new layout rectangle upper left corner y coordinate (dummy in case of output stream crops)
+        * @param new_layer new layout rectangle layer
        	* @param stream_img_ref stream original image
        	* @see Crop()
        	*/

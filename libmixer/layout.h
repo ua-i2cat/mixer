@@ -34,24 +34,26 @@
 
 #define MAX_STREAMS 8
 
-class Stream;
-class Crop;
-
 /*! Layout class is the main one. It defines the layout size and contains the list of input streams and the output stream. <br>
     It's is designed as an API so all the functions have to be called from outside (it doesn't have a main routine) */ 
+
+class Stream;
+class Crop;
 
 class Layout {
 
     private:
-        Stream *out_stream;
-        multimap<uint32_t, Crop*> crops_by_layers;
-        map<uint32_t, Stream*> streams;
         pthread_rwlock_t layers_lock;
         pthread_rwlock_t streams_lock;
         multimap<uint32_t, Crop*>::iterator layers_it;
 
         uint8_t check_values(uint32_t max_width, uint32_t max_height, uint32_t width, uint32_t height, uint32_t x, uint32_t y);
 
+    protected:
+        Stream *out_stream;                             //NOTE: Doxygen trick in order to show relationship between classes. There's 
+        map<uint32_t, Stream*> streams;                 //      no inheritance between classes in the project so we can consider these 
+        multimap<uint32_t, Crop*> crops_by_layers;      //      attributes as private.
+          
     public:
         /**
         * Class constructor

@@ -120,7 +120,11 @@ void mixer::stop(){
 int mixer::add_source(){
 	uint32_t id = rand();
 	int ret = add_receiver_participant(receiver, id);
-	return ret;
+	if (ret == FALSE){
+		return ret;
+	}
+
+	return id;
 }
 
 int mixer::remove_source(uint32_t stream_id){

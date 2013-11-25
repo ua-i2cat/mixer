@@ -186,20 +186,15 @@ void stop_mixer(Jzon::Object rootNode, Jzon::Object *outRootNode){
 void add_stream(Jzon::Object rootNode, Jzon::Object *outRootNode){
     if (m->get_state() == 0){
         outRootNode->Add("error", "Mixer is not running!");
-    } else{
-        int width = rootNode.Get("params").Get("width").ToInt();
-        int height = rootNode.Get("params").Get("height").ToInt();
-        int new_w = rootNode.Get("params").Get("new_w").ToInt();
-        int new_h = rootNode.Get("params").Get("new_h").ToInt();
-        int x = rootNode.Get("params").Get("x").ToInt();
-        int y = rootNode.Get("params").Get("y").ToInt();
-        int layer = rootNode.Get("params").Get("layer").ToInt();
-        if (m->add_source() == -1){
-            outRootNode->Add("error", "errore");
-        }else {
-            outRootNode->Add("error", Jzon::null);
-            printf("m->add_source(%d, %d, H264)\n", width, height);
-        }
+        return;
+    }
+
+    int id = m->add_source();
+        
+    if (id == FALSE){
+        outRootNode->Add("error", "errore");
+    }else {
+        outRootNode->Add("id", id);
     }
 }
 

@@ -127,19 +127,16 @@ int mixer::add_source(){
 	return id;
 }
 
-int mixer::remove_source(uint32_t stream_id){
+int mixer::remove_source(uint32_t id){
 	if (layout == NULL)
 		return -1;
 
-	uint32_t part_id;
-	part_id = get_participant_from_stream_id(receiver->participant_list, stream_id);
-	if (part_id >= 0){
-		remove_participant(receiver->participant_list, part_id);
-	}
-	remove_stream(src_str_list, stream_id);
-	layout->remove_stream(stream_id);
+	int ret = TRUE;
+	ret = remove_participant(receiver->participant_list, id);
+	ret = remove_stream(src_str_list, id);
+	ret = layout->remove_stream(id);
 
-	return TRUE;
+	return ret;
 }
 
 int mixer::add_destination(char *ip, uint32_t port){

@@ -221,11 +221,13 @@ void add_stream(Jzon::Object rootNode, Jzon::Object *outRootNode){
         outRootNode->Add("error", "Mixer is not running!");
         return;
     }
+
+    int id = m->add_source();
         
-    if (m->add_source() == FALSE){
+    if (id == FALSE){
         outRootNode->Add("error", "errore");
     }else {
-        outRootNode->Add("error", Jzon::null);
+        outRootNode->Add("id", id);
     }
 }
 

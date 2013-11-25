@@ -248,11 +248,16 @@ class Mixer {
 		int max_frame_rate;
 		uint32_t _in_port;
 		uint8_t state;
+        pthread_rwlock_t task_lock;
 
 		static Mixer* mixer_instance;
 		Mixer();
 		void* run(void);
 		static void* execute_run(void *context);
+        int receive_frames();
+        void update_input_frames();
+        void update_output_frame_buffers();
+        void update_output_frames();
 
 
 };

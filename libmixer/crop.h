@@ -43,8 +43,9 @@ class Crop {
 		uint32_t crop_x, crop_y;
 		uint32_t dst_x, dst_y;
 		uint32_t layer; 
-		Mat src_cropped_img;
+		Mat& src_img;
 		Mat resized_img;
+        Rect rect_crop;
 		Size crop_img_size, rsz_img_size;
 		pthread_rwlock_t lock;
 		pthread_rwlock_t *stream_lock;
@@ -73,7 +74,7 @@ class Crop {
         * @see Crop()
         */
         Crop(uint32_t crop_id, uint32_t crop_width, uint32_t crop_height, uint32_t crop_x, uint32_t crop_y, uint32_t layer, 
-                                uint32_t dst_width, uint32_t dst_height, uint32_t dst_x, uint32_t dst_y, Mat stream_img_ref); //!< Constructor.
+                                uint32_t dst_width, uint32_t dst_height, uint32_t dst_x, uint32_t dst_y, Mat& stream_img_ref); //!< Constructor.
         /**
         * Modify origin stream crop size and position
         * @param new_crop_width new cropping width in pixels 

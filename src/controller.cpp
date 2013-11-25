@@ -588,29 +588,29 @@ void get_layout(Jzon::Object rootNode, Jzon::Object *outRootNode){
 }
 
 void get_destinations(Jzon::Object rootNode, Jzon::Object *outRootNode){
-    if (m->get_state() == 0){
-        outRootNode->Add("error", "Mixer is not running!");
-        return;
-    }
+    // if (m->get_state() == 0){
+    //     outRootNode->Add("error", "Mixer is not running!");
+    //     return;
+    // }
 
-    Jzon::Array list;
-    std::vector<Mixer::Dst>* v = m->get_destinations(); 
-    if (v->empty()){
-        outRootNode->Add("destinations", list);
-        return;
-    }
+    // Jzon::Array list;
+    // //std::vector<Mixer::Dst>* v = m->get_destinations(); 
+    // if (v->empty()){
+    //     outRootNode->Add("destinations", list);
+    //     return;
+    // }
 
-    std::vector<Mixer::Dst>::iterator it;
-    for (it = v->begin(); it != v->end(); it++){
-        Jzon::Object dst;
-        dst.Add("id", (int)it->id);
-        dst.Add("ip", it->ip);
-        dst.Add("port", (int)it->port);
-        dst.Add("stream_id", (int)it->stream_id);
-        list.Add(dst);
-    }
+    // std::vector<Mixer::Dst>::iterator it;
+    // for (it = v->begin(); it != v->end(); it++){
+    //     Jzon::Object dst;
+    //     dst.Add("id", (int)it->id);
+    //     dst.Add("ip", it->ip);
+    //     dst.Add("port", (int)it->port);
+    //     dst.Add("stream_id", (int)it->stream_id);
+    //     list.Add(dst);
+    // }
 
-    outRootNode->Add("destinations", list);
+    // outRootNode->Add("destinations", list);
 }
 
 void get_state(Jzon::Object rootNode, Jzon::Object *outRootNode){

@@ -194,7 +194,7 @@ int Mixer::add_source()
     add_participant_stream(stream, participant);
     add_stream(src_str_list, stream);
     pthread_rwlock_unlock(&task_lock);
-	return TRUE;
+	return id;
 }
 
 int Mixer::remove_source(uint32_t id)

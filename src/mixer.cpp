@@ -144,14 +144,15 @@ int mixer::add_destination(char *ip, uint32_t port){
 		return -1;
 
 	participant_data_t *participant = init_participant(dst_counter, OUTPUT, ip, port);
-	int ret = add_transmitter_participant(transmitter, participant);
-	if(ret != FALSE){
-		add_participant_stream(participant, dst_str_list->first);
-		Dst dest = {ip,port};
-		destinations[dst_counter] = dest; 
+	if(add_transmitter_participant(transmitter, participant) == FALSE){
+		return -1;
 	}
+
+	add_participant_stream(participant, dst_str_list->first);
+	Dst dest = {ip,port};
+	destinations[dst_counter] = dest; 
 	dst_counter++;
-	return ret;
+	return (dst_counter - 1);
 }
 
 int mixer::remove_destination(uint32_t id){

@@ -293,10 +293,12 @@ void add_destination(Jzon::Object rootNode, Jzon::Object *outRootNode){
         uint32_t port = rootNode.Get("params").Get("port").ToInt();
         char *ip = new char[ip_string.length() + 1];
         strcpy(ip, ip_string.c_str());
-        if (m->add_destination(ip, port) == -1){
+
+        int id = m->add_destination(ip, port);
+        if (id == -1){
             outRootNode->Add("error", "errore");
         }else {
-            outRootNode->Add("error", Jzon::null);
+            outRootNode->Add("id", id);
             printf("m->add_destination(H264, %s, %d)\n", ip, port);
         }
     } 

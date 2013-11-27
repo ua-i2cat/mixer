@@ -26,7 +26,7 @@ Stream::Stream(uint32_t identifier, pthread_rwlock_t* lock, uint32_t orig_width,
 	x_pos = x;
 	y_pos = y;
 	layer = print_layer;
-	active = 0;
+	active = 1;
 	orig_cp = orig_colorspace;
 	curr_cp = new_colorspace;
 	

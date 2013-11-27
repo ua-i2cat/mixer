@@ -27,6 +27,8 @@
 #include "mixer.h"
 #include <sys/time.h>
 
+#define DEFAULT_FPS 30
+
 using namespace std;
 Mixer* Mixer::mixer_instance;
 
@@ -159,14 +161,14 @@ void Mixer::init(uint32_t layout_width, uint32_t layout_height, uint32_t in_port
 	dst_str_list = init_stream_list();
 	uint32_t id = layout->add_crop_to_output_stream(layout_width, layout_height, 0, 0, layout_width, layout_height);
 
-	stream_data_t *stream = init_stream(VIDEO, OUTPUT, id, ACTIVE, NULL);
+	stream_data_t *stream = init_stream(VIDEO, OUTPUT, id, ACTIVE, DEFAULT_FPS , NULL);
     set_video_frame_cq(stream->video->decoded_frames, RAW, layout_width, layout_height);
     set_video_frame_cq(stream->video->coded_frames, H264, layout_width, layout_height);
     add_stream(dst_str_list, stream);
     init_encoder(stream->video);
 
 	receiver = init_receiver(src_str_list, in_port);
-	transmitter = init_transmitter(dst_str_list, 25);
+	transmitter = init_transmitter(dst_str_list, 30);
 	_in_port = in_port;
 	dst_counter = 0;
 	max_frame_rate = 30;
@@ -189,7 +191,7 @@ int Mixer::add_source()
 	uint32_t id = rand();
 	participant_data *participant = init_participant(id, INPUT, NULL, 0);
   	
-    stream_data_t *stream = init_stream(VIDEO, INPUT, id, I_AWAIT, NULL);
+    stream_data_t *stream = init_stream(VIDEO, INPUT, id, I_AWAIT, DEFAULT_FPS, NULL);
     set_video_frame_cq(stream->video->coded_frames, H264, 0, 0);
     add_participant_stream(stream, participant);
     add_stream(src_str_list, stream);
@@ -263,7 +265,7 @@ int Mixer::add_crop_to_layout(uint32_t crop_width, uint32_t crop_height, uint32_
 		return FALSE;
 	}
 
-    stream_data_t *stream = init_stream(VIDEO, OUTPUT, id, ACTIVE, NULL);
+    stream_data_t *stream = init_stream(VIDEO, OUTPUT, id, ACTIVE, DEFAULT_FPS, NULL);
     set_video_frame_cq(stream->video->decoded_frames, RAW, crop_width, crop_height);
     set_video_frame_cq(stream->video->coded_frames, H264, crop_width, crop_height);
     add_stream(dst_str_list, stream);
@@ -367,27 +369,6 @@ Layout* Mixer::get_layout()
 	return layout;
 }
 
-// vector<Mixer::Dst>* Mixer::get_destinations()
-// {
-// 	participant_data_t *participant;
-// 	struct Dst dst;
-// 	std::vector<Mixer::Dst> vect;
-// 	pthread_rwlock_rdlock(&transmitter->participants->lock);
-// 	participant = transmitter->participants->first;
-
-// 	while(participant != NULL){
-// 		dst.id = participant->id;
-// 		dst.ip = participant->rtp.addr;
-// 		dst.port = participant->rtp.port;
-// 		dst.stream_id = participant->stream->id;
-// 		vect.push_back(dst);
-// 		participant = participant->next;
-// 	}
-
-// 	pthread_rwlock_unlock(&transmitter->participants->lock);
-// 	return &vect;
-// }
-
 Mixer::Mixer(){}
 
 Mixer* Mixer::get_instance(){
@@ -407,4 +388,14 @@ uint8_t Mixer::get_state(){
 
 void Mixer::set_state(uint8_t s){
 	state = s;
+}
+
+uint32_t Mixer::get_layout_width()
+{
+	return layout->get_out_stream()->get_width();
+}
+
+uint32_t Mixer::get_layout_height()
+{
+	return layout->get_out_stream()->get_height();
 }

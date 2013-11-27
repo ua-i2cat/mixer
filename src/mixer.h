@@ -235,6 +235,9 @@ class Mixer {
         */
 		void change_max_framerate(uint32_t frame_rate);
 
+        uint32_t get_layout_width();
+        uint32_t get_layout_height();
+
 	private:
 		bool have_new_frame;
 		pthread_t thread;
@@ -258,7 +261,6 @@ class Mixer {
         void update_input_frames();
         void update_output_frame_buffers();
         void update_output_frames();
-
 
 };
 

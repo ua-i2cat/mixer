@@ -529,6 +529,8 @@ void get_layout(Jzon::Object rootNode, Jzon::Object *outRootNode){
     Jzon::Array crop_list;
     std::map<uint32_t, Crop*>::iterator crop_it;
     std::map<uint32_t, Crop*> crp = m->get_layout()->get_out_stream()->get_crops();
+    std::vector<Mixer::Dst>::iterator dst_it;
+    std::vector<Mixer::Dst> dst;
 
     Jzon::Object stream;
     stream.Add("id", (int)m->get_layout()->get_out_stream()->get_id());
@@ -536,6 +538,7 @@ void get_layout(Jzon::Object rootNode, Jzon::Object *outRootNode){
     stream.Add("height", (int)m->get_layout()->get_out_stream()->get_height());
     for (crop_it = crp.begin(); crop_it != crp.end(); crop_it++){
         Jzon::Object crop;
+        Jzon::Array dst_list;
         crop.Add("id", (int)crop_it->second->get_id());
         crop.Add("c_w", (int)crop_it->second->get_crop_width());
         crop.Add("c_h", (int)crop_it->second->get_crop_height());
@@ -543,36 +546,20 @@ void get_layout(Jzon::Object rootNode, Jzon::Object *outRootNode){
         crop.Add("c_y", (int)crop_it->second->get_crop_y());
         crop.Add("dst_w", (int)crop_it->second->get_dst_width());
         crop.Add("dst_h", (int)crop_it->second->get_dst_height());
+
+        dst = m->get_output_stream_destinations(crop_it->second->get_id());
+        for (dst_it = dst.begin(); dst_it != dst.end(); dst_it++){
+            Jzon::Object dst;
+            dst.Add("id", (int)dst_it->id);
+            dst.Add("ip", dst_it->ip);
+            dst.Add("port", (int)dst_it->port);
+            dst_list.Add(dst);
+        }
+        crop.Add("destinations", dst_list);
         crop_list.Add(crop);
     }
     stream.Add("crops", crop_list);
     outRootNode->Add("output_stream", stream);
-}
-
-void get_destinations(Jzon::Object rootNode, Jzon::Object *outRootNode){
-    // if (m->get_state() == 0){
-    //     outRootNode->Add("error", "Mixer is not running!");
-    //     return;
-    // }
-
-    // Jzon::Array list;
-    // //std::vector<Mixer::Dst>* v = m->get_destinations(); 
-    // if (v->empty()){
-    //     outRootNode->Add("destinations", list);
-    //     return;
-    // }
-
-    // std::vector<Mixer::Dst>::iterator it;
-    // for (it = v->begin(); it != v->end(); it++){
-    //     Jzon::Object dst;
-    //     dst.Add("id", (int)it->id);
-    //     dst.Add("ip", it->ip);
-    //     dst.Add("port", (int)it->port);
-    //     dst.Add("stream_id", (int)it->stream_id);
-    //     list.Add(dst);
-    // }
-
-    // outRootNode->Add("destinations", list);
 }
 
 void get_layout_size(Jzon::Object rootNode, Jzon::Object *outRootNode)

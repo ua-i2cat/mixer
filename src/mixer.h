@@ -235,6 +235,8 @@ class Mixer {
         */
 		void change_max_framerate(uint32_t frame_rate);
 
+        vector<Dst> get_output_stream_destinations(uint32_t id);
+
         uint32_t get_layout_width();
         uint32_t get_layout_height();
 

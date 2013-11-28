@@ -27,7 +27,7 @@
 #include "mixer.h"
 #include <sys/time.h>
 
-#define DEFAULT_FPS 30
+#define DEF_FPS 30
 
 using namespace std;
 Mixer* Mixer::mixer_instance;
@@ -92,6 +92,7 @@ int Mixer::receive_frames()
 		if (decoded_frame == NULL){
             continue;
         }
+        printf("SID: %u, dc->rear: %u, dc->front: %u, dc->state: %d, dc->outproc: %u\n", stream->id, stream->video->decoded_frames->rear, stream->video->decoded_frames->front, stream->video->decoded_frames->state, stream->video->decoded_frames->out_process);
 
 		if (!layout->check_if_stream(stream->id) && stream->video->decoder != NULL){
 			layout->add_stream(stream->id, decoded_frame->width, decoded_frame->height);
@@ -114,9 +115,11 @@ void Mixer::update_input_frames()
 	pthread_rwlock_rdlock(&src_str_list->lock);
 	stream = src_str_list->first;
 	for (i=0; i<src_str_list->count; i++){
+		printf("sid: %u, dc->rear: %u, dc->front: %u, dc->state: %d, dc->outproc: %u\n", stream->id, stream->video->decoded_frames->rear, stream->video->decoded_frames->front, stream->video->decoded_frames->state, stream->video->decoded_frames->out_process);
 		remove_frame(stream->video->decoded_frames);
 		stream = stream->next;
 	}
+	printf("\n");
 	pthread_rwlock_unlock(&src_str_list->lock);
 }
 
@@ -161,7 +164,7 @@ void Mixer::init(uint32_t layout_width, uint32_t layout_height, uint32_t in_port
 	dst_str_list = init_stream_list();
 	uint32_t id = layout->add_crop_to_output_stream(layout_width, layout_height, 0, 0, layout_width, layout_height);
 
-	stream_data_t *stream = init_stream(VIDEO, OUTPUT, id, ACTIVE, DEFAULT_FPS , NULL);
+	stream_data_t *stream = init_stream(VIDEO, OUTPUT, id, ACTIVE, DEF_FPS , NULL);
     set_video_frame_cq(stream->video->decoded_frames, RAW, layout_width, layout_height);
     set_video_frame_cq(stream->video->coded_frames, H264, layout_width, layout_height);
     add_stream(dst_str_list, stream);
@@ -191,7 +194,7 @@ int Mixer::add_source()
 	uint32_t id = rand();
 	participant_data *participant = init_participant(id, INPUT, NULL, 0);
   	
-    stream_data_t *stream = init_stream(VIDEO, INPUT, id, I_AWAIT, DEFAULT_FPS, NULL);
+    stream_data_t *stream = init_stream(VIDEO, INPUT, id, I_AWAIT, DEF_FPS, NULL);
     set_video_frame_cq(stream->video->coded_frames, H264, 0, 0);
     add_participant_stream(stream, participant);
     add_stream(src_str_list, stream);
@@ -265,7 +268,7 @@ int Mixer::add_crop_to_layout(uint32_t crop_width, uint32_t crop_height, uint32_
 		return FALSE;
 	}
 
-    stream_data_t *stream = init_stream(VIDEO, OUTPUT, id, ACTIVE, DEFAULT_FPS, NULL);
+    stream_data_t *stream = init_stream(VIDEO, OUTPUT, id, ACTIVE, DEF_FPS, NULL);
     set_video_frame_cq(stream->video->decoded_frames, RAW, crop_width, crop_height);
     set_video_frame_cq(stream->video->coded_frames, H264, crop_width, crop_height);
     add_stream(dst_str_list, stream);
@@ -342,6 +345,38 @@ int Mixer::remove_destination(uint32_t id)
 	return FALSE;
 }
 
+vector<Mixer::Dst> Mixer::get_output_stream_destinations(uint32_t id)
+{
+	int i;
+	participant_data_t *participant;
+	stream_data_t *stream;
+	struct Dst dst;
+	std::vector<Mixer::Dst> vect;
+
+	pthread_rwlock_rdlock(&task_lock);
+	stream = get_stream_id(dst_str_list, id);
+
+	if (stream == NULL){
+		pthread_rwlock_unlock(&task_lock);
+		return vect;
+	}
+
+	pthread_rwlock_rdlock(&stream->plist->lock);
+	participant = stream->plist->first;
+
+	for (i=0; i<stream->plist->count; i++){
+		dst.id = participant->id;
+		dst.ip = participant->rtp->addr;
+		dst.port = participant->rtp->port;
+		vect.push_back(dst);
+		participant = participant->next;
+	}
+
+	pthread_rwlock_unlock(&task_lock);
+	pthread_rwlock_unlock(&stream->plist->lock);
+	return vect;
+}
+
 int Mixer::enable_crop_from_source(uint32_t stream_id, uint32_t crop_id)
 {
 	pthread_rwlock_wrlock(&task_lock);
@@ -363,6 +398,8 @@ int Mixer::disable_crop_from_source(uint32_t stream_id, uint32_t crop_id)
 void Mixer::change_max_framerate(uint32_t frame_rate){
 	max_frame_rate = frame_rate;
 }
+
+
 
 Layout* Mixer::get_layout()
 {

@@ -90,9 +90,9 @@ int Mixer::receive_frames()
 	for (i=0; i<src_str_list->count; i++){
 		decoded_frame = curr_out_frame(stream->video->decoded_frames);
 		if (decoded_frame == NULL){
+			stream = stream->next;
             continue;
         }
-        //printf("SID: %u, dc->rear: %u, dc->front: %u, dc->state: %d, dc->outproc: %u\n", stream->id, stream->video->decoded_frames->rear, stream->video->decoded_frames->front, stream->video->decoded_frames->state, stream->video->decoded_frames->out_process);
 
 		if (!layout->check_if_stream_init(stream->id) && stream->video->decoder != NULL){
 			layout->init_stream(stream->id, decoded_frame->width, decoded_frame->height);
@@ -115,11 +115,9 @@ void Mixer::update_input_frames()
 	pthread_rwlock_rdlock(&src_str_list->lock);
 	stream = src_str_list->first;
 	for (i=0; i<src_str_list->count; i++){
-		//printf("sid: %u, dc->rear: %u, dc->front: %u, dc->state: %d, dc->outproc: %u\n", stream->id, stream->video->decoded_frames->rear, stream->video->decoded_frames->front, stream->video->decoded_frames->state, stream->video->decoded_frames->out_process);
 		remove_frame(stream->video->decoded_frames);
 		stream = stream->next;
 	}
-	//printf("\n");
 	pthread_rwlock_unlock(&src_str_list->lock);
 }
 
@@ -171,10 +169,10 @@ void Mixer::init(uint32_t layout_width, uint32_t layout_height, uint32_t in_port
     init_encoder(stream->video);
 
 	receiver = init_receiver(src_str_list, in_port);
-	transmitter = init_transmitter(dst_str_list, 30);
+	transmitter = init_transmitter(dst_str_list, DEF_FPS);
 	_in_port = in_port;
 	dst_counter = 0;
-	max_frame_rate = 30;
+	max_frame_rate = DEF_FPS;
 	pthread_rwlock_init(&task_lock, NULL);
 }
 

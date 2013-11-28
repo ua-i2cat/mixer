@@ -43,7 +43,6 @@ class Mixer {
 			uint32_t id; /**< Destination ID */
 			char *ip; /**< Destination IP address */
 			uint32_t port; /**< Destination port */
-			uint32_t stream_id; /**< Stream associaciated to the desination */
 		};
 
 		/**
@@ -235,6 +234,11 @@ class Mixer {
         */
 		void change_max_framerate(uint32_t frame_rate);
 
+        vector<Dst> get_output_stream_destinations(uint32_t id);
+
+        uint32_t get_layout_width();
+        uint32_t get_layout_height();
+
 	private:
 		bool have_new_frame;
 		pthread_t thread;
@@ -248,12 +252,16 @@ class Mixer {
 		int max_frame_rate;
 		uint32_t _in_port;
 		uint8_t state;
+        pthread_rwlock_t task_lock;
 
 		static Mixer* mixer_instance;
 		Mixer();
 		void* run(void);
 		static void* execute_run(void *context);
-
+        int receive_frames();
+        void update_input_frames();
+        void update_output_frame_buffers();
+        void update_output_frames();
 
 };
 

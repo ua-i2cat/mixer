@@ -63,12 +63,11 @@ void add_destination(Jzon::Object rootNode, Jzon::Object *outRootNode);
 void remove_destination(Jzon::Object rootNode, Jzon::Object *outRootNode);
 
 void get_streams(Jzon::Object rootNode, Jzon::Object *outRootNode);
-void get_stream(Jzon::Object rootNode, Jzon::Object *outRootNode);
-void get_destinations(Jzon::Object rootNode, Jzon::Object *outRootNode);
-void get_destination(Jzon::Object rootNode, Jzon::Object *outRootNode);
 void get_layout(Jzon::Object rootNode, Jzon::Object *outRootNode);
+void get_layout_size(Jzon::Object rootNode, Jzon::Object *outRootNode);
 void get_state(Jzon::Object rootNode, Jzon::Object *outRootNode);
 void exit_mixer(Jzon::Object rootNode, Jzon::Object *outRootNode);
+
 void initialize_action_mapping();
 int get_socket(int port, int *sock);
 int listen_socket(int sock, int *newsock);
@@ -183,8 +182,8 @@ void initialize_action_mapping() {
     commands["remove_destination"] = remove_destination;
     
     commands["get_streams"] = get_streams;
-    commands["get_destinations"] = get_destinations;
     commands["get_layout"] = get_layout;
+    commands["get_layout_size"] = get_layout_size;
     commands["get_state"] = get_state;
     commands["exit_mixer"] = exit_mixer;
 }
@@ -475,42 +474,6 @@ void remove_destination(Jzon::Object rootNode, Jzon::Object *outRootNode)
     }
 }
 
-// void enable_stream(Jzon::Object rootNode, Jzon::Object *outRootNode){
-//     if (m->get_state() == 0){
-//         outRootNode->Add("error", "Mixer is not running!");
-//     } else{
-//         int id = rootNode.Get("params").Get("id").ToInt();
-//         if (check_stream_id(id) == -1){
-//             outRootNode->Add("error", "Introduced ID doesn't match any mixer stream ID");
-//         } else {
-//             if(m->change_stream_state(id, ACTIVE) == -1){
-//                 outRootNode->Add("error", "Error enabling stream");
-//             } else {
-//                 outRootNode->Add("error", Jzon::null);
-//                 printf("m->set_stream_active(%d, 1)\n", id);
-//             }
-//         }
-//     }
-// }
-
-// void disable_stream(Jzon::Object rootNode, Jzon::Object *outRootNode){
-//     if (m->get_state() == 0){
-//         outRootNode->Add("error", "Mixer is not running!");
-//     } else{
-//         uint32_t id = rootNode.Get("params").Get("id").ToInt();
-//         if (check_stream_id(id) == -1){
-//             outRootNode->Add("error", "Introduced ID doesn't match any mixer stream ID");
-//         }else {
-//             if(m->change_stream_state(id, NON_ACTIVE) == -1){
-//                 outRootNode->Add("error", "Error enabling stream");
-//             }else {
-//                 outRootNode->Add("error", Jzon::null);
-//                 printf("m->set_stream_active(%d, 0)\n", id);
-//             }
-//         }
-//     }
-// }
-
 void get_streams(Jzon::Object rootNode, Jzon::Object *outRootNode){
     if (m->get_state() == 0){
         outRootNode->Add("error", "Mixer is not running!");
@@ -519,7 +482,7 @@ void get_streams(Jzon::Object rootNode, Jzon::Object *outRootNode){
 
     Jzon::Array stream_list;
     if(m->get_layout()->get_streams().empty()){
-        outRootNode->Add("streams", stream_list);
+        outRootNode->Add("input_streams", stream_list);
         return;
     }
 
@@ -533,7 +496,6 @@ void get_streams(Jzon::Object rootNode, Jzon::Object *outRootNode){
     for (stream_it = stream_map.begin(); stream_it != stream_map.end(); stream_it++){
         Jzon::Object stream;
         Jzon::Array crop_list;
-        pthread_rwlock_rdlock(stream_it->second->get_lock());
         stream.Add("id", (int)stream_it->second->get_id());
         stream.Add("width", (int)stream_it->second->get_width());
         stream.Add("height", (int)stream_it->second->get_height());
@@ -541,22 +503,22 @@ void get_streams(Jzon::Object rootNode, Jzon::Object *outRootNode){
         for (crop_it = crop_map.begin(); crop_it != crop_map.end(); crop_it++){
             Jzon::Object crop;
             crop.Add("id", (int)crop_it->second->get_id());
-            crop.Add("crop_width", (int)crop_it->second->get_crop_width());
-            crop.Add("crop_height", (int)crop_it->second->get_crop_height());
-            crop.Add("crop_x", (int)crop_it->second->get_crop_x());
-            crop.Add("crop_y", (int)crop_it->second->get_crop_y());
-            crop.Add("rsz_width", (int)crop_it->second->get_dst_width());
-            crop.Add("rsz_height", (int)crop_it->second->get_dst_height());
-            crop.Add("rsz_x", (int)crop_it->second->get_dst_x());
-            crop.Add("rsz_y", (int)crop_it->second->get_dst_y());
+            crop.Add("c_w", (int)crop_it->second->get_crop_width());
+            crop.Add("c_h", (int)crop_it->second->get_crop_height());
+            crop.Add("c_x", (int)crop_it->second->get_crop_x());
+            crop.Add("c_y", (int)crop_it->second->get_crop_y());
+            crop.Add("dst_w", (int)crop_it->second->get_dst_width());
+            crop.Add("dst_h", (int)crop_it->second->get_dst_height());
+            crop.Add("dst_x", (int)crop_it->second->get_dst_x());
+            crop.Add("dst_y", (int)crop_it->second->get_dst_y());
             crop.Add("layer", (int)crop_it->second->get_layer());
+            crop.Add("state", (int)crop_it->second->is_active());
             crop_list.Add(crop);
         }
         stream.Add("crops", crop_list);
         stream_list.Add(stream);
-        pthread_rwlock_unlock(stream_it->second->get_lock());
     }
-    outRootNode->Add("streams", stream_list);
+    outRootNode->Add("input_streams", stream_list);
 }
 
 void get_layout(Jzon::Object rootNode, Jzon::Object *outRootNode){
@@ -567,8 +529,9 @@ void get_layout(Jzon::Object rootNode, Jzon::Object *outRootNode){
 
     Jzon::Array crop_list;
     std::map<uint32_t, Crop*>::iterator crop_it;
-    pthread_rwlock_rdlock(m->get_layout()->get_out_stream()->get_lock());
     std::map<uint32_t, Crop*> crp = m->get_layout()->get_out_stream()->get_crops();
+    std::vector<Mixer::Dst>::iterator dst_it;
+    std::vector<Mixer::Dst> dst;
 
     Jzon::Object stream;
     stream.Add("id", (int)m->get_layout()->get_out_stream()->get_id());
@@ -576,48 +539,47 @@ void get_layout(Jzon::Object rootNode, Jzon::Object *outRootNode){
     stream.Add("height", (int)m->get_layout()->get_out_stream()->get_height());
     for (crop_it = crp.begin(); crop_it != crp.end(); crop_it++){
         Jzon::Object crop;
+        Jzon::Array dst_list;
         crop.Add("id", (int)crop_it->second->get_id());
-        crop.Add("crop_width", (int)crop_it->second->get_crop_width());
-        crop.Add("crop_height", (int)crop_it->second->get_crop_height());
-        crop.Add("crop_x", (int)crop_it->second->get_crop_x());
-        crop.Add("crop_y", (int)crop_it->second->get_crop_y());
-        crop.Add("rsz_width", (int)crop_it->second->get_dst_width());
-        crop.Add("rsz_height", (int)crop_it->second->get_dst_height());
-        crop.Add("rsz_x", (int)crop_it->second->get_dst_x());
-        crop.Add("rsz_y", (int)crop_it->second->get_dst_y());
-        crop.Add("layer", (int)crop_it->second->get_layer());
+        crop.Add("c_w", (int)crop_it->second->get_crop_width());
+        crop.Add("c_h", (int)crop_it->second->get_crop_height());
+        crop.Add("c_x", (int)crop_it->second->get_crop_x());
+        crop.Add("c_y", (int)crop_it->second->get_crop_y());
+        crop.Add("dst_w", (int)crop_it->second->get_dst_width());
+        crop.Add("dst_h", (int)crop_it->second->get_dst_height());
+
+        dst = m->get_output_stream_destinations(crop_it->second->get_id());
+        for (dst_it = dst.begin(); dst_it != dst.end(); dst_it++){
+            Jzon::Object dst;
+            dst.Add("id", (int)dst_it->id);
+            dst.Add("ip", dst_it->ip);
+            dst.Add("port", (int)dst_it->port);
+            dst_list.Add(dst);
+        }
+        crop.Add("destinations", dst_list);
         crop_list.Add(crop);
     }
     stream.Add("crops", crop_list);
-    outRootNode->Add("stream", stream);
-    pthread_rwlock_unlock(m->get_layout()->get_out_stream()->get_lock());
+    outRootNode->Add("output_stream", stream);
 }
 
-void get_destinations(Jzon::Object rootNode, Jzon::Object *outRootNode){
+void get_layout_size(Jzon::Object rootNode, Jzon::Object *outRootNode)
+{
     if (m->get_state() == 0){
         outRootNode->Add("error", "Mixer is not running!");
         return;
     }
 
-    Jzon::Array list;
-    std::vector<Mixer::Dst>* v = m->get_destinations(); 
-    if (v->empty()){
-        outRootNode->Add("destinations", list);
-        return;
-    }
+    int width, height;
 
-    std::vector<Mixer::Dst>::iterator it;
-    for (it = v->begin(); it != v->end(); it++){
-        Jzon::Object dst;
-        dst.Add("id", (int)it->id);
-        dst.Add("ip", it->ip);
-        dst.Add("port", (int)it->port);
-        dst.Add("stream_id", (int)it->stream_id);
-        list.Add(dst);
-    }
+    width = m->get_layout_width();
+    height = m->get_layout_height();
 
-    outRootNode->Add("destinations", list);
+    outRootNode->Add("width", width);
+    outRootNode->Add("height", height);
+
 }
+
 
 void get_state(Jzon::Object rootNode, Jzon::Object *outRootNode){
     uint8_t state = m->get_state();

@@ -43,7 +43,6 @@ class Mixer {
 			uint32_t id; /**< Destination ID */
 			char *ip; /**< Destination IP address */
 			uint32_t port; /**< Destination port */
-			uint32_t stream_id; /**< Stream associaciated to the desination */
 		};
 
 		/**

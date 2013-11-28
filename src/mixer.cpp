@@ -92,10 +92,10 @@ int Mixer::receive_frames()
 		if (decoded_frame == NULL){
             continue;
         }
-        printf("SID: %u, dc->rear: %u, dc->front: %u, dc->state: %d, dc->outproc: %u\n", stream->id, stream->video->decoded_frames->rear, stream->video->decoded_frames->front, stream->video->decoded_frames->state, stream->video->decoded_frames->out_process);
+        //printf("SID: %u, dc->rear: %u, dc->front: %u, dc->state: %d, dc->outproc: %u\n", stream->id, stream->video->decoded_frames->rear, stream->video->decoded_frames->front, stream->video->decoded_frames->state, stream->video->decoded_frames->out_process);
 
-		if (!layout->check_if_stream(stream->id) && stream->video->decoder != NULL){
-			layout->add_stream(stream->id, decoded_frame->width, decoded_frame->height);
+		if (!layout->check_if_stream_init(stream->id) && stream->video->decoder != NULL){
+			layout->init_stream(stream->id, decoded_frame->width, decoded_frame->height);
 		}
 
 		layout->introduce_frame_to_stream(stream->id, (uint8_t*)decoded_frame->buffer, decoded_frame->buffer_len);
@@ -115,11 +115,11 @@ void Mixer::update_input_frames()
 	pthread_rwlock_rdlock(&src_str_list->lock);
 	stream = src_str_list->first;
 	for (i=0; i<src_str_list->count; i++){
-		printf("sid: %u, dc->rear: %u, dc->front: %u, dc->state: %d, dc->outproc: %u\n", stream->id, stream->video->decoded_frames->rear, stream->video->decoded_frames->front, stream->video->decoded_frames->state, stream->video->decoded_frames->out_process);
+		//printf("sid: %u, dc->rear: %u, dc->front: %u, dc->state: %d, dc->outproc: %u\n", stream->id, stream->video->decoded_frames->rear, stream->video->decoded_frames->front, stream->video->decoded_frames->state, stream->video->decoded_frames->out_process);
 		remove_frame(stream->video->decoded_frames);
 		stream = stream->next;
 	}
-	printf("\n");
+	//printf("\n");
 	pthread_rwlock_unlock(&src_str_list->lock);
 }
 
@@ -198,6 +198,9 @@ int Mixer::add_source()
     set_video_frame_cq(stream->video->coded_frames, H264, 0, 0);
     add_participant_stream(stream, participant);
     add_stream(src_str_list, stream);
+
+    layout->add_stream(id);
+
     pthread_rwlock_unlock(&task_lock);
 	return id;
 }
@@ -205,12 +208,13 @@ int Mixer::add_source()
 int Mixer::remove_source(uint32_t id)
 {
 	pthread_rwlock_wrlock(&task_lock);
-	if(!remove_stream(src_str_list, id)){
+
+	if(!layout->remove_stream(id)){
 		pthread_rwlock_unlock(&task_lock);
 		return FALSE;
 	}
-	
-	if(!layout->remove_stream(id)){
+
+	if(!remove_stream(src_str_list, id)){
 		pthread_rwlock_unlock(&task_lock);
 		return FALSE;
 	}

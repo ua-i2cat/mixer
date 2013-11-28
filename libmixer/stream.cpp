@@ -35,7 +35,19 @@ Stream::Stream(uint32_t stream_id, uint32_t stream_width, uint32_t stream_height
 	sz = Size(stream_width, stream_height);
 	img = Mat(stream_height, stream_width, CV_8UC3); //NOTE: height and width are correctly placed in the constructor-> Mat(rows, cols)
 	it = crops.begin();
-} 
+}
+
+Stream::Stream(uint32_t stream_id)
+{
+	id = stream_id;
+	it = crops.begin();
+}
+
+void Stream::init(uint32_t stream_width, uint32_t stream_height)
+{
+	sz = Size(stream_width, stream_height);
+	img = Mat(stream_height, stream_width, CV_8UC3); //NOTE: height and width are correctly placed in the constructor-> Mat(rows, cols)
+}  
 
 Crop* Stream::add_crop(uint32_t id, uint32_t crop_width, uint32_t crop_height, uint32_t crop_x, uint32_t crop_y,
 				uint32_t layer, uint32_t dst_width, uint32_t dst_height, uint32_t dst_x, uint32_t dst_y)

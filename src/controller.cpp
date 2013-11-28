@@ -512,6 +512,7 @@ void get_streams(Jzon::Object rootNode, Jzon::Object *outRootNode){
             crop.Add("dst_x", (int)crop_it->second->get_dst_x());
             crop.Add("dst_y", (int)crop_it->second->get_dst_y());
             crop.Add("layer", (int)crop_it->second->get_layer());
+            crop.Add("state", (int)crop_it->second->is_active());
             crop_list.Add(crop);
         }
         stream.Add("crops", crop_list);

@@ -71,6 +71,10 @@ class Layout {
         */
         int add_stream(uint32_t stream_id, uint32_t width, uint32_t height);
 
+        int add_stream(uint32_t stream_id);
+
+        int init_stream(uint32_t stream_id, uint32_t width, uint32_t height);
+
         /**
         * Get a pointer to the stream with the desired id
         * @param stream_id  Id of the input stream which we want the function to return
@@ -191,7 +195,7 @@ class Layout {
         * Check if stream id is associated to any of the input streams which are already in the layout
         * @return return 1 if succeeded and 0 if not
         */
-        uint8_t check_if_stream(uint32_t stream_id);
+        uint8_t check_if_stream_init(uint32_t stream_id);
 
         void resize_input_crops();
         void split_layout();

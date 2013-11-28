@@ -55,21 +55,24 @@ class Stream {
        	* @param stream_height Height
        	*/
 		Stream(uint32_t stream_id, uint32_t stream_width, uint32_t stream_height); 
+              Stream(uint32_t stream_id);
+              void init(uint32_t stream_width, uint32_t stream_height);
 
-		/**
-       	* Add a crop to the stream
-       	* @param id  Id
-       	* @param crop_width see Crop 
-       	* @param crop_height see Crop
-       	* @param crop_x see Crop 
-       	* @param crop_y see Crop 
-       	* @param layer see Crop 
-       	* @param dst_width see Crop 
-       	* @param dst_height see Crop 
-       	* @param dst_x see Crop 
-       	* @param dst_y see Crop 
-       	* @return Pointer to the added crop
-       	*/
+              /**
+              * Add a crop to the stream
+              * @param id  Id
+              * @param crop_width see Crop 
+              * @param crop_height see Crop
+              * @param crop_x see Crop 
+              * @param crop_y see Crop 
+              * @param layer see Crop 
+              * @param dst_width see Crop 
+              * @param dst_height see Crop 
+              * @param dst_x see Crop 
+              * @param dst_y see Crop 
+              * @return Pointer to the added crop
+              */
+
 		Crop* add_crop(uint32_t id, uint32_t crop_width, uint32_t crop_height, uint32_t crop_x, uint32_t crop_y,
 				uint32_t layer, uint32_t dst_width, uint32_t dst_height, uint32_t dst_x, uint32_t dst_y);
 

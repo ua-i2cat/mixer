@@ -54,6 +54,34 @@ int Layout::add_stream(uint32_t stream_id, uint32_t width, uint32_t height){
 
 }
 
+int Layout::add_stream(uint32_t stream_id)
+{
+	if (streams.count(stream_id) > 0) {
+		return FALSE;
+	}
+
+	Stream *stream = new Stream(stream_id);
+	streams[stream_id] = stream;
+
+	return TRUE;
+}
+
+int Layout::init_stream(uint32_t stream_id, uint32_t width, uint32_t height)
+{
+	if (streams.count(stream_id) <= 0) {
+		return FALSE;
+	}
+
+	streams[stream_id]->init(width, height);
+
+	uint32_t id = rand();
+	Crop *crop = streams[stream_id]->add_crop(id, width, height, 0, 0, 0, out_stream->get_width(), out_stream->get_height(), 0, 0);
+
+	crops_by_layers.insert(pair<uint32_t, Crop*>(crop->get_layer(), crop));
+
+	return TRUE;
+}
+
 Stream* Layout::get_stream_by_id(uint32_t stream_id)
 {
 	if (streams.count(stream_id) <= 0) {
@@ -72,8 +100,10 @@ int Layout::remove_stream(uint32_t stream_id)
 	}
 
 	Stream *stream = streams[stream_id];
+	map<uint32_t, Crop*> s_map = stream->get_crops();
+	map<uint32_t, Crop*>::iterator str_it;
 
-	for (map<uint32_t, Crop*>::iterator str_it = stream->get_crops().begin(); stream->get_crops().size() != 0; str_it++){
+	for (str_it = s_map.begin(); str_it != s_map.end(); str_it++){
 		multimap<uint32_t, Crop*>::iterator it = crops_by_layers.find(str_it->second->get_layer());  
 		while (it->second->get_id() != str_it->second->get_id()){
 			it++;
@@ -81,7 +111,6 @@ int Layout::remove_stream(uint32_t stream_id)
 		Crop *crop = it->second;
 		crops_by_layers.erase(it);
 		out_stream->get_img()(Rect(crop->get_dst_x(), crop->get_dst_y(), crop->get_dst_width(), crop->get_dst_height())) = Mat::zeros(crop->get_dst_height(), crop->get_dst_width(), CV_8UC3);
-		stream->remove_crop(crop->get_id());
 	}
 
 	streams.erase(stream_id);
@@ -108,7 +137,6 @@ int Layout::add_crop_to_stream(uint32_t stream_id, uint32_t crop_width, uint32_t
 	}
 
 	Crop *crop = stream->add_crop(rand(), crop_width, crop_height, crop_x, crop_y, layer, dst_width, dst_height, dst_x, dst_y);
-
 	crops_by_layers.insert(pair<uint32_t, Crop*>(crop->get_layer(), crop));
 
 	return TRUE;
@@ -186,7 +214,14 @@ int Layout::modify_dst_crop_from_stream(uint32_t stream_id, uint32_t crop_id, ui
 	}
 
 	out_stream->get_img()(Rect(crop->get_dst_x(), crop->get_dst_y(), crop->get_dst_width(), crop->get_dst_height())) = Mat::zeros(crop->get_dst_height(), crop->get_dst_width(), CV_8UC3);
+	
+	layers_it = crops_by_layers.find(crop->get_layer());  
+	while (layers_it->second->get_id() != crop->get_id()){
+		layers_it++;
+	}
+	crops_by_layers.erase(layers_it);
 	crop->modify_dst(new_crop_width, new_crop_height, new_crop_x, new_crop_y, new_layer);
+	crops_by_layers.insert(pair<uint32_t, Crop*>(crop->get_layer(), crop));
 
 	return TRUE;
 
@@ -369,9 +404,9 @@ uint8_t Layout::check_values(uint32_t max_width, uint32_t max_height, uint32_t w
 	return TRUE;
 }
 
-uint8_t Layout::check_if_stream(uint32_t stream_id)
+uint8_t Layout::check_if_stream_init(uint32_t stream_id)
 {
-	if (streams.count(stream_id) <= 0) {
+	if (streams[stream_id]->get_width() == 0 && streams[stream_id]->get_height() == 0){
 		return FALSE;
 	}
 

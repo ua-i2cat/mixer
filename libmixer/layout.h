@@ -71,8 +71,22 @@ class Layout {
         */
         int add_stream(uint32_t stream_id, uint32_t width, uint32_t height);
 
+        /**
+        * Add an input stream without specifying size
+        * @param stream_id Id
+        * @return 1 if succeeded and 0 if not
+        * @see Stream::Stream(uint32_t stream_id)
+        */
         int add_stream(uint32_t stream_id);
 
+        /**
+        * Init a stream added without size definition
+        * @param stream_id Id
+        * @param width Stream width
+        * @param height Stream height
+        * @return 1 if succeeded and 0 if not
+        * @see Stream::Stream(uint32_t stream_id), Stream::init(uint32_t stream_width, uint32_t stream_height)
+        */
         int init_stream(uint32_t stream_id, uint32_t width, uint32_t height);
 
         /**
@@ -192,13 +206,29 @@ class Layout {
         void compose_layout();
 
         /**
-        * Check if stream id is associated to any of the input streams which are already in the layout
-        * @return return 1 if succeeded and 0 if not
+        * Check if an input stream is already initialized (width and height have been set)
+        * @return return 1 if init and 0 if not
         */
         uint8_t check_if_stream_init(uint32_t stream_id);
 
+        /**
+        * Resize input stream crops. It creats N threads and join the N thread created, 
+        * so when this function has finished we can ensure that resizing has finished
+        */
         void resize_input_crops();
+
+        /**
+        * Splits the layout into defined layout crops and resizes each one. It creats N threads and join the N threads created, 
+        * so when this function has finished we can ensure that splitting and resizing has finished
+        */
         void split_layout();
+
+        /**
+        * Sets the output buffer pointer of an output stream crop
+        * @param id Id of the crop
+        * @param buffer Pointer to the buffer
+        * @return 1 if succeeded and 0 if not
+        */
         int set_resized_output_buffer(uint32_t id, uint8_t *buffer);
 
         

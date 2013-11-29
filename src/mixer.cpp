@@ -400,12 +400,6 @@ int Mixer::disable_crop_from_source(uint32_t stream_id, uint32_t crop_id)
 	return ret;
 }
 
-void Mixer::change_max_framerate(uint32_t frame_rate){
-	max_frame_rate = frame_rate;
-}
-
-
-
 Layout* Mixer::get_layout()
 {
 	return layout;

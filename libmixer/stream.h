@@ -55,7 +55,17 @@ class Stream {
        	* @param stream_height Height
        	*/
 		Stream(uint32_t stream_id, uint32_t stream_width, uint32_t stream_height); 
+
+              /**
+              * Class constructor without setting width and height. It's necessary to apply init(width,height) to this stream.
+              * @param stream_id Id
+              */
               Stream(uint32_t stream_id);
+
+              /**
+              * Set width and height for stream created with the constructor Stream(uint32_t stream_id) 
+              * @param stream_id Id
+              */
               void init(uint32_t stream_width, uint32_t stream_height);
 
               /**
@@ -101,11 +111,21 @@ class Stream {
 		void introduce_frame(uint8_t* buffer, uint32_t buffer_length);
 
 		/**
-       	* Wake up resize routines of the crops associated to the stream.
-       	* @see Crop
+       	* Creates resize routines of the crops associated to the stream.
+       	* @see Crop::resize_routine()
        	*/
               void create_resize_crops_routine();
+
+              /**
+              * Waits resize routines of the stream crops until they finish
+              * @see Crop::resize_routine()
+              */
               void wait_for_resize_crops_routine();
+
+              /**
+              * Waits resize routines of the stream crops until they finish
+              * @see Crop::resize_routine()
+              */
               void resize_crops();
 
               uint8_t has_new_frame();

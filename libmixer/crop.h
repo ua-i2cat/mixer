@@ -54,7 +54,7 @@ class Crop {
 		pthread_t thread;
 		uint8_t active;
 	    
-    void *resize_routine(void);
+        void *resize_routine(void);
   
   public:
         /**
@@ -98,33 +98,24 @@ class Crop {
         */
         void modify_dst(uint32_t new_dst_width, uint32_t new_dst_height, uint32_t new_dst_x, uint32_t new_dst_y, uint32_t new_layer);
 
-        /**
-        * Stops resizing routine
-        */
-    void stop();
-
-    /**
-        * Sets new frame flag, used by resizing routine as active waiting flag <br>
-        * 1 indicates that theres a new frame to resize and 0 indicates that theres none
-        */
 		static void *execute_resize(void *context);
     
-    uint32_t get_id();
-    uint32_t get_layer();
-    Mat get_crop_img();
-    uint32_t get_crop_width();
-    uint32_t get_crop_height();
-    uint32_t get_crop_x();
-    uint32_t get_crop_y();
-    uint32_t get_dst_x();
-    uint32_t get_dst_y();
-    uint32_t get_dst_width();
-    uint32_t get_dst_height();
-    pthread_rwlock_t* get_lock();
-    pthread_t* get_thread();
-    uint8_t is_active();
-    void set_active(uint8_t act);
-    uint8_t* get_buffer();
-		uint32_t get_buffer_size();
-    void set_resized_buffer(uint8_t* buffer);
+        uint32_t get_id();
+        uint32_t get_layer();
+        Mat get_crop_img();
+        uint32_t get_crop_width();
+        uint32_t get_crop_height();
+        uint32_t get_crop_x();
+        uint32_t get_crop_y();
+        uint32_t get_dst_x();
+        uint32_t get_dst_y();
+        uint32_t get_dst_width();
+        uint32_t get_dst_height();
+        pthread_rwlock_t* get_lock();
+        pthread_t* get_thread();
+        uint8_t is_active();
+        void set_active(uint8_t act);
+        uint8_t* get_buffer();
+	   uint32_t get_buffer_size();
+        void set_resized_buffer(uint8_t* buffer);
 };

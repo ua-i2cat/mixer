@@ -229,11 +229,11 @@ class Mixer {
         */
 		void set_state(uint8_t s);
 
-		/**
-        * Set mixer max framerate mixer
+        /**
+        * Get the destinations associated to an output stream
+        * @param id Id of the output stream
+        * @return A vector with the destinations associated to that stream
         */
-		void change_max_framerate(uint32_t frame_rate);
-
         vector<Dst> get_output_stream_destinations(uint32_t id);
 
         uint32_t get_layout_width();

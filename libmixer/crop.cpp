@@ -112,12 +112,6 @@ pthread_t* Crop::get_thread()
 	return &thread;
 } 
 
-void Crop::stop(){
-	run = FALSE;
-
-	new_frame = TRUE;
-}
-
 uint8_t Crop::is_active()
 {
 	return active;

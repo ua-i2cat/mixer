@@ -82,7 +82,6 @@ int Stream::remove_crop(uint32_t crop_id)
 
 	crops.erase(crop_id);
 
-	crop->stop();
 	delete crop;
 
 	return TRUE;

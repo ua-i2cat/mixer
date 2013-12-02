@@ -271,7 +271,6 @@ int Mixer::add_crop_to_layout(uint32_t crop_width, uint32_t crop_height, uint32_
 {
 	pthread_rwlock_wrlock(&task_lock);
 	uint32_t id = layout->add_crop_to_output_stream(crop_width, crop_height, crop_x, crop_y, output_width, output_height);
-
 	if (id == 0){
 		pthread_rwlock_unlock(&task_lock);
 		return FALSE;
@@ -281,7 +280,9 @@ int Mixer::add_crop_to_layout(uint32_t crop_width, uint32_t crop_height, uint32_
     set_video_frame_cq(stream->video->decoded_frames, RAW, crop_width, crop_height);
     set_video_frame_cq(stream->video->coded_frames, H264, crop_width, crop_height);
     add_stream(dst_str_list, stream);
+    printf("add_stream(dst_str_list, stream);\n");
     init_encoder(stream->video);
+    printf(" init_encoder(stream->video);\n");
 
     pthread_rwlock_unlock(&task_lock);
 	return TRUE;
@@ -307,12 +308,12 @@ int Mixer::modify_crop_resizing_from_layout(uint32_t id, uint32_t new_width, uin
 	stream_data_t *stream = get_stream_id(dst_str_list, id);
 
 	while(stream->video->decoded_frames->state != CQ_EMPTY){
-		usleep(500);		
+		usleep(500);	//TODO: GET RID OF MAGIC NUMBERS	
 	}
 	set_video_frame_cq(stream->video->decoded_frames, RAW, new_width, new_height);
 
 	while(stream->video->coded_frames->state != CQ_EMPTY){
-		usleep(500);		
+		usleep(500);	//TODO: GET RID OF MAGIC NUMBERS	
 	}
     set_video_frame_cq(stream->video->coded_frames, H264, new_width, new_height);
 
@@ -358,15 +359,17 @@ int Mixer::remove_destination(uint32_t id)
 	stream_data_t* stream;
 	pthread_rwlock_wrlock(&task_lock);
 
+	pthread_rwlock_rdlock(&dst_str_list->lock);
 	stream = dst_str_list->first;
 
 	for (i=0; i<dst_str_list->count; i++){
 		if (remove_participant_from_stream(stream, id)){
+			pthread_rwlock_unlock(&dst_str_list->lock);
 			pthread_rwlock_unlock(&task_lock);
 			return TRUE;
 		}
 	}
-
+	pthread_rwlock_unlock(&dst_str_list->lock);
 	pthread_rwlock_unlock(&task_lock);
 	return FALSE;
 }
@@ -398,8 +401,8 @@ vector<Mixer::Dst> Mixer::get_output_stream_destinations(uint32_t id)
 		participant = participant->next;
 	}
 
-	pthread_rwlock_unlock(&task_lock);
 	pthread_rwlock_unlock(&stream->plist->lock);
+	pthread_rwlock_unlock(&task_lock);
 	return vect;
 }
 

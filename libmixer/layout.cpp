@@ -216,9 +216,16 @@ int Layout::modify_dst_crop_from_stream(uint32_t stream_id, uint32_t crop_id, ui
 	out_stream->get_img()(Rect(crop->get_dst_x(), crop->get_dst_y(), crop->get_dst_width(), crop->get_dst_height())) = Mat::zeros(crop->get_dst_height(), crop->get_dst_width(), CV_8UC3);
 	
 	layers_it = crops_by_layers.find(crop->get_layer());  
-	while (layers_it->second->get_id() != crop->get_id()){
+
+	while (layers_it != crops_by_layers.end() && layers_it->second->get_id() != crop->get_id()){
 		layers_it++;
 	}
+
+	if (layers_it == crops_by_layers.end()){
+		crop->modify_dst(new_crop_width, new_crop_height, new_crop_x, new_crop_y, new_layer);
+		return TRUE;  //Trick to modify crops if are not active
+	}
+
 	crops_by_layers.erase(layers_it);
 	crop->modify_dst(new_crop_width, new_crop_height, new_crop_x, new_crop_y, new_layer);
 	crops_by_layers.insert(pair<uint32_t, Crop*>(crop->get_layer(), crop));
@@ -283,7 +290,7 @@ int Layout::enable_crop_from_stream(uint32_t stream_id, uint32_t crop_id)
 	}
 
 	if (crop->is_active()){
-		return FALSE;
+		return TRUE;
 	}
 
 	crop->set_active(TRUE);
@@ -307,7 +314,7 @@ int Layout::disable_crop_from_stream(uint32_t stream_id, uint32_t crop_id)
 	}
 
 	if (!crop->is_active()){
-		return FALSE;
+		return TRUE;
 	}
 
 	crop->set_active(FALSE);

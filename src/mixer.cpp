@@ -35,9 +35,6 @@ Mixer* Mixer::mixer_instance;
 
 
 void* Mixer::run(void) {
-	int i;
-	stream_data_t *stream;
-	have_new_frame = false;
 	should_stop = false;
 	struct timeval start, finish;
 	long diff = 0, min_diff = 0;
@@ -52,6 +49,13 @@ void* Mixer::run(void) {
 
 		if (!receive_frames()){
 			pthread_rwlock_unlock(&task_lock);
+			
+			gettimeofday(&finish, NULL);
+			diff = ((finish.tv_sec - start.tv_sec)*1000000 + finish.tv_usec - start.tv_usec); // In ms
+			if (diff < min_diff){
+				usleep(min_diff - diff); 
+			}
+
 			continue;
 		}
 

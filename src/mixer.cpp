@@ -49,7 +49,7 @@ void* Mixer::run(void) {
 
 		if (!receive_frames()){
 			pthread_rwlock_unlock(&task_lock);
-			
+
 			gettimeofday(&finish, NULL);
 			diff = ((finish.tv_sec - start.tv_sec)*1000000 + finish.tv_usec - start.tv_usec); // In ms
 			if (diff < min_diff){
@@ -296,11 +296,28 @@ int Mixer::modify_crop_from_layout(uint32_t crop_id, uint32_t new_crop_width, ui
 	return ret;
 }
 
-int Mixer::modify_crop_resizing_from_layout(uint32_t crop_id, uint32_t new_width, uint32_t new_height)
+int Mixer::modify_crop_resizing_from_layout(uint32_t id, uint32_t new_width, uint32_t new_height)
 {
-	//TODO: deactivated until encoder reconfigure implemented
-	//return layout->modify_crop_resize_from_output_stream(crop_id, new_width, new_height);
-	return FALSE;
+	pthread_rwlock_wrlock(&task_lock);
+	if(layout->modify_crop_resize_from_output_stream(id, new_width, new_height) == FALSE){
+		pthread_rwlock_unlock(&task_lock);
+		return FALSE;
+	}
+
+	stream_data_t *stream = get_stream_id(dst_str_list, id);
+
+	while(stream->video->decoded_frames->state != CQ_EMPTY){
+		usleep(500);		
+	}
+	set_video_frame_cq(stream->video->decoded_frames, RAW, new_width, new_height);
+
+	while(stream->video->coded_frames->state != CQ_EMPTY){
+		usleep(500);		
+	}
+    set_video_frame_cq(stream->video->coded_frames, H264, new_width, new_height);
+
+	pthread_rwlock_unlock(&task_lock);
+	return TRUE;
 }
 
 int Mixer::remove_crop_from_layout(uint32_t crop_id)

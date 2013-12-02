@@ -164,7 +164,7 @@ class Mixer {
        	* @param new_height resized crop height
         * @return 1 if succeeded and 0 if not
         */
-        int modify_crop_resizing_from_layout(uint32_t crop_id, uint32_t new_width, uint32_t new_height);
+        int modify_crop_resizing_from_layout(uint32_t id, uint32_t new_width, uint32_t new_height);
 
         /**
         * Remove a crop from the layout and the output stream associated to it

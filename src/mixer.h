@@ -74,7 +74,7 @@ class Mixer {
         * Add an input stream. Width and height are automatically detected
         * @return 1 if succeeded and 0 if not
         */
-		int add_source();
+		uint32_t add_source();
 
 		/**
         * Removes an input stream
@@ -196,7 +196,7 @@ class Mixer {
         * @param stream_id Output stream ID  
         * @return 1 if succeeded and 0 if not
         */
-		int add_destination(char *ip, uint32_t port, uint32_t stream_id);
+		uint32_t add_destination(char *ip, uint32_t port, uint32_t stream_id);
 
 		/**
         * Remove a destination 
@@ -238,6 +238,7 @@ class Mixer {
 
         uint32_t get_layout_width();
         uint32_t get_layout_height();
+        pthread_rwlock_t* get_task_lock();
 
 	private:
 		bool have_new_frame;
@@ -248,7 +249,6 @@ class Mixer {
 		stream_list *dst_str_list;
 		Layout *layout;
 		bool should_stop;
-		uint32_t dst_counter;
 		int max_frame_rate;
 		uint32_t _in_port;
 		uint8_t state;

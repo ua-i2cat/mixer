@@ -86,6 +86,8 @@ class Stream {
 		Crop* add_crop(uint32_t id, uint32_t crop_width, uint32_t crop_height, uint32_t crop_x, uint32_t crop_y,
 				uint32_t layer, uint32_t dst_width, uint32_t dst_height, uint32_t dst_x, uint32_t dst_y);
 
+              int add_crop(uint32_t id);
+
 		/**
        	* Get a pointer to the crop with the desired id
        	* @param crop_id  Id of the crop which we want the function to return
@@ -131,7 +133,7 @@ class Stream {
               uint8_t has_new_frame();
               void set_new_frame(uint8_t new_flag);
 		uint32_t get_id();
-		map<uint32_t, Crop*> get_crops();
+		map<uint32_t, Crop*>* get_crops();
 		Mat get_img();
 		uint32_t get_width();
 		uint32_t get_height();

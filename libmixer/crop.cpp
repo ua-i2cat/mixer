@@ -22,6 +22,7 @@
 
 #include "crop.h"
 #include <stdio.h>
+#include <iostream>
 
 Crop::Crop(uint32_t crop_id, uint32_t c_width, uint32_t c_height, uint32_t c_x, uint32_t c_y, 
         	uint32_t dst_layer, uint32_t d_width, uint32_t d_height, uint32_t d_x, uint32_t d_y, Mat& stream_img_ref):src_img(stream_img_ref)
@@ -36,11 +37,36 @@ Crop::Crop(uint32_t crop_id, uint32_t c_width, uint32_t c_height, uint32_t c_x, 
 	crop_img_size = Size(c_width, c_height);
 	src_img = stream_img_ref;
 	rect_crop = Rect(c_x, c_y, c_width, c_height);
-	new_frame = FALSE;
 	active = TRUE;
 }
 
-void Crop::modify_crop(uint32_t new_crop_width, uint32_t new_crop_height, uint32_t new_crop_x, uint32_t new_crop_y, Mat stream_img_ref)
+Crop::Crop(uint32_t crop_id, Mat& stream_img_ref):src_img(stream_img_ref)
+{
+	id = crop_id;
+	crop_x = 0;
+	crop_y = 0;
+	crop_img_size.width = 0;
+	crop_img_size.height = 0;
+	rsz_img_size.width = 0;
+	rsz_img_size.height = 0;
+	layer = 0;
+	dst_x = 0;
+	dst_y = 0;
+	active = FALSE;
+	src_img = stream_img_ref;
+}
+
+void Crop::init_input_values(uint32_t width, uint32_t height, uint32_t x, uint32_t y, Mat& stream_img_ref)
+{
+	crop_img_size.width = width;
+	crop_img_size.height = height;
+	crop_x = x;
+	crop_y = y;
+	src_img = stream_img_ref;
+	rect_crop = Rect(x, y, width, height);
+}
+
+void Crop::modify_crop(uint32_t new_crop_width, uint32_t new_crop_height, uint32_t new_crop_x, uint32_t new_crop_y)
 {
 	crop_img_size.width = new_crop_width;
 	crop_img_size.height = new_crop_height;

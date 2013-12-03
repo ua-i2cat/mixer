@@ -451,10 +451,12 @@ void add_destination(Jzon::Object rootNode, Jzon::Object *outRootNode)
     char *ip = new char[ip_string.length() + 1];
     strcpy(ip, ip_string.c_str());
     
-    if (m->add_destination(ip, port, stream_id) == FALSE){
+    int id = m->add_destination(ip, port, stream_id);
+
+    if (id == FALSE){
         outRootNode->Add("error", "errore");
     }else {
-        outRootNode->Add("error", Jzon::null);
+        outRootNode->Add("id", id);
     }
 }
 
@@ -479,28 +481,30 @@ void get_streams(Jzon::Object rootNode, Jzon::Object *outRootNode){
         outRootNode->Add("error", "Mixer is not running!");
         return;
     }
+    pthread_rwlock_rdlock(m->get_task_lock());
 
     Jzon::Array stream_list;
-    if(m->get_layout()->get_streams().empty()){
+    if(m->get_layout()->get_streams()->empty()){
         outRootNode->Add("input_streams", stream_list);
+        pthread_rwlock_unlock(m->get_task_lock());
         return;
     }
 
-    std::map<uint32_t, Stream*> stream_map;
-    std::map<uint32_t, Crop*> crop_map;
+    std::map<uint32_t, Stream*>* stream_map;
+    std::map<uint32_t, Crop*>* crop_map;
     std::map<uint32_t, Stream*>::iterator stream_it;
     std::map<uint32_t, Crop*>::iterator crop_it;
 
     stream_map = m->get_layout()->get_streams();
     
-    for (stream_it = stream_map.begin(); stream_it != stream_map.end(); stream_it++){
+    for (stream_it = stream_map->begin(); stream_it != stream_map->end(); stream_it++){
         Jzon::Object stream;
         Jzon::Array crop_list;
         stream.Add("id", (int)stream_it->second->get_id());
         stream.Add("width", (int)stream_it->second->get_width());
         stream.Add("height", (int)stream_it->second->get_height());
         crop_map = stream_it->second->get_crops();
-        for (crop_it = crop_map.begin(); crop_it != crop_map.end(); crop_it++){
+        for (crop_it = crop_map->begin(); crop_it != crop_map->end(); crop_it++){
             Jzon::Object crop;
             crop.Add("id", (int)crop_it->second->get_id());
             crop.Add("c_w", (int)crop_it->second->get_crop_width());
@@ -519,6 +523,7 @@ void get_streams(Jzon::Object rootNode, Jzon::Object *outRootNode){
         stream_list.Add(stream);
     }
     outRootNode->Add("input_streams", stream_list);
+    pthread_rwlock_unlock(m->get_task_lock());
 }
 
 void get_layout(Jzon::Object rootNode, Jzon::Object *outRootNode){
@@ -526,10 +531,11 @@ void get_layout(Jzon::Object rootNode, Jzon::Object *outRootNode){
         outRootNode->Add("error", "Mixer is not running!");
         return;
     }
+    pthread_rwlock_rdlock(m->get_task_lock());
 
     Jzon::Array crop_list;
     std::map<uint32_t, Crop*>::iterator crop_it;
-    std::map<uint32_t, Crop*> crp = m->get_layout()->get_out_stream()->get_crops();
+    std::map<uint32_t, Crop*> *crp = m->get_layout()->get_out_stream()->get_crops();
     std::vector<Mixer::Dst>::iterator dst_it;
     std::vector<Mixer::Dst> dst;
 
@@ -537,7 +543,7 @@ void get_layout(Jzon::Object rootNode, Jzon::Object *outRootNode){
     stream.Add("id", (int)m->get_layout()->get_out_stream()->get_id());
     stream.Add("width", (int)m->get_layout()->get_out_stream()->get_width());
     stream.Add("height", (int)m->get_layout()->get_out_stream()->get_height());
-    for (crop_it = crp.begin(); crop_it != crp.end(); crop_it++){
+    for (crop_it = crp->begin(); crop_it != crp->end(); crop_it++){
         Jzon::Object crop;
         Jzon::Array dst_list;
         crop.Add("id", (int)crop_it->second->get_id());
@@ -561,6 +567,7 @@ void get_layout(Jzon::Object rootNode, Jzon::Object *outRootNode){
     }
     stream.Add("crops", crop_list);
     outRootNode->Add("output_stream", stream);
+    pthread_rwlock_unlock(m->get_task_lock());
 }
 
 void get_layout_size(Jzon::Object rootNode, Jzon::Object *outRootNode)

@@ -236,7 +236,7 @@ class Layout {
         uint32_t get_output_crop_buffer_size(uint32_t crop_id);
 
         Stream *get_out_stream();
-        map<uint32_t, Stream*> get_streams();
+        map<uint32_t, Stream*>* get_streams();
         pthread_rwlock_t* get_streams_lock();
 
         uint8_t* get_buffer();

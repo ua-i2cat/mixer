@@ -38,7 +38,8 @@ Layout::Layout(uint32_t width, uint32_t height)
 	layers_it = crops_by_layers.begin();
 }
 
-int Layout::add_stream(uint32_t stream_id, uint32_t width, uint32_t height){
+int Layout::add_stream(uint32_t stream_id, uint32_t width, uint32_t height)
+{
 	if (streams.count(stream_id) > 0) {
 		return FALSE;
 	}
@@ -61,6 +62,8 @@ int Layout::add_stream(uint32_t stream_id)
 	}
 
 	Stream *stream = new Stream(stream_id);
+	uint32_t id = rand();
+	stream->add_crop(id);
 	streams[stream_id] = stream;
 
 	return TRUE;
@@ -72,12 +75,28 @@ int Layout::init_stream(uint32_t stream_id, uint32_t width, uint32_t height)
 		return FALSE;
 	}
 
-	streams[stream_id]->init(width, height);
+	Stream *stream = streams[stream_id];
 
-	uint32_t id = rand();
-	Crop *crop = streams[stream_id]->add_crop(id, width, height, 0, 0, 0, out_stream->get_width(), out_stream->get_height(), 0, 0);
+	stream->init(width, height);
+	map<uint32_t, Crop*> *crops = stream->get_crops();
 
-	crops_by_layers.insert(pair<uint32_t, Crop*>(crop->get_layer(), crop));
+	if (stream->get_crops()->empty()){
+		uint32_t id = rand();
+		Crop *crop = stream->add_crop(id, width, height, 0, 0, 0, out_stream->get_width(), out_stream->get_height(), 0, 0);
+		crops_by_layers.insert(pair<uint32_t, Crop*>(crop->get_layer(), crop));
+		return TRUE;
+	}
+
+	map<uint32_t, Crop*>::iterator it;
+	for (it = crops->begin(); it != crops->end(); it++){
+		if (!check_values(out_stream->get_width(), out_stream->get_height(), it->second->get_dst_width(), 
+							it->second->get_dst_height(), it->second->get_dst_x(), it->second->get_dst_y()))
+		{
+			it->second->modify_dst(out_stream->get_width(), out_stream->get_height(), 0, 0, 0);
+		}
+		it->second->set_active(TRUE);
+		crops_by_layers.insert(pair<uint32_t, Crop*>(it->second->get_layer(), it->second));
+	}	
 
 	return TRUE;
 }
@@ -100,10 +119,10 @@ int Layout::remove_stream(uint32_t stream_id)
 	}
 
 	Stream *stream = streams[stream_id];
-	map<uint32_t, Crop*> s_map = stream->get_crops();
+	map<uint32_t, Crop*>* s_map = stream->get_crops();
 	map<uint32_t, Crop*>::iterator str_it;
 
-	for (str_it = s_map.begin(); str_it != s_map.end(); str_it++){
+	for (str_it = s_map->begin(); str_it != s_map->end(); str_it++){
 		multimap<uint32_t, Crop*>::iterator it = crops_by_layers.find(str_it->second->get_layer());  
 		while (it->second->get_id() != str_it->second->get_id()){
 			it++;
@@ -189,7 +208,7 @@ int Layout::modify_orig_crop_from_stream(uint32_t stream_id, uint32_t crop_id, u
 		return FALSE;
 	}
 
-	crop->modify_crop(new_crop_width, new_crop_height, new_crop_x, new_crop_y, stream->get_img());
+	crop->modify_crop(new_crop_width, new_crop_height, new_crop_x, new_crop_y);
 
 	return TRUE;
 
@@ -213,7 +232,6 @@ int Layout::modify_dst_crop_from_stream(uint32_t stream_id, uint32_t crop_id, ui
 		return FALSE;
 	}
 
-	out_stream->get_img()(Rect(crop->get_dst_x(), crop->get_dst_y(), crop->get_dst_width(), crop->get_dst_height())) = Mat::zeros(crop->get_dst_height(), crop->get_dst_width(), CV_8UC3);
 	
 	layers_it = crops_by_layers.find(crop->get_layer());  
 
@@ -227,6 +245,7 @@ int Layout::modify_dst_crop_from_stream(uint32_t stream_id, uint32_t crop_id, ui
 	}
 
 	crops_by_layers.erase(layers_it);
+	out_stream->get_img()(Rect(crop->get_dst_x(), crop->get_dst_y(), crop->get_dst_width(), crop->get_dst_height())) = Mat::zeros(crop->get_dst_height(), crop->get_dst_width(), CV_8UC3);
 	crop->modify_dst(new_crop_width, new_crop_height, new_crop_x, new_crop_y, new_layer);
 	crops_by_layers.insert(pair<uint32_t, Crop*>(crop->get_layer(), crop));
 
@@ -360,7 +379,7 @@ int Layout::modify_crop_from_output_stream(uint32_t crop_id, uint32_t new_crop_w
 		return FALSE;
 	}
 
-	crop->modify_crop(new_crop_width, new_crop_height, new_crop_x, new_crop_y, out_stream->get_img());
+	crop->modify_crop(new_crop_width, new_crop_height, new_crop_x, new_crop_y);
 
 	return TRUE;
 }
@@ -446,9 +465,9 @@ uint32_t Layout::get_output_crop_buffer_size(uint32_t crop_id)
 	return buffer_size;
 }
 
-map<uint32_t, Stream*> Layout::get_streams()
+map<uint32_t, Stream*>* Layout::get_streams()
 {
-	return streams;
+	return &streams;
 }
 
 int Layout::set_resized_output_buffer(uint32_t id, uint8_t *buffer)

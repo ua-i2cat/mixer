@@ -49,7 +49,6 @@ class Crop {
 		Size crop_img_size, rsz_img_size;
 		pthread_rwlock_t lock;
 		pthread_rwlock_t *stream_lock;
-		uint8_t new_frame;
 		uint8_t run;
 		pthread_t thread;
 		uint8_t active;
@@ -75,6 +74,13 @@ class Crop {
         */
         Crop(uint32_t crop_id, uint32_t crop_width, uint32_t crop_height, uint32_t crop_x, uint32_t crop_y, uint32_t layer, 
                                 uint32_t dst_width, uint32_t dst_height, uint32_t dst_x, uint32_t dst_y, Mat& stream_img_ref); //!< Constructor.
+
+        /**
+        * Class constructor
+        * @param crop_id  crop id
+        * @see Crop()
+        */
+        Crop(uint32_t crop_id, Mat& stream_img_ref);
         /**
         * Modify origin stream crop size and position
         * @param new_crop_width new cropping width in pixels 
@@ -84,7 +90,7 @@ class Crop {
         * @param stream_img_ref stream original image
         * @see Crop()
         */
-        void modify_crop(uint32_t new_crop_width, uint32_t new_crop_height, uint32_t new_crop_x, uint32_t new_crop_y, Mat stream_img_ref);
+        void modify_crop(uint32_t new_crop_width, uint32_t new_crop_height, uint32_t new_crop_x, uint32_t new_crop_y);
 
         /**
         * Modify layout rectangle size and positiion where the crop will be printed
@@ -93,10 +99,11 @@ class Crop {
         * @param new_dst_x new layout rectangle upper left corner x coordinate (dummy in case of output stream crops)
         * @param new_dst_y new layout rectangle upper left corner y coordinate (dummy in case of output stream crops)
         * @param new_layer new layout rectangle layer
-        * @param stream_img_ref stream original image
         * @see Crop()
         */
         void modify_dst(uint32_t new_dst_width, uint32_t new_dst_height, uint32_t new_dst_x, uint32_t new_dst_y, uint32_t new_layer);
+
+        void init_input_values(uint32_t width, uint32_t height, uint32_t x, uint32_t y, Mat& stream_img_ref);
 
 		static void *execute_resize(void *context);
     

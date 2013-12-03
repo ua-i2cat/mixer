@@ -35,18 +35,25 @@ Stream::Stream(uint32_t stream_id, uint32_t stream_width, uint32_t stream_height
 	sz = Size(stream_width, stream_height);
 	img = Mat(stream_height, stream_width, CV_8UC3); //NOTE: height and width are correctly placed in the constructor-> Mat(rows, cols)
 	it = crops.begin();
+	new_frame = FALSE;
 }
 
 Stream::Stream(uint32_t stream_id)
 {
 	id = stream_id;
 	it = crops.begin();
+	img = Mat();
+	new_frame = FALSE;
 }
 
 void Stream::init(uint32_t stream_width, uint32_t stream_height)
 {
 	sz = Size(stream_width, stream_height);
-	img = Mat(stream_height, stream_width, CV_8UC3); //NOTE: height and width are correctly placed in the constructor-> Mat(rows, cols)
+	img.create(stream_height, stream_width, CV_8UC3); //NOTE: height and width are correctly placed in the constructor-> Mat(rows, cols)
+
+	for (it = crops.begin(); it != crops.end(); it++){
+		it->second->init_input_values(stream_width, stream_height, 0, 0, img);
+	}
 }  
 
 Crop* Stream::add_crop(uint32_t id, uint32_t crop_width, uint32_t crop_height, uint32_t crop_x, uint32_t crop_y,
@@ -61,6 +68,18 @@ Crop* Stream::add_crop(uint32_t id, uint32_t crop_width, uint32_t crop_height, u
 	crops[id] = crop;
 
 	return crop;
+}
+
+int Stream::add_crop(uint32_t id)
+{
+	if (crops.count(id) > 0) {
+		return FALSE;
+	}
+
+	Crop *crop = new Crop(id, img);
+	crops[id] = crop;
+
+	return TRUE;
 }
 
 Crop* Stream::get_crop_by_id(uint32_t crop_id)
@@ -114,9 +133,9 @@ void Stream::resize_crops()
 	wait_for_resize_crops_routine();
 }
 
-map<uint32_t, Crop*> Stream::get_crops()
+map<uint32_t, Crop*>* Stream::get_crops()
 {
-	return crops;
+	return &crops;
 }
 
 Mat Stream::get_img()

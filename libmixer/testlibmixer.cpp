@@ -93,8 +93,8 @@ int main(int argc, char *argv[]){
 			avg_diff_merge += diff_merge;
 			diff_count++;
 
-		 	fwrite(layout->get_out_stream()->get_crops().begin()->second->get_buffer(), 
-		 			layout->get_out_stream()->get_crops().begin()->second->get_buffer_size(), 1, F_video_rx1);
+		 	fwrite(layout->get_out_stream()->get_crops()->begin()->second->get_buffer(), 
+		 			layout->get_out_stream()->get_crops()->begin()->second->get_buffer_size(), 1, F_video_rx1);
 
 		 	// fwrite(layout->get_out_stream()->get_crops().rbegin()->second->get_buffer(), 
 		 	// 		layout->get_out_stream()->get_crops().rbegin()->second->get_buffer_size(), 1, F_video_rx2);

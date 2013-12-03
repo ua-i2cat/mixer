@@ -178,7 +178,6 @@ void Mixer::init(uint32_t layout_width, uint32_t layout_height, uint32_t in_port
 	receiver = init_receiver(src_str_list, in_port);
 	transmitter = init_transmitter(dst_str_list, DEF_FPS);
 	_in_port = in_port;
-	dst_counter = 0;
 	max_frame_rate = DEF_FPS;
 	pthread_rwlock_init(&task_lock, NULL);
 }
@@ -193,7 +192,7 @@ void Mixer::stop(){
 	should_stop = true;
 }
 
-int Mixer::add_source()
+uint32_t Mixer::add_source()
 {
 	pthread_rwlock_wrlock(&task_lock);
 	uint32_t id = rand();
@@ -280,9 +279,7 @@ int Mixer::add_crop_to_layout(uint32_t crop_width, uint32_t crop_height, uint32_
     set_video_frame_cq(stream->video->decoded_frames, RAW, crop_width, crop_height);
     set_video_frame_cq(stream->video->coded_frames, H264, crop_width, crop_height);
     add_stream(dst_str_list, stream);
-    printf("add_stream(dst_str_list, stream);\n");
     init_encoder(stream->video);
-    printf(" init_encoder(stream->video);\n");
 
     pthread_rwlock_unlock(&task_lock);
 	return TRUE;
@@ -334,7 +331,7 @@ int Mixer::remove_crop_from_layout(uint32_t crop_id)
 	return FALSE;
 }
 
-int Mixer::add_destination(char *ip, uint32_t port, uint32_t stream_id)
+uint32_t Mixer::add_destination(char *ip, uint32_t port, uint32_t stream_id)
 {
 	pthread_rwlock_wrlock(&task_lock);
 
@@ -344,13 +341,13 @@ int Mixer::add_destination(char *ip, uint32_t port, uint32_t stream_id)
 		pthread_rwlock_unlock(&task_lock);
 		return FALSE;
 	}
-
-	participant_data_t *participant = init_participant(dst_counter, OUTPUT, ip, port);
+	
+	uint32_t id = rand();	
+	participant_data_t *participant = init_participant(id, OUTPUT, ip, port);
 	add_participant_stream(stream, participant);
-	dst_counter++;
 
 	pthread_rwlock_unlock(&task_lock);
-	return TRUE;	
+	return id;	
 }
 
 int Mixer::remove_destination(uint32_t id)
@@ -458,4 +455,9 @@ uint32_t Mixer::get_layout_width()
 uint32_t Mixer::get_layout_height()
 {
 	return layout->get_out_stream()->get_height();
+}
+
+pthread_rwlock_t* Mixer::get_task_lock()
+{
+	return &task_lock;
 }

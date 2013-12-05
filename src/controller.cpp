@@ -64,6 +64,7 @@ void remove_destination(Jzon::Object rootNode, Jzon::Object *outRootNode);
 
 void get_streams(Jzon::Object rootNode, Jzon::Object *outRootNode);
 void get_layout(Jzon::Object rootNode, Jzon::Object *outRootNode);
+void get_stats(Jzon::Object rootNode, Jzon::Object *outRootNode);
 void get_layout_size(Jzon::Object rootNode, Jzon::Object *outRootNode);
 void get_state(Jzon::Object rootNode, Jzon::Object *outRootNode);
 void exit_mixer(Jzon::Object rootNode, Jzon::Object *outRootNode);
@@ -183,6 +184,7 @@ void initialize_action_mapping() {
     
     commands["get_streams"] = get_streams;
     commands["get_layout"] = get_layout;
+    commands["get_stats"] = get_stats;
     commands["get_layout_size"] = get_layout_size;
     commands["get_state"] = get_state;
     commands["exit_mixer"] = exit_mixer;
@@ -585,6 +587,23 @@ void get_layout_size(Jzon::Object rootNode, Jzon::Object *outRootNode)
     outRootNode->Add("width", width);
     outRootNode->Add("height", height);
 
+}
+
+void get_stats(Jzon::Object rootNode, Jzon::Object *outRootNode)
+{
+    pthread_rwlock_rdlock(m->get_task_lock());
+    if (m->get_state() == 0){
+        outRootNode->Add("error", "Mixer is not running!");
+        return;
+    }
+
+    map<string,int>* stats_map = m->get_stats();
+    map<string,int>::iterator it;
+
+    for (it = stats_map->begin(); it != stats_map->end(); it++){
+        outRootNode->Add(it->first, it->second);
+    }
+    pthread_rwlock_unlock(m->get_task_lock());
 }
 
 

@@ -69,6 +69,9 @@ void* Mixer::run(void) {
 		gettimeofday(&finish, NULL);
 
 		diff = ((finish.tv_sec - start.tv_sec)*1000000 + finish.tv_usec - start.tv_usec); // In ms
+
+		s_mng->update_mix_stat(diff);
+
 		pthread_rwlock_unlock(&task_lock);
 		if (diff < min_diff){
 			usleep(min_diff - diff); 
@@ -100,6 +103,9 @@ int Mixer::receive_frames()
 			stream = stream->next;
             continue;
         }
+
+    //    s_mng->update_input_stat(stream->id, stream->delay, stream->seqno);
+        s_mng->update_input_stat(stream->id, 100, 100);
 
 		if (!layout->check_if_stream_init(stream->id) && stream->video->decoder != NULL){
 			layout->init_stream(stream->id, decoded_frame->width, decoded_frame->height);
@@ -154,8 +160,12 @@ void Mixer::update_output_frame_buffers()
 	for (i=0; i<dst_str_list->count; i++){
 		decoded_frame = curr_in_frame(stream->video->decoded_frames);
     	if (decoded_frame == NULL){
+    		s_mng->update_output_stat(100, true);
+    		stream = stream->next;
         	continue;
     	}
+
+    	s_mng->update_output_stat(100, false);
 
     	layout->set_resized_output_buffer(stream->id, decoded_frame->buffer);
 		stream = stream->next;
@@ -180,6 +190,8 @@ void Mixer::init(uint32_t layout_width, uint32_t layout_height, uint32_t in_port
 	_in_port = in_port;
 	max_frame_rate = DEF_FPS;
 	pthread_rwlock_init(&task_lock, NULL);
+
+	s_mng = new statManager();
 }
 
 void Mixer::exec(){
@@ -461,3 +473,11 @@ pthread_rwlock_t* Mixer::get_task_lock()
 {
 	return &task_lock;
 }
+
+map<string,int>* Mixer::get_stats()
+{
+	return s_mng->get_stats();
+}
+
+
+

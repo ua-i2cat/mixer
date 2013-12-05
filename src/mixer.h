@@ -29,6 +29,7 @@
 #include <map>
 #include <string>
 #include "layout.h"
+#include "stat_manager.h"
 extern "C"{
 	#include <io_mngr/receiver.h>
 	#include <io_mngr/transmitter.h>
@@ -236,18 +237,20 @@ class Mixer {
         */
         vector<Dst> get_output_stream_destinations(uint32_t id);
 
+        map<string,int>* get_stats();
+
         uint32_t get_layout_width();
         uint32_t get_layout_height();
         pthread_rwlock_t* get_task_lock();
 
 	private:
-		bool have_new_frame;
 		pthread_t thread;
 		receiver_t *receiver;
 		transmitter_t *transmitter;
 		stream_list *src_str_list;
 		stream_list *dst_str_list;
 		Layout *layout;
+        statManager *s_mng;
 		bool should_stop;
 		int max_frame_rate;
 		uint32_t _in_port;

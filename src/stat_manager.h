@@ -31,6 +31,36 @@
 
 using namespace std;
 
+class streamStats {
+    public:
+        streamStats(uint32_t str_id);
+        int get_delay();
+        int get_fps();
+        int get_bitrate();
+        int get_lost_coded_frames();
+        int get_lost_frames();
+        int get_total_frames();
+        int get_lost_frames_percent();
+        void set_delay(int _delay);
+        void set_fps(int _fps);
+        void set_bitrate(int _bitrate);
+        void set_lost_coded_frames(int _lost_coded_frames);
+        void set_lost_frames(int _lost_frames);
+        void set_total_frames(int _total_frames);
+        void set_lost_frames_percent(int _lost_frames_percent);
+
+
+    private:
+        uint32_t id;
+        int delay;
+        int fps;
+        int bitrate;
+        int lost_coded_frames;
+        int lost_frames;
+        int total_frames;
+        int lost_frames_percent;
+};
+
 class statManager {
     private:
         int mix_delay;
@@ -55,6 +85,8 @@ class statManager {
 
         int counter;
         map<string,int> stats_map;
+        map<uint32_t, streamStats*> input_str_map;
+        map<uint32_t, streamStats*>::iterator input_str_it;
         map<uint32_t, uint32_t> seqno_map;
         map<uint32_t, uint32_t>::iterator seqno_it;
 
@@ -62,9 +94,13 @@ class statManager {
 
     public:
         void update_mix_stat(uint32_t delay);
-        void update_input_stat(uint32_t stream_id, uint32_t delay, uint32_t seq_number);
+        void update_input_stat(uint32_t id, uint32_t delay, uint32_t seq_number, uint32_t lost_coded_frames, uint32_t fps, uint32_t bitrate);
+        void update_input_stat(uint32_t id, uint32_t delay, uint32_t seq_number, uint32_t lost_coded_frames);
         void update_output_stat(uint32_t delay, bool frame_lost);
-        map<string, int>* get_stats();
+        void add_input_stream(uint32_t id);
+        void remove_input_stream(uint32_t id);
+        void get_stats(map<string,int>* stats, map<uint32_t,streamStats*> &input_stats);
+
 
 };
 

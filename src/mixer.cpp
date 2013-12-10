@@ -104,8 +104,12 @@ int Mixer::receive_frames()
             continue;
         }
 
-    //    s_mng->update_input_stat(stream->id, stream->delay, stream->seqno);
-        s_mng->update_input_stat(stream->id, 100, 100);
+        s_mng->update_input_stat(stream->id, 
+        						 stream->video->delay, 
+        						 decoded_frame->seqno, 
+        						 stream->video->lost_coded_frames,
+        						 stream->video->fps,
+        						 stream->video->bitrate);
 
 		if (!layout->check_if_stream_init(stream->id) && stream->video->decoder != NULL){
 			layout->init_stream(stream->id, decoded_frame->width, decoded_frame->height);
@@ -160,13 +164,14 @@ void Mixer::update_output_frame_buffers()
 	for (i=0; i<dst_str_list->count; i++){
 		decoded_frame = curr_in_frame(stream->video->decoded_frames);
     	if (decoded_frame == NULL){
-    		s_mng->update_output_stat(100, true);
+    		s_mng->update_output_stat(stream->video->delay, true);
     		stream = stream->next;
         	continue;
     	}
 
-    	s_mng->update_output_stat(100, false);
-
+    	s_mng->update_output_stat(stream->video->delay, false);
+    	stream->video->seqno++;
+    	decoded_frame->seqno = stream->video->seqno;
     	layout->set_resized_output_buffer(stream->id, decoded_frame->buffer);
 		stream = stream->next;
 	}
@@ -215,6 +220,8 @@ uint32_t Mixer::add_source()
     add_participant_stream(stream, participant);
     add_stream(src_str_list, stream);
 
+    s_mng->add_input_stream(id);
+
     layout->add_stream(id);
 
     pthread_rwlock_unlock(&task_lock);
@@ -234,6 +241,8 @@ int Mixer::remove_source(uint32_t id)
 		pthread_rwlock_unlock(&task_lock);
 		return FALSE;
 	}
+
+	s_mng->remove_input_stream(id);
 	
 	pthread_rwlock_unlock(&task_lock);
 	return TRUE;
@@ -474,9 +483,11 @@ pthread_rwlock_t* Mixer::get_task_lock()
 	return &task_lock;
 }
 
-map<string,int>* Mixer::get_stats()
+void Mixer::get_stats(map<string,int>* stats, map<uint32_t,streamStats*> &input_stats)
 {
-	return s_mng->get_stats();
+	s_mng->get_stats(stats, input_stats);
+    cout << "Mixer: " << input_stats.size() << endl;
+	
 }
 
 

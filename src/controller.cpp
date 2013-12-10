@@ -597,12 +597,27 @@ void get_stats(Jzon::Object rootNode, Jzon::Object *outRootNode)
         return;
     }
 
-    map<string,int>* stats_map = m->get_stats();
-    map<string,int>::iterator it;
+    map<string,int>* stats; 
+    map<uint32_t,streamStats*> input_stats; 
+    m->get_stats(stats, input_stats);
+    cout << "Controller: " << input_stats.size() << endl;
+    map<string,int>::iterator it; 
+    map<uint32_t,streamStats*>::iterator str_it; 
 
-    for (it = stats_map->begin(); it != stats_map->end(); it++){
-        outRootNode->Add(it->first, it->second);
+    Jzon::Array str_list;
+    for (str_it = input_stats.begin(); str_it != input_stats.end(); str_it++){
+        Jzon::Object str;
+        str.Add("id", (int)str_it->first);
+        str.Add("delay", (int)str_it->second->get_delay());
+        str.Add("fps", (int)str_it->second->get_fps());
+        str.Add("bitrate", (int)str_it->second->get_bitrate());
+        str.Add("lost_coded_frames", (int)str_it->second->get_lost_coded_frames());
+        str.Add("lost_frames", (int)str_it->second->get_lost_frames());
+        str.Add("total_frames", (int)str_it->second->get_total_frames());
+        str.Add("lost_frames_percent", (int)str_it->second->get_lost_frames_percent());
+        str_list.Add(str);
     }
+    outRootNode->Add("input_streams", str_list);
     pthread_rwlock_unlock(m->get_task_lock());
 }
 

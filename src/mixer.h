@@ -237,7 +237,10 @@ class Mixer {
         */
         vector<Dst> get_output_stream_destinations(uint32_t id);
 
+        void get_stats(map<string,int>* stats, map<uint32_t,streamStats*> &input_stats);
         map<string,int>* get_stats();
+        uint32_t get_time();
+
 
         uint32_t get_layout_width();
         uint32_t get_layout_height();

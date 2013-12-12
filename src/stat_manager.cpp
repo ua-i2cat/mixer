@@ -98,6 +98,8 @@ void statManager::update_stats()
     total_output_frames = 0;
     lost_input_frames_percent = 0;
     lost_output_frames_percent = 0;
+    input_max_delay = 0;
+    output_max_delay = 0;
 
     for (input_str_it = input_str_map.begin(); input_str_it != input_str_map.end(); input_str_it++){
         total_input_frames += input_str_it->second->get_total_frames() + input_str_it->second->get_lost_coded_frames();

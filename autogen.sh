@@ -3,7 +3,7 @@
 libtoolize
 aclocal
 autoconf
-autoheaders
+autoheader
 automake -a -v
 
 

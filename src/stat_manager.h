@@ -64,18 +64,11 @@ class streamStats {
 class statManager {
     private:
         int mix_delay;
+        int mixing_avg_delay;
         int input_max_delay;
         int output_max_delay;
-        int lost_input_frames_counter;
-        int lost_output_frames_counter;
-        int total_input_frames_counter;
-        int total_output_frames_counter;
-        
-        int avg_delay;
+        int total_delay;
         int output_frame_rate;
-        int mix_avg_delay;
-        int input_delay;
-        int output_delay;
         int lost_input_frames;
         int total_input_frames;
         int lost_output_frames;
@@ -87,19 +80,24 @@ class statManager {
         map<string,int> stats_map;
         map<uint32_t, streamStats*> input_str_map;
         map<uint32_t, streamStats*>::iterator input_str_it;
-        map<uint32_t, uint32_t> seqno_map;
-        map<uint32_t, uint32_t>::iterator seqno_it;
+        map<uint32_t, streamStats*> output_str_map;
+        map<uint32_t, streamStats*>::iterator output_str_it;
 
         void update_stats();
 
     public:
+        statManager();
         void update_mix_stat(uint32_t delay);
-        void update_input_stat(uint32_t id, uint32_t delay, uint32_t seq_number, uint32_t lost_coded_frames, uint32_t fps, uint32_t bitrate);
-        void update_input_stat(uint32_t id, uint32_t delay, uint32_t seq_number, uint32_t lost_coded_frames);
-        void update_output_stat(uint32_t delay, bool frame_lost);
+        void update_input_stat(uint32_t id, float decode_delay, float resize_delay, float fps, 
+                               uint32_t seq_number, uint32_t lost_coded_frames,  uint32_t bitrate);
+        void update_output_stat(uint32_t id, float resize_encoding_delay, float tx_delay, 
+                                float fps, uint32_t seq_number, uint32_t lost_coded_frames);
         void add_input_stream(uint32_t id);
         void remove_input_stream(uint32_t id);
-        void get_stats(map<string,int>* stats, map<uint32_t,streamStats*> &input_stats);
+        void add_output_stream(uint32_t id);
+        void remove_output_stream(uint32_t id);
+        void get_stats(map<uint32_t,streamStats*> &input_stats, map<uint32_t,streamStats*> &output_stats);
+        void output_frame_lost(uint32_t id);
 
 
 };

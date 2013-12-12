@@ -7,6 +7,7 @@ AC_INIT([rtpMixer], [0.1], [BUG-REPORT-ADDRESS])
 AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE([subdir-objects],[controller], [0.1])
 LT_INIT
+AC_CONFIG_HEADERS([config.h])
 
 # Checks for programs.
 AC_PROG_CXX
@@ -43,5 +44,12 @@ AC_TYPE_UINT8_T
 AC_FUNC_MALLOC
 AC_FUNC_REALLOC
 AC_CHECK_FUNCS([floor gettimeofday])
+
+AC_MSG_CHECKING([Statistics mode])
+AC_ARG_ENABLE(stats,
+              AC_HELP_STRING([--enable-stats], [Enable statistics]),
+              AC_DEFINE(STATS, [], [Enable statistics]) AC_MSG_RESULT([Enabled]),
+              AC_MSG_RESULT([Disabled]))
+
 
 AC_OUTPUT([Makefile libmixer/Makefile])

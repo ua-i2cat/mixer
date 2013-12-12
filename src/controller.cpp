@@ -35,6 +35,7 @@
 
 #include "Jzon.h"
 #include "mixer.h"
+#include "../config.h"
 
 void error(const char *msg) {
     perror(msg);
@@ -107,15 +108,12 @@ int main(int argc, char *argv[]){
         	root_response.Clear();
         	n = read(newsockfd,buffer,255);
         	if (n < 0) error("ERROR reading from socket");
-        	std::cout << "Buffer_in:" << buffer << std::endl;
         	parser.SetJson(buffer);
         	if (!parser.Parse()) {
-            	std::cout << "Error: " << parser.GetError() << std::endl;
         	}else { 
             	commands[rootNode.Get("action").ToString()](rootNode, &root_response);
             	writer.Write();
             	result = writer.GetResult();
-            	std::cout << "Result:" << result << std::endl;
             	res = result.c_str();
             	n = write(newsockfd,res,result.size());
         	}
@@ -591,20 +589,19 @@ void get_layout_size(Jzon::Object rootNode, Jzon::Object *outRootNode)
 
 void get_stats(Jzon::Object rootNode, Jzon::Object *outRootNode)
 {
+#ifdef STATS
     pthread_rwlock_rdlock(m->get_task_lock());
     if (m->get_state() == 0){
         outRootNode->Add("error", "Mixer is not running!");
         return;
     }
 
-    map<string,int>* stats; 
     map<uint32_t,streamStats*> input_stats; 
-    m->get_stats(stats, input_stats);
-    cout << "Controller: " << input_stats.size() << endl;
-    map<string,int>::iterator it; 
+    map<uint32_t,streamStats*> output_stats; 
+    m->get_stats(input_stats, output_stats);
     map<uint32_t,streamStats*>::iterator str_it; 
 
-    Jzon::Array str_list;
+    Jzon::Array input_list;
     for (str_it = input_stats.begin(); str_it != input_stats.end(); str_it++){
         Jzon::Object str;
         str.Add("id", (int)str_it->first);
@@ -615,10 +612,27 @@ void get_stats(Jzon::Object rootNode, Jzon::Object *outRootNode)
         str.Add("lost_frames", (int)str_it->second->get_lost_frames());
         str.Add("total_frames", (int)str_it->second->get_total_frames());
         str.Add("lost_frames_percent", (int)str_it->second->get_lost_frames_percent());
-        str_list.Add(str);
+        input_list.Add(str);
     }
-    outRootNode->Add("input_streams", str_list);
+    outRootNode->Add("input_streams", input_list);
+
+    Jzon::Array output_list;
+    for (str_it = output_stats.begin(); str_it != output_stats.end(); str_it++){
+        Jzon::Object str;
+        str.Add("id", (int)str_it->first);
+        str.Add("delay", (int)str_it->second->get_delay());
+        str.Add("fps", (int)str_it->second->get_fps());
+        str.Add("bitrate", (int)str_it->second->get_bitrate());
+        str.Add("lost_coded_frames", (int)str_it->second->get_lost_coded_frames());
+        str.Add("lost_frames", (int)str_it->second->get_lost_frames());
+        str.Add("total_frames", (int)str_it->second->get_total_frames());
+        str.Add("lost_frames_percent", (int)str_it->second->get_lost_frames_percent());
+        output_list.Add(str);
+    }
+    outRootNode->Add("output_streams", output_list);
+
     pthread_rwlock_unlock(m->get_task_lock());
+#endif
 }
 
 

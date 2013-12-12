@@ -3,6 +3,7 @@
 libtoolize
 aclocal
 autoconf
+autoheaders
 automake -a -v
-./configure $@
+
 

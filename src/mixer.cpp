@@ -26,18 +26,22 @@
 #include <string>
 #include "mixer.h"
 #include <sys/time.h>
+#include <io_mngr/tv.h>
+#include "../config.h"
 
 #define DEF_FPS 30
 
 using namespace std;
 Mixer* Mixer::mixer_instance;
 
-
-
 void* Mixer::run(void) {
 	should_stop = false;
 	struct timeval start, finish;
 	long diff = 0, min_diff = 0;
+
+#ifdef STATS
+	uint32_t compose_time;
+#endif
 
 	min_diff = ((float)1/(float)max_frame_rate)*1000000; // In ms
 
@@ -61,7 +65,13 @@ void* Mixer::run(void) {
 
 		layout->resize_input_crops();
 		update_input_frames();
+#ifdef STATS
+		compose_time = get_local_mediatime_us();
+#endif
 		layout->compose_layout();
+#ifdef STATS
+		compose_time = get_local_mediatime_us() - compose_time;
+#endif
 		update_output_frame_buffers();
 		layout->split_layout();
 		update_output_frames();
@@ -70,7 +80,9 @@ void* Mixer::run(void) {
 
 		diff = ((finish.tv_sec - start.tv_sec)*1000000 + finish.tv_usec - start.tv_usec); // In ms
 
-		s_mng->update_mix_stat(diff);
+#ifdef STATS
+		s_mng->update_mix_stat(compose_time);
+#endif
 
 		pthread_rwlock_unlock(&task_lock);
 		if (diff < min_diff){
@@ -104,12 +116,15 @@ int Mixer::receive_frames()
             continue;
         }
 
+#ifdef STATS
         s_mng->update_input_stat(stream->id, 
-        						 stream->video->delay, 
+        						 stream->video->coded_frames->delay, 
+        						 stream->video->decoded_frames->delay, 
+        						 stream->video->coded_frames->fps,
         						 decoded_frame->seqno, 
         						 stream->video->lost_coded_frames,
-        						 stream->video->fps,
         						 stream->video->bitrate);
+#endif
 
 		if (!layout->check_if_stream_init(stream->id) && stream->video->decoder != NULL){
 			layout->init_stream(stream->id, decoded_frame->width, decoded_frame->height);
@@ -146,6 +161,14 @@ void Mixer::update_output_frames()
 	pthread_rwlock_rdlock(&dst_str_list->lock);
 	stream = dst_str_list->first;
 	for (i=0; i<dst_str_list->count; i++){
+#ifdef STATS
+		s_mng->update_output_stat(stream->id,
+								  stream->video->decoded_frames->delay, 
+								  stream->video->coded_frames->delay,
+								  stream->video->decoded_frames->fps,
+								  stream->video->seqno,
+								  stream->video->lost_coded_frames);
+#endif
 		put_frame(stream->video->decoded_frames);
 		stream = stream->next;
 	}
@@ -163,15 +186,16 @@ void Mixer::update_output_frame_buffers()
 
 	for (i=0; i<dst_str_list->count; i++){
 		decoded_frame = curr_in_frame(stream->video->decoded_frames);
-    	if (decoded_frame == NULL){
-    		s_mng->update_output_stat(stream->video->delay, true);
-    		stream = stream->next;
-        	continue;
+    	while (decoded_frame == NULL){
+    		flush_frames(stream->video->decoded_frames);
+#ifdef STATS
+    		s_mng->output_frame_lost(stream->id);
+#endif
+            decoded_frame = curr_in_frame(stream->video->decoded_frames);
     	}
-
-    	s_mng->update_output_stat(stream->video->delay, false);
     	stream->video->seqno++;
     	decoded_frame->seqno = stream->video->seqno;
+    	decoded_frame->media_time = get_local_mediatime_us();
     	layout->set_resized_output_buffer(stream->id, decoded_frame->buffer);
 		stream = stream->next;
 	}
@@ -190,13 +214,18 @@ void Mixer::init(uint32_t layout_width, uint32_t layout_height, uint32_t in_port
     add_stream(dst_str_list, stream);
     init_encoder(stream->video);
 
+
 	receiver = init_receiver(src_str_list, in_port);
 	transmitter = init_transmitter(dst_str_list, DEF_FPS);
 	_in_port = in_port;
 	max_frame_rate = DEF_FPS;
 	pthread_rwlock_init(&task_lock, NULL);
 
+#ifdef STATS
 	s_mng = new statManager();
+    s_mng->add_output_stream(id);
+#endif
+
 }
 
 void Mixer::exec(){
@@ -220,7 +249,9 @@ uint32_t Mixer::add_source()
     add_participant_stream(stream, participant);
     add_stream(src_str_list, stream);
 
+#ifdef STATS
     s_mng->add_input_stream(id);
+#endif
 
     layout->add_stream(id);
 
@@ -242,8 +273,10 @@ int Mixer::remove_source(uint32_t id)
 		return FALSE;
 	}
 
+#ifdef STATS
 	s_mng->remove_input_stream(id);
-	
+#endif
+
 	pthread_rwlock_unlock(&task_lock);
 	return TRUE;
 }
@@ -302,6 +335,10 @@ int Mixer::add_crop_to_layout(uint32_t crop_width, uint32_t crop_height, uint32_
     add_stream(dst_str_list, stream);
     init_encoder(stream->video);
 
+#ifdef STATS
+    s_mng->add_output_stream(id);
+#endif
+
     pthread_rwlock_unlock(&task_lock);
 	return TRUE;
 }
@@ -344,6 +381,9 @@ int Mixer::remove_crop_from_layout(uint32_t crop_id)
 	pthread_rwlock_wrlock(&task_lock);
 	if(layout->remove_crop_from_output_stream(crop_id)){
 		remove_stream(dst_str_list, crop_id);
+#ifdef STATS
+    	s_mng->remove_output_stream(crop_id);
+#endif
 		pthread_rwlock_unlock(&task_lock);
 		return TRUE;
 	} 
@@ -483,11 +523,9 @@ pthread_rwlock_t* Mixer::get_task_lock()
 	return &task_lock;
 }
 
-void Mixer::get_stats(map<string,int>* stats, map<uint32_t,streamStats*> &input_stats)
+void Mixer::get_stats(map<uint32_t,streamStats*> &input_stats, map<uint32_t,streamStats*> &output_stats)
 {
-	s_mng->get_stats(stats, input_stats);
-    cout << "Mixer: " << input_stats.size() << endl;
-	
+	s_mng->get_stats(input_stats, output_stats);
 }
 
 

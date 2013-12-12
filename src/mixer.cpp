@@ -331,8 +331,8 @@ int Mixer::add_crop_to_layout(uint32_t crop_width, uint32_t crop_height, uint32_
 	}
 
     stream_data_t *stream = init_stream(VIDEO, OUTPUT, id, ACTIVE, DEF_FPS, NULL);
-    set_video_frame_cq(stream->video->decoded_frames, RAW, crop_width, crop_height);
-    set_video_frame_cq(stream->video->coded_frames, H264, crop_width, crop_height);
+    set_video_frame_cq(stream->video->decoded_frames, RAW, output_width, output_height);
+    set_video_frame_cq(stream->video->coded_frames, H264, output_width, output_height);
     add_stream(out_video_str, stream);
     init_encoder(stream->video);
 

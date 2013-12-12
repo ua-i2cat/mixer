@@ -247,8 +247,10 @@ class Mixer {
 		pthread_t thread;
 		receiver_t *receiver;
 		transmitter_t *transmitter;
-		stream_list *src_str_list;
-		stream_list *dst_str_list;
+		stream_list *in_video_str;
+        stream_list *out_video_str;
+        stream_list *in_audio_str;
+		stream_list *out_audio_str;
 		Layout *layout;
         statManager *s_mng;
 		bool should_stop;

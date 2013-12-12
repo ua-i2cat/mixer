@@ -92,8 +92,8 @@ void* Mixer::run(void) {
 
 	stop_receiver(receiver);
 	stop_transmitter(transmitter);
-	destroy_stream_list(src_str_list);
-	destroy_stream_list(dst_str_list);
+	destroy_stream_list(in_video_str);
+	destroy_stream_list(out_video_str);
 
 	delete layout;
 
@@ -106,10 +106,10 @@ int Mixer::receive_frames()
 	video_data_frame_t *decoded_frame;
 	int ret = FALSE;
 
-	pthread_rwlock_rdlock(&src_str_list->lock);
-	stream = src_str_list->first;
+	pthread_rwlock_rdlock(&in_video_str->lock);
+	stream = in_video_str->first;
 
-	for (i=0; i<src_str_list->count; i++){
+	for (i=0; i<in_video_str->count; i++){
 		decoded_frame = curr_out_frame(stream->video->decoded_frames);
 		if (decoded_frame == NULL){
 			stream = stream->next;
@@ -134,7 +134,7 @@ int Mixer::receive_frames()
 		ret = TRUE;
 		stream = stream->next;
 	}
-	pthread_rwlock_unlock(&src_str_list->lock);
+	pthread_rwlock_unlock(&in_video_str->lock);
 
 	return ret;
 }
@@ -144,13 +144,13 @@ void Mixer::update_input_frames()
 	int i = 0;
 	stream_data_t *stream;
 
-	pthread_rwlock_rdlock(&src_str_list->lock);
-	stream = src_str_list->first;
-	for (i=0; i<src_str_list->count; i++){
+	pthread_rwlock_rdlock(&in_video_str->lock);
+	stream = in_video_str->first;
+	for (i=0; i<in_video_str->count; i++){
 		remove_frame(stream->video->decoded_frames);
 		stream = stream->next;
 	}
-	pthread_rwlock_unlock(&src_str_list->lock);
+	pthread_rwlock_unlock(&in_video_str->lock);
 }
 
 void Mixer::update_output_frames()
@@ -158,9 +158,9 @@ void Mixer::update_output_frames()
 	int i = 0;
 	stream_data_t *stream;
 
-	pthread_rwlock_rdlock(&dst_str_list->lock);
-	stream = dst_str_list->first;
-	for (i=0; i<dst_str_list->count; i++){
+	pthread_rwlock_rdlock(&out_video_str->lock);
+	stream = out_video_str->first;
+	for (i=0; i<out_video_str->count; i++){
 #ifdef STATS
 		s_mng->update_output_stat(stream->id,
 								  stream->video->decoded_frames->delay, 
@@ -172,7 +172,7 @@ void Mixer::update_output_frames()
 		put_frame(stream->video->decoded_frames);
 		stream = stream->next;
 	}
-	pthread_rwlock_unlock(&dst_str_list->lock);
+	pthread_rwlock_unlock(&out_video_str->lock);
 }
 
 void Mixer::update_output_frame_buffers()
@@ -181,10 +181,10 @@ void Mixer::update_output_frame_buffers()
 	stream_data_t *stream;
 	video_data_frame_t *decoded_frame;
 
-	pthread_rwlock_rdlock(&dst_str_list->lock);
-	stream = dst_str_list->first;
+	pthread_rwlock_rdlock(&out_video_str->lock);
+	stream = out_video_str->first;
 
-	for (i=0; i<dst_str_list->count; i++){
+	for (i=0; i<out_video_str->count; i++){
 		decoded_frame = curr_in_frame(stream->video->decoded_frames);
     	while (decoded_frame == NULL){
     		flush_frames(stream->video->decoded_frames);
@@ -199,24 +199,25 @@ void Mixer::update_output_frame_buffers()
     	layout->set_resized_output_buffer(stream->id, decoded_frame->buffer);
 		stream = stream->next;
 	}
-	pthread_rwlock_unlock(&dst_str_list->lock);
+	pthread_rwlock_unlock(&out_video_str->lock);
 }
 
 void Mixer::init(uint32_t layout_width, uint32_t layout_height, uint32_t in_port){
 	layout = new Layout(layout_width, layout_height);
-	src_str_list = init_stream_list();
-	dst_str_list = init_stream_list();
-	uint32_t id = layout->add_crop_to_output_stream(layout_width, layout_height, 0, 0, layout_width, layout_height);
+	in_video_str = init_stream_list();
+	out_video_str = init_stream_list();
+	in_audio_str = init_stream_list();
+	out_audio_str = init_stream_list();
 
+	uint32_t id = layout->add_crop_to_output_stream(layout_width, layout_height, 0, 0, layout_width, layout_height);
 	stream_data_t *stream = init_stream(VIDEO, OUTPUT, id, ACTIVE, DEF_FPS , NULL);
     set_video_frame_cq(stream->video->decoded_frames, RAW, layout_width, layout_height);
     set_video_frame_cq(stream->video->coded_frames, H264, layout_width, layout_height);
-    add_stream(dst_str_list, stream);
+    add_stream(out_video_str, stream);
     init_encoder(stream->video);
 
-
-	receiver = init_receiver(src_str_list, in_port);
-	transmitter = init_transmitter(dst_str_list, DEF_FPS);
+	receiver = init_receiver(in_video_str, in_audio_str, in_port, in_port + 2);
+	transmitter = init_transmitter(out_video_str, out_audio_str, DEF_FPS);
 	_in_port = in_port;
 	max_frame_rate = DEF_FPS;
 	pthread_rwlock_init(&task_lock, NULL);
@@ -247,7 +248,7 @@ uint32_t Mixer::add_source()
     stream_data_t *stream = init_stream(VIDEO, INPUT, id, I_AWAIT, DEF_FPS, NULL);
     set_video_frame_cq(stream->video->coded_frames, H264, 0, 0);
     add_participant_stream(stream, participant);
-    add_stream(src_str_list, stream);
+    add_stream(in_video_str, stream);
 
 #ifdef STATS
     s_mng->add_input_stream(id);
@@ -268,7 +269,7 @@ int Mixer::remove_source(uint32_t id)
 		return FALSE;
 	}
 
-	if(!remove_stream(src_str_list, id)){
+	if(!remove_stream(in_video_str, id)){
 		pthread_rwlock_unlock(&task_lock);
 		return FALSE;
 	}
@@ -332,7 +333,7 @@ int Mixer::add_crop_to_layout(uint32_t crop_width, uint32_t crop_height, uint32_
     stream_data_t *stream = init_stream(VIDEO, OUTPUT, id, ACTIVE, DEF_FPS, NULL);
     set_video_frame_cq(stream->video->decoded_frames, RAW, crop_width, crop_height);
     set_video_frame_cq(stream->video->coded_frames, H264, crop_width, crop_height);
-    add_stream(dst_str_list, stream);
+    add_stream(out_video_str, stream);
     init_encoder(stream->video);
 
 #ifdef STATS
@@ -360,7 +361,7 @@ int Mixer::modify_crop_resizing_from_layout(uint32_t id, uint32_t new_width, uin
 		return FALSE;
 	}
 
-	stream_data_t *stream = get_stream_id(dst_str_list, id);
+	stream_data_t *stream = get_stream_id(out_video_str, id);
 
 	while(stream->video->decoded_frames->state != CQ_EMPTY){
 		usleep(500);	//TODO: GET RID OF MAGIC NUMBERS	
@@ -380,7 +381,7 @@ int Mixer::remove_crop_from_layout(uint32_t crop_id)
 {
 	pthread_rwlock_wrlock(&task_lock);
 	if(layout->remove_crop_from_output_stream(crop_id)){
-		remove_stream(dst_str_list, crop_id);
+		remove_stream(out_video_str, crop_id);
 #ifdef STATS
     	s_mng->remove_output_stream(crop_id);
 #endif
@@ -396,7 +397,7 @@ uint32_t Mixer::add_destination(char *ip, uint32_t port, uint32_t stream_id)
 {
 	pthread_rwlock_wrlock(&task_lock);
 
-	stream_data_t *stream = get_stream_id(dst_str_list, stream_id);
+	stream_data_t *stream = get_stream_id(out_video_str, stream_id);
 
 	if (stream == NULL){
 		pthread_rwlock_unlock(&task_lock);
@@ -417,17 +418,17 @@ int Mixer::remove_destination(uint32_t id)
 	stream_data_t* stream;
 	pthread_rwlock_wrlock(&task_lock);
 
-	pthread_rwlock_rdlock(&dst_str_list->lock);
-	stream = dst_str_list->first;
+	pthread_rwlock_rdlock(&out_video_str->lock);
+	stream = out_video_str->first;
 
-	for (i=0; i<dst_str_list->count; i++){
+	for (i=0; i<out_video_str->count; i++){
 		if (remove_participant_from_stream(stream, id)){
-			pthread_rwlock_unlock(&dst_str_list->lock);
+			pthread_rwlock_unlock(&out_video_str->lock);
 			pthread_rwlock_unlock(&task_lock);
 			return TRUE;
 		}
 	}
-	pthread_rwlock_unlock(&dst_str_list->lock);
+	pthread_rwlock_unlock(&out_video_str->lock);
 	pthread_rwlock_unlock(&task_lock);
 	return FALSE;
 }
@@ -441,7 +442,7 @@ vector<Mixer::Dst> Mixer::get_output_stream_destinations(uint32_t id)
 	std::vector<Mixer::Dst> vect;
 
 	pthread_rwlock_rdlock(&task_lock);
-	stream = get_stream_id(dst_str_list, id);
+	stream = get_stream_id(out_video_str, id);
 
 	if (stream == NULL){
 		pthread_rwlock_unlock(&task_lock);

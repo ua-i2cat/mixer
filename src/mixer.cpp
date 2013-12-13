@@ -97,6 +97,10 @@ void* Mixer::run(void) {
 
 	delete layout;
 
+	#ifdef STATS
+		delete s_mng;
+	#endif
+
 }
 
 int Mixer::receive_frames()

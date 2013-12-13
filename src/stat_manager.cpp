@@ -186,6 +186,13 @@ void statManager::output_frame_lost(uint32_t id)
 streamStats::streamStats(uint32_t str_id)
 {
     id = str_id;
+    delay = 0;
+    fps = 0;
+    bitrate = 0;
+    lost_coded_frames = 0;
+    lost_frames = 0;
+    total_frames = 0;
+    lost_frames_percent = 0;
 }
 
 int streamStats::get_delay()

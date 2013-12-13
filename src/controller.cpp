@@ -87,7 +87,7 @@ int main(int argc, char *argv[]){
     int sockfd, newsockfd, portno, n;
     const char* res;
     std::string result; 
-    char buffer[256];
+    char buffer[2048];
      
     if (argc < 2) {
         fprintf(stderr,"ERROR, no port provided\n");
@@ -103,10 +103,10 @@ int main(int argc, char *argv[]){
 
     while(!should_stop){
     	if (listen_socket(sockfd, &newsockfd) == 0){
-    		bzero(buffer,256);
+    		bzero(buffer,2048);
         	rootNode.Clear();
         	root_response.Clear();
-        	n = read(newsockfd,buffer,255);
+        	n = read(newsockfd,buffer,2047);
         	if (n < 0) error("ERROR reading from socket");
         	parser.SetJson(buffer);
         	if (!parser.Parse()) {

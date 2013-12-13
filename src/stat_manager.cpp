@@ -119,7 +119,7 @@ void statManager::update_stats()
             output_max_delay = output_str_it->second->get_delay();
         }
 
-        if (output_frame_rate) > output_str_it->second->get_fps()){
+        if (output_frame_rate > output_str_it->second->get_fps()){
             output_frame_rate = output_str_it->second->get_fps();
         }
     }

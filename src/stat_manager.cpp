@@ -58,7 +58,8 @@ void statManager::update_input_stat(uint32_t id, float decode_delay, float resiz
     stats->set_fps(fps);
     stats->set_bitrate(bitrate);
     stats->set_lost_coded_frames(lost_coded_frames);
-    stats->set_lost_frames(seq_number - stats->get_total_frames() - 1);
+    cout << "Seq:" << seq_number << endl;
+    stats->set_lost_frames(stats->get_lost_frames() + seq_number - stats->get_total_frames() - 1);
     stats->set_total_frames(seq_number);
     stats->set_lost_frames_percent(((stats->get_lost_frames() + lost_coded_frames)*100)/(stats->get_total_frames() + lost_coded_frames)); 
 }

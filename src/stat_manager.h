@@ -73,8 +73,6 @@ class statManager {
         int total_input_frames;
         int lost_output_frames;
         int total_output_frames;
-        int lost_input_frames_percent;
-        int lost_output_frames_percent;
 
         int counter;
         map<string,int> stats_map;

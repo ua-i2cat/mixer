@@ -96,8 +96,6 @@ void statManager::update_stats()
     total_input_frames = 0;
     lost_output_frames = 0;
     total_output_frames = 0;
-    lost_input_frames_percent = 0;
-    lost_output_frames_percent = 0;
     input_max_delay = 0;
     output_max_delay = 0;
     output_frame_rate = 1000; 
@@ -124,8 +122,6 @@ void statManager::update_stats()
         }
     }
 
-    lost_input_frames_percent = (lost_input_frames*100)/total_input_frames;
-    lost_output_frames_percent = (lost_output_frames*100)/total_output_frames;
     total_delay = input_max_delay + mixing_avg_delay + output_max_delay;
 
     cout << "\r" << setw(6) << total_delay << "  " << setw(8) << input_max_delay << "  " << 

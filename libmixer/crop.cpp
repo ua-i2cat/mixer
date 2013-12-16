@@ -92,6 +92,10 @@ void* Crop::execute_resize(void *context)
 
 void* Crop::resize_routine(void)
 { 
+	if (rect_crop.width == rsz_img_size.width && rect_crop.height == rsz_img_size.height){
+		src_img(rect_crop).copyTo(resized_img);
+	}
+
     resize(src_img(rect_crop), resized_img, rsz_img_size, 0, 0, INTER_LINEAR);
 }
 

@@ -169,7 +169,7 @@ void Mixer::update_output_frames()
 		s_mng->update_output_stat(stream->id,
 								  stream->video->decoded_frames->delay, 
 								  stream->video->coded_frames->delay,
-								  stream->video->decoded_frames->fps,
+								  stream->video->coded_frames->fps,
 								  stream->video->seqno,
 								  stream->video->lost_coded_frames);
 #endif

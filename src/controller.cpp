@@ -107,17 +107,17 @@ int main(int argc, char *argv[]){
         	rootNode.Clear();
         	root_response.Clear();
         	n = read(newsockfd,buffer,2047);
-        	if (n < 0) error("ERROR reading from socket");
+        	if (n < 0){
+                error("ERROR reading from socket");
+            }
+
         	parser.SetJson(buffer);
-        	if (!parser.Parse()) {
-        	}else { 
-            	commands[rootNode.Get("action").ToString()](rootNode, &root_response);
-            	writer.Write();
-            	result = writer.GetResult();
-            	res = result.c_str();
-            	n = write(newsockfd,res,result.size());
-        	}
-        close(newsockfd);
+            if (parser.Parse()){
+                action = rootNode.Get("action").ToString();
+                delay = rootNode.Get("delay").ToInt();
+                gettimeofday(&in_time, NULL);
+                eventQueue.push(Event(action, delay, in_time.tv_sec*1000000 + in_time.tv_usec + delay*1000000, newsockfd));
+            }
     	}
     }
     close(sockfd);
@@ -129,18 +129,23 @@ int get_socket(int port, int *sock){
     int yes=1;
 
     *sock = socket(AF_INET, SOCK_STREAM, 0);
-    if (*sock < 0) 
+
+    if (*sock < 0) {
         error("ERROR opening socket");
-    if ( setsockopt(*sock, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) == -1 ){
+    }
+
+    if (setsockopt(*sock, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) == -1 ){
         perror("setsockopt");
     }
+
     bzero((char *) &serv_addr, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_addr.s_addr = INADDR_ANY;
     serv_addr.sin_port = htons(port);
-    if (bind(*sock, (struct sockaddr *) &serv_addr,
-             sizeof(serv_addr)) < 0) 
-             error("ERROR on binding");
+
+    if (bind(*sock, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0){
+        error("ERROR on binding");
+    } 
 
     return 0;     
 }
@@ -151,8 +156,10 @@ int listen_socket(int sock, int *newsock) {
 	listen(sock,5);
     clilen = sizeof(cli_addr);
     *newsock = accept(sock, (struct sockaddr *) &cli_addr, &clilen);
-    if (*newsock < 0) 
+
+    if (*newsock < 0){
         return -1;
+    }
 
     return 0;
 }

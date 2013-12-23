@@ -49,17 +49,6 @@ void* Mixer::run(void) {
 		pthread_rwlock_wrlock(&task_lock);
 	    min_diff = ((float)1/(float)max_frame_rate)*1000000;
 
-	    gettimeofday(&clock, NULL);
-        curr_ts = clock.tv_sec*1000000 + clock.tv_usec;
-
-        if (!eventQueue->empty() && eventQueue->top().timestamp <= curr_ts){ //TODO: this can be a while if we want to execute N orders in one iteration
-            Event tmp = eventQueue->top();
-    		commands[tmp.input_root_node.Get("action").ToString()](tmp.input_root_node, &tmp.output_root_node);
-            tmp.send_and_close();
-            eventQueue->pop();
-        }
-
-
 		gettimeofday(&start, NULL);
 
 		if (!receive_frames()){

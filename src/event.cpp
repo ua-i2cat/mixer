@@ -30,16 +30,32 @@ bool Event::operator<(const Event& e) const
 Event(Jzon::Object rNode, int ts, int s)
 {
     input_root_node = rNode;
+    writer = new Jzon::Writer(output_root_node, Jzon::NoFormat);
     delay = rNode.Get("delay").ToInt();
     timestamp = ts + delay;
     socket = s;
 }
 
-void Event::send_and_close()
+void Event::send_and_close() const
 {
     writer.Write();
     string result = writer.GetResult();
     const char* res = result.c_str();
     n = write(newsockfd,res,result.size());
     close(socket);
+}
+
+Jzon::Object Event::get_input_root_node() const
+{
+    return input_root_node;
+}
+
+Jzon::Object Event::get_output_root_node() const
+{
+    return output_root_node;
+}
+
+int Event::get_timestamp() const
+{
+    return timestamp;
 }

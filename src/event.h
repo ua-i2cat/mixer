@@ -23,6 +23,9 @@
 #ifndef EVENT_H_
 #define EVENT_H_
 
+#include <map>
+#include "Jzon.h"
+
 using namespace std;
 
 
@@ -33,32 +36,17 @@ class Event {
         int timestamp;
         map<string, void(*)(Jzon::Object, Jzon::Object*)>* mixer_commands;
         Jzon::Object input_root_node, output_root_node;
-        Jzon::Writer writer;(output_root_node, Jzon::NoFormat);
+        Jzon::Writer writer;
 
     public:
         
-        bool operator<(const Event& e) const
-        {
-            return timestamp > e.timestamp;
-        }
+        bool operator<(const Event& e) const;
+        Event(Jzon::Object rNode, int ts, int s);
+        void send_and_close() const;
+        Jzon::Object get_input_root_node() const;
+        Jzon::Object get_output_root_node() const;
+        int get_timestamp() const;
 
-        Event(Jzon::Object rNode, int ts, int s)
-        {
-            input_root_node = rNode;
-            delay = rNode.Get("delay").ToInt();
-            timestamp = ts + delay;
-            socket = s;
-        }
-
-        void exec_command()
-        {
-            *commands[rootNode.Get("action").ToString()](input_root_node, &output_root_node);
-            writer.Write();
-            result = writer.GetResult();
-            res = result.c_str();
-            n = write(newsockfd,res,result.size());
-            close(socket);
-        }
 };
 
 #endif /* EVENT_H_ */

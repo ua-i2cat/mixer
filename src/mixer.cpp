@@ -32,12 +32,11 @@
 #define DEF_FPS 30
 
 using namespace std;
-Mixer* Mixer::mixer_instance;
 
-void* Mixer::run(void) {
+void* Mixer::main_routine(void) {
 	should_stop = false;
-	struct timeval start, finish;
-	long diff = 0, min_diff = 0;
+	struct timeval start, finish, curr_time;
+	long diff = 0, min_diff = 0, curr_ts;
 
 #ifdef STATS
 	uint32_t compose_time;
@@ -46,13 +45,23 @@ void* Mixer::run(void) {
 	min_diff = ((float)1/(float)max_frame_rate)*1000000; // In ms
 
 	while (!should_stop){
-		pthread_rwlock_wrlock(&task_lock);
 	    min_diff = ((float)1/(float)max_frame_rate)*1000000;
+
+	    gettimeofday(&curr_time, NULL);
+        curr_ts = curr_time.tv_sec*1000000 + curr_time.tv_usec;
+
+        if (!eventQueue.empty()){
+            Event *tmp = eventQueue.top();
+        	if (tmp->get_timestamp() <= curr_ts){ //TODO: this can be a while if we want to execute N orders in one iteration
+            	tmp->exec_func(this);
+            	tmp->send_and_close();
+            	eventQueue.pop();
+            }
+        }
 
 		gettimeofday(&start, NULL);
 
 		if (!receive_frames()){
-			pthread_rwlock_unlock(&task_lock);
 
 			gettimeofday(&finish, NULL);
 			diff = ((finish.tv_sec - start.tv_sec)*1000000 + finish.tv_usec - start.tv_usec); // In ms
@@ -84,7 +93,6 @@ void* Mixer::run(void) {
 		s_mng->update_mix_stat(compose_time);
 #endif
 
-		pthread_rwlock_unlock(&task_lock);
 		if (diff < min_diff){
 			usleep(min_diff - diff); 
 		}
@@ -206,13 +214,15 @@ void Mixer::update_output_frame_buffers()
 	pthread_rwlock_unlock(&out_video_str->lock);
 }
 
-void Mixer::init(uint32_t layout_width, uint32_t layout_height, uint32_t in_port){
+Mixer::Mixer(int layout_width, int layout_height, int in_port)
+{
 	layout = new Layout(layout_width, layout_height);
+	
 	in_video_str = init_stream_list();
 	out_video_str = init_stream_list();
 	in_audio_str = init_stream_list();
 	out_audio_str = init_stream_list();
-
+	
 	uint32_t id = layout->add_crop_to_output_stream(layout_width, layout_height, 0, 0, layout_width, layout_height);
 	stream_data_t *stream = init_stream(VIDEO, OUTPUT, id, ACTIVE, DEF_FPS , NULL);
     set_video_frame_cq(stream->video->decoded_frames, RAW, layout_width, layout_height);
@@ -224,7 +234,6 @@ void Mixer::init(uint32_t layout_width, uint32_t layout_height, uint32_t in_port
 	transmitter = init_transmitter(out_video_str, out_audio_str, DEF_FPS);
 	_in_port = in_port;
 	max_frame_rate = DEF_FPS;
-	pthread_rwlock_init(&task_lock, NULL);
 
 #ifdef STATS
 	s_mng = new statManager();
@@ -233,19 +242,19 @@ void Mixer::init(uint32_t layout_width, uint32_t layout_height, uint32_t in_port
 
 }
 
-void Mixer::exec(){
+void Mixer::start(){
 	start_receiver(receiver);
 	start_transmitter(transmitter);
-	pthread_create(&thread, NULL, Mixer::execute_run, this);
+	pthread_create(&thread, NULL, Mixer::execute_routine, this);
 }
 
 void Mixer::stop(){
 	should_stop = true;
+	pthread_join(thread, NULL);
 }
 
-uint32_t Mixer::add_source()
+void Mixer::add_source(Jzon::Object params, Jzon::Object* outRootNode)
 {
-	pthread_rwlock_wrlock(&task_lock);
 	uint32_t id = rand();
 	participant_data *participant = init_participant(id, INPUT, NULL, 0);
   	
@@ -259,79 +268,107 @@ uint32_t Mixer::add_source()
 #endif
 
     layout->add_stream(id);
-
-    pthread_rwlock_unlock(&task_lock);
-	return id;
 }
 
-int Mixer::remove_source(uint32_t id)
+void Mixer::remove_source(Jzon::Object params, Jzon::Object* outRootNode)
 {
-	pthread_rwlock_wrlock(&task_lock);
+	int id = params.Get("id").ToInt();
 
 	if(!layout->remove_stream(id)){
-		pthread_rwlock_unlock(&task_lock);
-		return FALSE;
+		return;
 	}
 
 	if(!remove_stream(in_video_str, id)){
-		pthread_rwlock_unlock(&task_lock);
-		return FALSE;
+		return;
 	}
 
 #ifdef STATS
 	s_mng->remove_input_stream(id);
 #endif
 
-	pthread_rwlock_unlock(&task_lock);
-	return TRUE;
 }
 		
-int Mixer::add_crop_to_source(uint32_t id, uint32_t crop_width, uint32_t crop_height, uint32_t crop_x, uint32_t crop_y, 
-   					     uint32_t layer, uint32_t rsz_width, uint32_t rsz_height, uint32_t rsz_x, uint32_t rsz_y)
+void Mixer::add_crop_to_source(Jzon::Object params, Jzon::Object* outRootNode)
 {
-	pthread_rwlock_wrlock(&task_lock);
+	int id = params.Get("id").ToInt();
+    int crop_width = params.Get("crop_width").ToInt();
+    int crop_height = params.Get("crop_height").ToInt();
+    int crop_x = params.Get("crop_x").ToInt();
+    int crop_y = params.Get("crop_y").ToInt();
+    int layer = params.Get("layer").ToInt();
+    int rsz_width = params.Get("rsz_width").ToInt();
+    int rsz_height = params.Get("rsz_height").ToInt();
+    int rsz_x = params.Get("rsz_x").ToInt();
+    int rsz_y = params.Get("rsz_y").ToInt();
+
 	int ret = layout->add_crop_to_stream(id, crop_width, crop_height, crop_x, crop_y, layer, rsz_width, rsz_height, rsz_x, rsz_y);
-	pthread_rwlock_unlock(&task_lock);
 
-	return ret;
 }
 
-int Mixer::modify_crop_from_source(uint32_t stream_id, uint32_t crop_id, uint32_t new_crop_width, 
-       					      uint32_t new_crop_height, uint32_t new_crop_x, uint32_t new_crop_y)
+void Mixer::modify_crop_from_source(Jzon::Object params, Jzon::Object* outRootNode)
 {
-	pthread_rwlock_wrlock(&task_lock);
+	int stream_id = params.Get("stream_id").ToInt();
+    int crop_id = params.Get("crop_id").ToInt();
+    int new_crop_width = params.Get("width").ToInt();
+    int new_crop_height = params.Get("height").ToInt();
+    int new_crop_x = params.Get("x").ToInt();
+    int new_crop_y = params.Get("y").ToInt();
+
 	int ret = layout->modify_orig_crop_from_stream(stream_id, crop_id, new_crop_width, new_crop_height, new_crop_x, new_crop_y);
-	pthread_rwlock_unlock(&task_lock);
 
-	return ret;
 }
 
-int Mixer::modify_crop_resizing_from_source(uint32_t stream_id, uint32_t crop_id, uint32_t new_rsz_width, 
-        							   uint32_t new_rsz_height, uint32_t new_rsz_x, uint32_t new_rsz_y, uint32_t new_layer)
+void Mixer::modify_crop_resizing_from_source(Jzon::Object params, Jzon::Object* outRootNode)
 {
-	pthread_rwlock_wrlock(&task_lock);
-	int ret =  layout->modify_dst_crop_from_stream(stream_id, crop_id, new_rsz_width, new_rsz_height, new_rsz_x, new_rsz_y, new_layer);
-	pthread_rwlock_unlock(&task_lock);
+	int stream_id = params.Get("stream_id").ToInt();
+    int crop_id = params.Get("crop_id").ToInt();
+    int new_rsz_width = params.Get("width").ToInt();
+    int new_rsz_height = params.Get("height").ToInt();
+    int new_rsz_x = params.Get("x").ToInt();
+    int new_rsz_y = params.Get("y").ToInt();
+    int new_layer = params.Get("layer").ToInt();
 
-	return ret;
+	int ret = layout->modify_dst_crop_from_stream(stream_id, crop_id, new_rsz_width, new_rsz_height, new_rsz_x, new_rsz_y, new_layer);
+
 }
 
-int Mixer::remove_crop_from_source(uint32_t stream_id, uint32_t crop_id)
+void Mixer::remove_crop_from_source(Jzon::Object params, Jzon::Object* outRootNode)
 {
-	pthread_rwlock_wrlock(&task_lock);
+	int stream_id = params.Get("stream_id").ToInt();
+    int crop_id = params.Get("crop_id").ToInt();
+
 	int ret = layout->remove_crop_from_stream(stream_id, crop_id);
-	pthread_rwlock_unlock(&task_lock);
 
-	return ret;
 }
 
-int Mixer::add_crop_to_layout(uint32_t crop_width, uint32_t crop_height, uint32_t crop_x, uint32_t crop_y, uint32_t output_width, uint32_t output_height)
+void Mixer::enable_crop_from_source(Jzon::Object params, Jzon::Object* outRootNode)
 {
-	pthread_rwlock_wrlock(&task_lock);
+	int stream_id = params.Get("stream_id").ToInt();
+    int crop_id = params.Get("crop_id").ToInt();
+
+	int ret =  layout->enable_crop_from_stream(stream_id, crop_id);
+}
+
+void Mixer::disable_crop_from_source(Jzon::Object params, Jzon::Object* outRootNode)
+{
+	int stream_id = params.Get("stream_id").ToInt();
+    int crop_id = params.Get("crop_id").ToInt();
+	
+	int ret = layout->disable_crop_from_stream(stream_id, crop_id);
+}
+
+void Mixer::add_crop_to_layout(Jzon::Object params, Jzon::Object* outRootNode)
+{
+	int crop_width = params.Get("width").ToInt();
+    int crop_height = params.Get("height").ToInt();
+    int crop_x = params.Get("x").ToInt();
+    int crop_y = params.Get("y").ToInt();
+    int output_width = params.Get("output_width").ToInt();
+    int output_height = params.Get("output_height").ToInt();
+
 	uint32_t id = layout->add_crop_to_output_stream(crop_width, crop_height, crop_x, crop_y, output_width, output_height);
 	if (id == 0){
-		pthread_rwlock_unlock(&task_lock);
-		return FALSE;
+		return;
 	}
 
     stream_data_t *stream = init_stream(VIDEO, OUTPUT, id, ACTIVE, DEF_FPS, NULL);
@@ -343,26 +380,27 @@ int Mixer::add_crop_to_layout(uint32_t crop_width, uint32_t crop_height, uint32_
 #ifdef STATS
     s_mng->add_output_stream(id);
 #endif
-
-    pthread_rwlock_unlock(&task_lock);
-	return TRUE;
 }
 
-int Mixer::modify_crop_from_layout(uint32_t crop_id, uint32_t new_crop_width, uint32_t new_crop_height, uint32_t new_crop_x, uint32_t new_crop_y)
+void Mixer::modify_crop_from_layout(Jzon::Object params, Jzon::Object* outRootNode)
 {
-	pthread_rwlock_wrlock(&task_lock);
+	int crop_id = params.Get("crop_id").ToInt();
+    int new_crop_width = params.Get("width").ToInt();
+    int new_crop_height = params.Get("height").ToInt();
+    int new_crop_x = params.Get("x").ToInt();
+    int new_crop_y = params.Get("y").ToInt();
+
 	int ret =  layout->modify_crop_from_output_stream(crop_id, new_crop_width, new_crop_height, new_crop_x, new_crop_y);
-	pthread_rwlock_unlock(&task_lock);
-
-	return ret;
 }
 
-int Mixer::modify_crop_resizing_from_layout(uint32_t id, uint32_t new_width, uint32_t new_height)
+void Mixer::modify_crop_resizing_from_layout(Jzon::Object params, Jzon::Object* outRootNode)
 {
-	pthread_rwlock_wrlock(&task_lock);
+	int id = params.Get("crop_id").ToInt();
+    int new_width = params.Get("width").ToInt();
+    int new_height = params.Get("height").ToInt();
+
 	if(layout->modify_crop_resize_from_output_stream(id, new_width, new_height) == FALSE){
-		pthread_rwlock_unlock(&task_lock);
-		return FALSE;
+		return;
 	}
 
 	stream_data_t *stream = get_stream_id(out_video_str, id);
@@ -376,51 +414,46 @@ int Mixer::modify_crop_resizing_from_layout(uint32_t id, uint32_t new_width, uin
 		usleep(500);	//TODO: GET RID OF MAGIC NUMBERS	
 	}
     set_video_frame_cq(stream->video->coded_frames, H264, new_width, new_height);
-
-	pthread_rwlock_unlock(&task_lock);
-	return TRUE;
 }
 
-int Mixer::remove_crop_from_layout(uint32_t crop_id)
+void Mixer::remove_crop_from_layout(Jzon::Object params, Jzon::Object* outRootNode)
 {
-	pthread_rwlock_wrlock(&task_lock);
+    int crop_id = params.Get("crop_id").ToInt();
+
 	if(layout->remove_crop_from_output_stream(crop_id)){
 		remove_stream(out_video_str, crop_id);
 #ifdef STATS
     	s_mng->remove_output_stream(crop_id);
 #endif
-		pthread_rwlock_unlock(&task_lock);
-		return TRUE;
+		return;
 	} 
-
-	pthread_rwlock_unlock(&task_lock);
-	return FALSE;
 }
 
-uint32_t Mixer::add_destination(char *ip, uint32_t port, uint32_t stream_id)
+void Mixer::add_destination(Jzon::Object params, Jzon::Object* outRootNode)
 {
-	pthread_rwlock_wrlock(&task_lock);
+	int stream_id = params.Get("stream_id").ToInt();
+    std::string ip_string = params.Get("ip").ToString();
+    uint32_t port = params.Get("port").ToInt();
+    char *ip = new char[ip_string.length() + 1];
+    strcpy(ip, ip_string.c_str());
 
 	stream_data_t *stream = get_stream_id(out_video_str, stream_id);
 
 	if (stream == NULL){
-		pthread_rwlock_unlock(&task_lock);
-		return FALSE;
+		return;
 	}
 	
 	uint32_t id = rand();	
 	participant_data_t *participant = init_participant(id, OUTPUT, ip, port);
 	add_participant_stream(stream, participant);
-
-	pthread_rwlock_unlock(&task_lock);
-	return id;	
 }
 
-int Mixer::remove_destination(uint32_t id)
+void Mixer::remove_destination(Jzon::Object params, Jzon::Object* outRootNode)
 {
+	uint32_t id = params.Get("id").ToInt();
+
 	int i = 0;
 	stream_data_t* stream;
-	pthread_rwlock_wrlock(&task_lock);
 
 	pthread_rwlock_rdlock(&out_video_str->lock);
 	stream = out_video_str->first;
@@ -428,13 +461,10 @@ int Mixer::remove_destination(uint32_t id)
 	for (i=0; i<out_video_str->count; i++){
 		if (remove_participant_from_stream(stream, id)){
 			pthread_rwlock_unlock(&out_video_str->lock);
-			pthread_rwlock_unlock(&task_lock);
-			return TRUE;
+			return;
 		}
 	}
 	pthread_rwlock_unlock(&out_video_str->lock);
-	pthread_rwlock_unlock(&task_lock);
-	return FALSE;
 }
 
 vector<Mixer::Dst> Mixer::get_output_stream_destinations(uint32_t id)
@@ -445,11 +475,9 @@ vector<Mixer::Dst> Mixer::get_output_stream_destinations(uint32_t id)
 	struct Dst dst;
 	std::vector<Mixer::Dst> vect;
 
-	pthread_rwlock_rdlock(&task_lock);
 	stream = get_stream_id(out_video_str, id);
 
 	if (stream == NULL){
-		pthread_rwlock_unlock(&task_lock);
 		return vect;
 	}
 
@@ -465,73 +493,151 @@ vector<Mixer::Dst> Mixer::get_output_stream_destinations(uint32_t id)
 	}
 
 	pthread_rwlock_unlock(&stream->plist->lock);
-	pthread_rwlock_unlock(&task_lock);
 	return vect;
 }
 
-int Mixer::enable_crop_from_source(uint32_t stream_id, uint32_t crop_id)
+void* Mixer::execute_routine(void *context){
+	return ((Mixer *)context)->main_routine();
+}
+
+void Mixer::push_event(Event *e)
 {
-	pthread_rwlock_wrlock(&task_lock);
-	int ret =  layout->enable_crop_from_stream(stream_id, crop_id);
-	pthread_rwlock_unlock(&task_lock);
-
-	return ret;
+	eventQueue.push(e);
 }
 
-int Mixer::disable_crop_from_source(uint32_t stream_id, uint32_t crop_id)
+void Mixer::get_streams(Jzon::Object params, Jzon::Object* outRootNode){
+
+    Jzon::Array stream_list;
+    if(layout->get_streams()->empty()){
+        outRootNode->Add("input_streams", stream_list);
+        return;
+    }
+
+    std::map<uint32_t, Stream*>* stream_map;
+    std::map<uint32_t, Crop*>* crop_map;
+    std::map<uint32_t, Stream*>::iterator stream_it;
+    std::map<uint32_t, Crop*>::iterator crop_it;
+
+    stream_map = layout->get_streams();
+    
+    for (stream_it = stream_map->begin(); stream_it != stream_map->end(); stream_it++){
+        Jzon::Object stream;
+        Jzon::Array crop_list;
+        stream.Add("id", (int)stream_it->second->get_id());
+        stream.Add("width", (int)stream_it->second->get_width());
+        stream.Add("height", (int)stream_it->second->get_height());
+        crop_map = stream_it->second->get_crops();
+        for (crop_it = crop_map->begin(); crop_it != crop_map->end(); crop_it++){
+            Jzon::Object crop;
+            crop.Add("id", (int)crop_it->second->get_id());
+            crop.Add("c_w", (int)crop_it->second->get_crop_width());
+            crop.Add("c_h", (int)crop_it->second->get_crop_height());
+            crop.Add("c_x", (int)crop_it->second->get_crop_x());
+            crop.Add("c_y", (int)crop_it->second->get_crop_y());
+            crop.Add("dst_w", (int)crop_it->second->get_dst_width());
+            crop.Add("dst_h", (int)crop_it->second->get_dst_height());
+            crop.Add("dst_x", (int)crop_it->second->get_dst_x());
+            crop.Add("dst_y", (int)crop_it->second->get_dst_y());
+            crop.Add("layer", (int)crop_it->second->get_layer());
+            crop.Add("state", (int)crop_it->second->is_active());
+            crop_list.Add(crop);
+        }
+        stream.Add("crops", crop_list);
+        stream_list.Add(stream);
+    }
+    outRootNode->Add("input_streams", stream_list);
+}
+
+void Mixer::get_layout(Jzon::Object params, Jzon::Object* outRootNode){
+
+    Jzon::Array crop_list;
+    std::map<uint32_t, Crop*>::iterator crop_it;
+    std::map<uint32_t, Crop*> *crp = layout->get_out_stream()->get_crops();
+    std::vector<Mixer::Dst>::iterator dst_it;
+    std::vector<Mixer::Dst> dst;
+
+    Jzon::Object stream;
+    stream.Add("id", (int)layout->get_out_stream()->get_id());
+    stream.Add("width", (int)layout->get_out_stream()->get_width());
+    stream.Add("height", (int)layout->get_out_stream()->get_height());
+    for (crop_it = crp->begin(); crop_it != crp->end(); crop_it++){
+        Jzon::Object crop;
+        Jzon::Array dst_list;
+        crop.Add("id", (int)crop_it->second->get_id());
+        crop.Add("c_w", (int)crop_it->second->get_crop_width());
+        crop.Add("c_h", (int)crop_it->second->get_crop_height());
+        crop.Add("c_x", (int)crop_it->second->get_crop_x());
+        crop.Add("c_y", (int)crop_it->second->get_crop_y());
+        crop.Add("dst_w", (int)crop_it->second->get_dst_width());
+        crop.Add("dst_h", (int)crop_it->second->get_dst_height());
+
+        dst = get_output_stream_destinations(crop_it->second->get_id());
+        for (dst_it = dst.begin(); dst_it != dst.end(); dst_it++){
+            Jzon::Object dst;
+            dst.Add("id", (int)dst_it->id);
+            dst.Add("ip", dst_it->ip);
+            dst.Add("port", (int)dst_it->port);
+            dst_list.Add(dst);
+        }
+        crop.Add("destinations", dst_list);
+        crop_list.Add(crop);
+    }
+    stream.Add("crops", crop_list);
+    outRootNode->Add("output_stream", stream);
+}
+
+void Mixer::get_layout_size(Jzon::Object params, Jzon::Object* outRootNode)
 {
-	pthread_rwlock_wrlock(&task_lock);
-	int ret = layout->disable_crop_from_stream(stream_id, crop_id);
-	pthread_rwlock_unlock(&task_lock);
 
-	return ret;
+    int width = layout->get_out_stream()->get_width();
+    int height = layout->get_out_stream()->get_height();
+
+    outRootNode->Add("width", width);
+    outRootNode->Add("height", height);
+
 }
 
-Layout* Mixer::get_layout()
+void Mixer::get_stats(Jzon::Object params, Jzon::Object* outRootNode)
 {
-	return layout;
+#ifdef STATS
+    map<uint32_t,streamStats*> input_stats; 
+    map<uint32_t,streamStats*> output_stats; 
+    s_mng->get_stats(input_stats, output_stats);
+    map<uint32_t,streamStats*>::iterator str_it; 
+
+    Jzon::Array input_list;
+    for (str_it = input_stats.begin(); str_it != input_stats.end(); str_it++){
+        Jzon::Object str;
+        str.Add("id", (int)str_it->first);
+        str.Add("delay", (int)str_it->second->get_delay());
+        str.Add("fps", (int)str_it->second->get_fps());
+        str.Add("bitrate", (int)str_it->second->get_bitrate());
+        str.Add("lost_coded_frames", (int)str_it->second->get_lost_coded_frames());
+        str.Add("lost_frames", (int)str_it->second->get_lost_frames());
+        str.Add("total_frames", (int)str_it->second->get_total_frames());
+        str.Add("lost_frames_percent", (int)str_it->second->get_lost_frames_percent());
+        input_list.Add(str);
+    }
+    outRootNode->Add("input_streams", input_list);
+
+    Jzon::Array output_list;
+    for (str_it = output_stats.begin(); str_it != output_stats.end(); str_it++){
+        Jzon::Object str;
+        str.Add("id", (int)str_it->first);
+        str.Add("delay", (int)str_it->second->get_delay());
+        str.Add("fps", (int)str_it->second->get_fps());
+        str.Add("bitrate", (int)str_it->second->get_bitrate());
+        str.Add("lost_coded_frames", (int)str_it->second->get_lost_coded_frames());
+        str.Add("lost_frames", (int)str_it->second->get_lost_frames());
+        str.Add("total_frames", (int)str_it->second->get_total_frames());
+        str.Add("lost_frames_percent", (int)str_it->second->get_lost_frames_percent());
+        output_list.Add(str);
+    }
+    outRootNode->Add("output_streams", output_list);
+#endif
 }
 
-Mixer::Mixer(){}
 
-Mixer* Mixer::get_instance(){
-	if (mixer_instance == NULL){
-		mixer_instance = new Mixer();
-	}
-	return mixer_instance;
-}
-
-void* Mixer::execute_run(void *context){
-	return ((Mixer *)context)->run();
-}
-
-uint8_t Mixer::get_state(){
-	return state;
-}
-
-void Mixer::set_state(uint8_t s){
-	state = s;
-}
-
-uint32_t Mixer::get_layout_width()
-{
-	return layout->get_out_stream()->get_width();
-}
-
-uint32_t Mixer::get_layout_height()
-{
-	return layout->get_out_stream()->get_height();
-}
-
-pthread_rwlock_t* Mixer::get_task_lock()
-{
-	return &task_lock;
-}
-
-void Mixer::get_stats(map<uint32_t,streamStats*> &input_stats, map<uint32_t,streamStats*> &output_stats)
-{
-	s_mng->get_stats(input_stats, output_stats);
-}
 
 
 

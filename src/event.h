@@ -25,9 +25,11 @@
 
 #include <map>
 #include "Jzon.h"
+#include "mixer.h"
 
 using namespace std;
 
+class Mixer;
 
 class Event {
 
@@ -35,16 +37,17 @@ class Event {
         int socket;
         int timestamp;
         Jzon::Object input_root_node, output_root_node;
-        Jzon::Writer writer;
+        void(Mixer::*function)(Jzon::Object, Jzon::Object*);
 
     public:
         
         bool operator<(const Event& e) const;
-        Event(Jzon::Object rNode, int ts, int s);
-        void send_and_close() const;
-        Jzon::Object get_input_root_node() const;
-        Jzon::Object get_output_root_node() const;
-        int get_timestamp() const;
+        Event(void(Mixer::*fun)(Jzon::Object, Jzon::Object*), Jzon::Object params, int ts, int s);
+        void exec_func(Mixer *m);
+        void send_and_close();
+        Jzon::Object get_input_root_node();
+        Jzon::Object get_output_root_node();
+        int get_timestamp();
 
 };
 

@@ -27,35 +27,40 @@ bool Event::operator<(const Event& e) const
     return timestamp > e.timestamp;
 }
 
-Event(Jzon::Object rNode, int ts, int s)
+Event::Event(void(Mixer::*fun)(Jzon::Object, Jzon::Object*), Jzon::Object params, int ts, int s)
 {
-    input_root_node = rNode;
-    writer = Jzon::Writer(output_root_node, Jzon::NoFormat);
-    delay = rNode.Get("delay").ToInt();
-    timestamp = ts + delay;
+    function = fun;
+    input_root_node = params;
+    timestamp = ts;
     socket = s;
 }
 
-void Event::send_and_close() const
+void Event::exec_func(Mixer *m)
 {
+    ((m)->*(this->function))(input_root_node, &output_root_node);
+}
+
+void Event::send_and_close() 
+{
+    Jzon::Writer writer(output_root_node, Jzon::NoFormat);
     writer.Write();
     string result = writer.GetResult();
     const char* res = result.c_str();
-    n = write(newsockfd,res,result.size());
+    int n = write(socket,res,result.size());
     close(socket);
 }
 
-Jzon::Object Event::get_input_root_node() const
+Jzon::Object Event::get_input_root_node() 
 {
     return input_root_node;
 }
 
-Jzon::Object Event::get_output_root_node() const
+Jzon::Object Event::get_output_root_node() 
 {
     return output_root_node;
 }
 
-int Event::get_timestamp() const
+int Event::get_timestamp() 
 {
     return timestamp;
 }

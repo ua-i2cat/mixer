@@ -28,15 +28,18 @@
 #include <stdint.h>
 #include <map>
 #include <string>
+#include <queue>
 #include "layout.h"
+#include "event.h"
 #include "stat_manager.h"
 extern "C"{
 	#include <io_mngr/receiver.h>
 	#include <io_mngr/transmitter.h>
 }
 
-
 using namespace std;
+
+class Event;
 
 class Mixer {
 	public:
@@ -50,7 +53,6 @@ class Mixer {
         * Get an instance of Mixer classs
         * @return An instance of Mixer
         */
-		static Mixer* get_instance();
 
 		/**
         * Get an instance of Mixer classs
@@ -59,30 +61,30 @@ class Mixer {
         * @param in_port Listening port for input streams
         * @return An instance of Mixer
         */
-		void init(uint32_t layout_width, uint32_t layout_height, uint32_t in_port);
+
 
 		/**
         * Starts Mixer main routine and IO managers
         */
-		void exec();
+        void start();
 
 		/**
         * Stops Mixer main routine and IO managers
         */
-		void stop();
+        void stop();
 
 		/**
         * Add an input stream. Width and height are automatically detected
         * @return 1 if succeeded and 0 if not
         */
-		uint32_t add_source();
+		void add_source(Jzon::Object rootNode, Jzon::Object *outRootNode);
 
 		/**
         * Removes an input stream
         * @param id Stream ID
         * @return 1 if succeeded and 0 if not
         */
-		int remove_source(uint32_t id);
+		void remove_source(Jzon::Object rootNode, Jzon::Object *outRootNode);
 		
 		/**
 		* Add a new crop to an input stream
@@ -97,8 +99,7 @@ class Mixer {
        	* @param rsz_y layout rectangle upper left corner y coordinate (dummy in case of output stream crops)
        	* @param layer layout rectangle layer (considering layer 1 image bottom)
        	*/
-		int add_crop_to_source(uint32_t id, uint32_t crop_width, uint32_t crop_height, uint32_t crop_x, uint32_t crop_y, 
-								uint32_t layer, uint32_t rsz_width, uint32_t rsz_height, uint32_t rsz_x, uint32_t rsz_y);
+		void add_crop_to_source(Jzon::Object rootNode, Jzon::Object *outRootNode);
 
 		/**
         * Modify an input stream crop
@@ -110,8 +111,7 @@ class Mixer {
        	* @param new_crop_y new cropping rectangle upper left corner y coordinate
         * @return 1 if succeeded and 0 if not
         */
-        int modify_crop_from_source(uint32_t stream_id, uint32_t crop_id, uint32_t new_crop_width, 
-        							  uint32_t new_crop_height, uint32_t new_crop_x, uint32_t new_crop_y);
+        void modify_crop_from_source(Jzon::Object rootNode, Jzon::Object *outRootNode);
 
         /**
         * Modify the layout rectangle associated to an input stream crop
@@ -124,8 +124,7 @@ class Mixer {
        	* @param new_layer new layout rectangle layer
         * @return 1 if succeeded and 0 if not
         */
-        int modify_crop_resizing_from_source(uint32_t stream_id, uint32_t crop_id, uint32_t new_crop_width, 
-        									   uint32_t new_crop_height, uint32_t new_crop_x, uint32_t new_crop_y, uint32_t new_layer);
+        void modify_crop_resizing_from_source(Jzon::Object rootNode, Jzon::Object *outRootNode);
 
         /**
         * Remove a crop from an input stream
@@ -133,7 +132,7 @@ class Mixer {
         * @param crop_id Id of the crop 
         * @return 1 if succeeded and 0 if not
         */
-		int remove_crop_from_source(uint32_t stream_id, uint32_t crop_id);
+		void remove_crop_from_source(Jzon::Object rootNode, Jzon::Object *outRootNode);
 
 		/**
         * Add a new crop to the layout, creating a new output stream associated to it
@@ -145,7 +144,7 @@ class Mixer {
        	* @param output_height resized crop height
         * @return 1 if succeeded and 0 if not
         */
-        int add_crop_to_layout(uint32_t crop_width, uint32_t crop_height, uint32_t crop_x, uint32_t crop_y, uint32_t output_width, uint32_t output_height);
+        void add_crop_to_layout(Jzon::Object rootNode, Jzon::Object *outRootNode);
 
         /**
         * Modify a crop from the layout
@@ -156,7 +155,7 @@ class Mixer {
        	* @param new_crop_y cropping rectangle upper left corner y coordinate
         * @return 1 if succeeded and 0 if not
         */
-        int modify_crop_from_layout(uint32_t crop_id, uint32_t new_crop_width, uint32_t new_crop_height, uint32_t new_crop_x, uint32_t new_crop_y);
+        void modify_crop_from_layout(Jzon::Object rootNode, Jzon::Object *outRootNode);
 
         /**
         * Modify a crop from the layout
@@ -165,14 +164,14 @@ class Mixer {
        	* @param new_height resized crop height
         * @return 1 if succeeded and 0 if not
         */
-        int modify_crop_resizing_from_layout(uint32_t id, uint32_t new_width, uint32_t new_height);
+        void modify_crop_resizing_from_layout(Jzon::Object rootNode, Jzon::Object *outRootNode);
 
         /**
         * Remove a crop from the layout and the output stream associated to it
         * @param crop_id Id of the crop to be removed 
         * @return 1 if succeeded and 0 if not
         */
-        int remove_crop_from_layout(uint32_t crop_id);
+        void remove_crop_from_layout(Jzon::Object rootNode, Jzon::Object *outRootNode);
 
         /**
         * Enable input stream crop displaying
@@ -180,7 +179,7 @@ class Mixer {
         * @param crop_id Id of the crop ss
         * @return 1 if succeeded and 0 if not
         */
-        int enable_crop_from_source(uint32_t stream_id, uint32_t crop_id);
+        void enable_crop_from_source(Jzon::Object rootNode, Jzon::Object *outRootNode);
 
         /**
         * Disable input stream crop displaying
@@ -188,7 +187,7 @@ class Mixer {
         * @param crop_id Id of the crop ss
         * @return 1 if succeeded and 0 if not
         */
-        int disable_crop_from_source(uint32_t stream_id, uint32_t crop_id);
+        void disable_crop_from_source(Jzon::Object rootNode, Jzon::Object *outRootNode);
 
         /**
         * Add a new destination associated to an output stream. 
@@ -197,38 +196,21 @@ class Mixer {
         * @param stream_id Output stream ID  
         * @return 1 if succeeded and 0 if not
         */
-		uint32_t add_destination(char *ip, uint32_t port, uint32_t stream_id);
+		void add_destination(Jzon::Object rootNode, Jzon::Object *outRootNode);
 
 		/**
         * Remove a destination 
         * @param id Destination ID 
         * @return 1 if succeeded and 0 if not
         */
-		int remove_destination(uint32_t id);
+		void remove_destination(Jzon::Object rootNode, Jzon::Object *outRootNode);
 
-		/**
-        * Get a pointer to the Layout object 
-        * @return A pointer to the layout
-        */
-		Layout* get_layout();
+        void get_streams(Jzon::Object rootNode, Jzon::Object *outRootNode);
+        void get_layout(Jzon::Object rootNode, Jzon::Object *outRootNode);
+        void get_stats(Jzon::Object rootNode, Jzon::Object *outRootNode);
+        void get_layout_size(Jzon::Object params, Jzon::Object* outRootNode);
 
-		/**
-        * Get a Dst struct vector, containing information about current destinations
-        * @return A vector containing information about current destinations
-        */
-		vector<Dst>* get_destinations();
 
-		/**
-        * Get mixer state
-        * @return 1 if runnning or 0 if not
-        */
-		uint8_t get_state();
-
-		/**
-        * Set mixer state
-        * @param s 1 means running and 0 means stopped
-        */
-		void set_state(uint8_t s);
 
         /**
         * Get the destinations associated to an output stream
@@ -237,37 +219,38 @@ class Mixer {
         */
         vector<Dst> get_output_stream_destinations(uint32_t id);
 
-        void get_stats(map<uint32_t,streamStats*> &input_stats, map<uint32_t,streamStats*> &output_stats);
 
-        uint32_t get_layout_width();
-        uint32_t get_layout_height();
-        pthread_rwlock_t* get_task_lock();
+        void get_stats_maps(map<uint32_t,streamStats*> &input_stats, map<uint32_t,streamStats*> &output_stats);
+        void push_event(Event *e);
+        Mixer(int width, int height, int in_port);
+		~Mixer();
 
-	private:
-		pthread_t thread;
-		receiver_t *receiver;
-		transmitter_t *transmitter;
-		stream_list *in_video_str;
+    private:
+        pthread_t thread;
+        receiver_t *receiver;
+        transmitter_t *transmitter;
+        stream_list *in_video_str;
         stream_list *out_video_str;
         stream_list *in_audio_str;
-		stream_list *out_audio_str;
-		Layout *layout;
+        stream_list *out_audio_str;
+        Layout *layout;
         statManager *s_mng;
-		bool should_stop;
-		int max_frame_rate;
-		uint32_t _in_port;
-		uint8_t state;
-        pthread_rwlock_t task_lock;
+        bool should_stop;
+        int max_frame_rate;
+        uint32_t _in_port;
+        uint8_t state;
+        priority_queue<Event*> eventQueue;
 
-		static Mixer* mixer_instance;
-		Mixer();
-		void* run(void);
-		static void* execute_run(void *context);
+		void* main_routine(void);
+		static void* execute_routine(void *context);
         int receive_frames();
         void update_input_frames();
         void update_output_frame_buffers();
         void update_output_frames();
+        void initialize_action_mapping();
 
 };
+
+
 
 #endif /* MIXER_H_ */

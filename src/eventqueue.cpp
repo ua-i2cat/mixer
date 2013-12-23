@@ -13,8 +13,10 @@
 #include <sys/types.h> 
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <functional>
 
 using namespace std;
+using std::placeholders::_1;
 
 void error(const char *msg) {
     perror(msg);
@@ -25,11 +27,13 @@ void* routine(void *arg);
 int listen_socket(int sock, int *newsock);
 int get_socket(int port, int *sock);
 
+typedef std::tr1::function<void(Mixer&)> my_fun_t;
+
 class Event
 {
     public:
         int delay;
-        string action;
+        my_fun_t func;
         int socket;
         int timestamp;
         
@@ -38,9 +42,9 @@ class Event
             return timestamp > e.timestamp;
         }
 
-        Event(string msg, int d, int ts, int s)
+        Event(my_fun_t fun, int d, int ts, int s)
         {
-            action = msg;
+            func = fun;
             delay = d;
             timestamp = ts;
             socket = s;
@@ -58,6 +62,25 @@ class Event
         }
 };
 
+class Mixer
+{
+    public:
+        int value;
+
+        Mixer()
+        {
+            value = 0;
+        }
+
+        void function1(int v){
+            cout << "This is value 1: " << value + v << endl;
+        }
+
+        void function2(int v, int v2){
+            cout << "This is value 2: " << value + v - v2 << endl;
+        }
+};
+
 Jzon::Object rootNode, root_response;
 Jzon::Parser parser(rootNode);
 bool should_stop=false;
@@ -72,6 +95,7 @@ int main ()
     bool response;
     pthread_t thread;
     pthread_create(&thread, NULL, routine, &eventQueue);
+    Mixer *m = new Mixer();
 
     int sockfd, newsockfd, portno, n;
     const char* res;

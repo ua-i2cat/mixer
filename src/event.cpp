@@ -30,7 +30,7 @@ bool Event::operator<(const Event& e) const
 Event(Jzon::Object rNode, int ts, int s)
 {
     input_root_node = rNode;
-    writer = new Jzon::Writer(output_root_node, Jzon::NoFormat);
+    writer = Jzon::Writer(output_root_node, Jzon::NoFormat);
     delay = rNode.Get("delay").ToInt();
     timestamp = ts + delay;
     socket = s;

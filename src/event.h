@@ -34,7 +34,6 @@ class Event {
         int delay;
         int socket;
         int timestamp;
-        map<string, void(*)(Jzon::Object, Jzon::Object*)>* mixer_commands;
         Jzon::Object input_root_node, output_root_node;
         Jzon::Writer writer;
 

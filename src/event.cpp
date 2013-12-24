@@ -21,16 +21,17 @@
  */   
 
 #include "event.h"
+#include <iostream>
 
 bool Event::operator<(const Event& e) const
 {
     return timestamp > e.timestamp;
 }
 
-Event::Event(void(Mixer::*fun)(Jzon::Object, Jzon::Object*), Jzon::Object params, int ts, int s)
+Event::Event(void(Mixer::*fun)(Jzon::Object*, Jzon::Object*), Jzon::Object params, int ts, int s)
 {
     function = fun;
-    input_root_node = params;
+    input_root_node = new Jzon::Object(params);
     timestamp = ts;
     socket = s;
 }
@@ -52,7 +53,7 @@ void Event::send_and_close()
 
 Jzon::Object Event::get_input_root_node() 
 {
-    return input_root_node;
+    return *input_root_node;
 }
 
 Jzon::Object Event::get_output_root_node() 

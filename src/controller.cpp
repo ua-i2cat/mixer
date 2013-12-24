@@ -42,43 +42,18 @@ void error(const char *msg) {
     exit(1);
 }
 
-void start_mixer(Jzon::Object rootNode);
-void stop_mixer(Jzon::Object rootNode);
-
-void add_stream(Jzon::Object rootNode);
-void remove_stream(Jzon::Object rootNode);
-void add_crop_to_stream(Jzon::Object rootNode);
-void modify_crop_from_stream(Jzon::Object rootNode);
-void modify_crop_resizing_from_stream(Jzon::Object rootNode);
-void remove_crop_from_stream(Jzon::Object rootNode);
-
-void add_crop_to_layout(Jzon::Object rootNode);
-void modify_crop_from_layout(Jzon::Object rootNode);
-void modify_crop_resizing_from_layout(Jzon::Object rootNode);
-void remove_crop_from_layout(Jzon::Object rootNode);
-
-void enable_crop_from_stream(Jzon::Object rootNode);
-void disable_crop_from_stream(Jzon::Object rootNode);
-
-void add_destination(Jzon::Object rootNode);
-void remove_destination(Jzon::Object rootNode);
-
-void get_streams(Jzon::Object rootNode);
-void get_layout(Jzon::Object rootNode);
-void get_stats(Jzon::Object rootNode);
-void get_layout_size(Jzon::Object rootNode);
-void get_state(Jzon::Object rootNode);
-void exit_mixer(Jzon::Object rootNode);
-
 void initialize_action_mapping();
 int get_socket(int port, int *sock);
 int listen_socket(int sock, int *newsock);
-void start_mixer();
-void stop_mixer();
+void start_mixer(Jzon::Object rootNode, Jzon::Object *outputRootNode);
+void stop_mixer(Jzon::Object *outputRootNode);
+void send_and_close(string msg, int socket);
 
-map<string,void(Mixer::*)(Jzon::Object, Jzon::Object*)> commands;
+map<string,void(Mixer::*)(Jzon::Object*, Jzon::Object*)> commands;
 Jzon::Object rootNode;
 Jzon::Parser parser(rootNode);
+Jzon::Object output_root_node;
+Jzon::Writer writer(output_root_node, Jzon::NoFormat);
 bool should_stop=false;
 Mixer *m;
 string action;
@@ -99,13 +74,14 @@ int main(int argc, char *argv[]){
     portno = atoi(argv[1]);
     get_socket(portno, &sockfd);
     int ts;
+    initialize_action_mapping();
 
     while(!should_stop) {
         if (listen_socket(sockfd, &newsockfd) == 0) {
             bzero(buffer,2048);
             rootNode.Clear();
+            output_root_node.Clear();
             n = read(newsockfd, buffer, 2047);
-            printf("%s\n", buffer);
             if (n < 0) {
                 error("ERROR reading from socket");
             }
@@ -114,21 +90,40 @@ int main(int argc, char *argv[]){
 
             if (parser.Parse()) {
                 action = rootNode.Get("action").ToString();
-                if (action.compare("start") == 0){
-                    start_mixer(rootNode);
-                } else if (action.compare("stop") == 0){
-                    stop_mixer();
-                } else if (action.compare("exit") == 0){
 
+                if (action.compare("start") == 0){
+                    start_mixer(rootNode, &output_root_node);
+                    writer.Write();
+                    send_and_close(writer.GetResult(), newsockfd);
+                    continue;
+
+                } else if (action.compare("stop") == 0){
+                    stop_mixer(&output_root_node);
+                    writer.Write();
+                    send_and_close(writer.GetResult(), newsockfd);
+                    continue;
+
+                } else if (action.compare("exit") == 0){
+                    continue;
                 }
 
                 if (commands.count(action) <= 0){
+                    output_root_node.Add("error","Wrong action, try it again!");
+                    writer.Write();
+                    send_and_close(writer.GetResult(), newsockfd);
+                    continue;
+                }
+
+                if (m == NULL){
+                    output_root_node.Add("error","Mixer is not running. Cannot perform action!");
+                    writer.Write();
+                    send_and_close(writer.GetResult(), newsockfd);
                     continue;
                 }
 
                 gettimeofday(&in_time, NULL);
                 ts = in_time.tv_sec*1000000 + in_time.tv_usec + rootNode.Get("delay").ToInt()*1000000;
-                m->push_event(new Event(commands[rootNode.Get("action").ToString()], rootNode.Get("params"), ts, newsockfd));
+                m->push_event(new Event(commands[action], rootNode.Get("params"), ts, newsockfd));
 
             }
         }
@@ -153,10 +148,20 @@ void initialize_action_mapping()
     commands["modify_crop_from_layout"] = &Mixer::modify_crop_from_layout;
     commands["modify_crop_resizing_from_layout"] = &Mixer::modify_crop_resizing_from_layout;
     commands["remove_crop_from_layout"] = &Mixer::remove_crop_from_layout;
+    
+    commands["add_destination"] = &Mixer::add_destination;
+    commands["remove_destination"] = &Mixer::remove_destination;
+    
+    commands["get_streams"] = &Mixer::get_streams;
+    commands["get_layout"] = &Mixer::get_layout;
+    commands["get_stats"] = &Mixer::get_stats;
+
 }
 
-void start_mixer(Jzon::Object rootNode){
+void start_mixer(Jzon::Object rootNode, Jzon::Object *outputRootNode)
+{
     if (m != NULL){
+        outputRootNode->Add("error", "Mixer is already running");
         return;
     }
 
@@ -165,16 +170,25 @@ void start_mixer(Jzon::Object rootNode){
     int in_port = rootNode.Get("params").Get("input_port").ToInt();
 
     m = new Mixer(width, height, in_port);
+
+    if (m == NULL){
+        outputRootNode->Add("error", "Error initializing Mixer");
+    }
+
     m->start();
+    outputRootNode->Add("error", Jzon::null);
+
 }
 
-void stop_mixer(){
+void stop_mixer(Jzon::Object *outputRootNode){
     if (m == NULL){
+        outputRootNode->Add("error", "Mixer is not running");
         return;
     }
     
     m->stop();
-   // delete m;
+    delete m;
+    outputRootNode->Add("error", Jzon::null);
 }
 
 int get_socket(int port, int *sock){
@@ -210,16 +224,9 @@ int listen_socket(int sock, int *newsock) {
     return 0;
 }
 
-
-// void get_state(Jzon::Object rootNode){
-//     if (m == NULL){
-//         outRootNode->Add("state", 0);
-//     } else {
-//         outRootNode->Add("state", 1);
-//     }
-// }
-
-// void exit_mixer(Jzon::Object rootNode){
-//     outRootNode->Add("error", Jzon::null);
-//     should_stop = true;
-// }
+void send_and_close(string result, int socket)
+{
+    const char* res = result.c_str();
+    int n = write(socket,res,result.size());
+    close(socket);
+}

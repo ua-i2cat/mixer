@@ -77,14 +77,14 @@ class Mixer {
         * Add an input stream. Width and height are automatically detected
         * @return 1 if succeeded and 0 if not
         */
-		void add_source(Jzon::Object rootNode, Jzon::Object *outRootNode);
+		void add_source(Jzon::Object* rootNode, Jzon::Object *outRootNode);
 
 		/**
         * Removes an input stream
         * @param id Stream ID
         * @return 1 if succeeded and 0 if not
         */
-		void remove_source(Jzon::Object rootNode, Jzon::Object *outRootNode);
+		void remove_source(Jzon::Object* rootNode, Jzon::Object *outRootNode);
 		
 		/**
 		* Add a new crop to an input stream
@@ -99,7 +99,7 @@ class Mixer {
        	* @param rsz_y layout rectangle upper left corner y coordinate (dummy in case of output stream crops)
        	* @param layer layout rectangle layer (considering layer 1 image bottom)
        	*/
-		void add_crop_to_source(Jzon::Object rootNode, Jzon::Object *outRootNode);
+		void add_crop_to_source(Jzon::Object* rootNode, Jzon::Object *outRootNode);
 
 		/**
         * Modify an input stream crop
@@ -111,7 +111,7 @@ class Mixer {
        	* @param new_crop_y new cropping rectangle upper left corner y coordinate
         * @return 1 if succeeded and 0 if not
         */
-        void modify_crop_from_source(Jzon::Object rootNode, Jzon::Object *outRootNode);
+        void modify_crop_from_source(Jzon::Object* rootNode, Jzon::Object *outRootNode);
 
         /**
         * Modify the layout rectangle associated to an input stream crop
@@ -124,7 +124,7 @@ class Mixer {
        	* @param new_layer new layout rectangle layer
         * @return 1 if succeeded and 0 if not
         */
-        void modify_crop_resizing_from_source(Jzon::Object rootNode, Jzon::Object *outRootNode);
+        void modify_crop_resizing_from_source(Jzon::Object* rootNode, Jzon::Object *outRootNode);
 
         /**
         * Remove a crop from an input stream
@@ -132,7 +132,7 @@ class Mixer {
         * @param crop_id Id of the crop 
         * @return 1 if succeeded and 0 if not
         */
-		void remove_crop_from_source(Jzon::Object rootNode, Jzon::Object *outRootNode);
+		void remove_crop_from_source(Jzon::Object* rootNode, Jzon::Object *outRootNode);
 
 		/**
         * Add a new crop to the layout, creating a new output stream associated to it
@@ -144,7 +144,7 @@ class Mixer {
        	* @param output_height resized crop height
         * @return 1 if succeeded and 0 if not
         */
-        void add_crop_to_layout(Jzon::Object rootNode, Jzon::Object *outRootNode);
+        void add_crop_to_layout(Jzon::Object* rootNode, Jzon::Object *outRootNode);
 
         /**
         * Modify a crop from the layout
@@ -155,7 +155,7 @@ class Mixer {
        	* @param new_crop_y cropping rectangle upper left corner y coordinate
         * @return 1 if succeeded and 0 if not
         */
-        void modify_crop_from_layout(Jzon::Object rootNode, Jzon::Object *outRootNode);
+        void modify_crop_from_layout(Jzon::Object* rootNode, Jzon::Object *outRootNode);
 
         /**
         * Modify a crop from the layout
@@ -164,14 +164,14 @@ class Mixer {
        	* @param new_height resized crop height
         * @return 1 if succeeded and 0 if not
         */
-        void modify_crop_resizing_from_layout(Jzon::Object rootNode, Jzon::Object *outRootNode);
+        void modify_crop_resizing_from_layout(Jzon::Object* rootNode, Jzon::Object *outRootNode);
 
         /**
         * Remove a crop from the layout and the output stream associated to it
         * @param crop_id Id of the crop to be removed 
         * @return 1 if succeeded and 0 if not
         */
-        void remove_crop_from_layout(Jzon::Object rootNode, Jzon::Object *outRootNode);
+        void remove_crop_from_layout(Jzon::Object* rootNode, Jzon::Object *outRootNode);
 
         /**
         * Enable input stream crop displaying
@@ -179,7 +179,7 @@ class Mixer {
         * @param crop_id Id of the crop ss
         * @return 1 if succeeded and 0 if not
         */
-        void enable_crop_from_source(Jzon::Object rootNode, Jzon::Object *outRootNode);
+        void enable_crop_from_source(Jzon::Object* rootNode, Jzon::Object *outRootNode);
 
         /**
         * Disable input stream crop displaying
@@ -187,7 +187,7 @@ class Mixer {
         * @param crop_id Id of the crop ss
         * @return 1 if succeeded and 0 if not
         */
-        void disable_crop_from_source(Jzon::Object rootNode, Jzon::Object *outRootNode);
+        void disable_crop_from_source(Jzon::Object* rootNode, Jzon::Object *outRootNode);
 
         /**
         * Add a new destination associated to an output stream. 
@@ -196,19 +196,19 @@ class Mixer {
         * @param stream_id Output stream ID  
         * @return 1 if succeeded and 0 if not
         */
-		void add_destination(Jzon::Object rootNode, Jzon::Object *outRootNode);
+		void add_destination(Jzon::Object* rootNode, Jzon::Object *outRootNode);
 
 		/**
         * Remove a destination 
         * @param id Destination ID 
         * @return 1 if succeeded and 0 if not
         */
-		void remove_destination(Jzon::Object rootNode, Jzon::Object *outRootNode);
+		void remove_destination(Jzon::Object* rootNode, Jzon::Object *outRootNode);
 
-        void get_streams(Jzon::Object rootNode, Jzon::Object *outRootNode);
-        void get_layout(Jzon::Object rootNode, Jzon::Object *outRootNode);
-        void get_stats(Jzon::Object rootNode, Jzon::Object *outRootNode);
-        void get_layout_size(Jzon::Object params, Jzon::Object* outRootNode);
+        void get_streams(Jzon::Object* rootNode, Jzon::Object *outRootNode);
+        void get_layout(Jzon::Object* rootNode, Jzon::Object *outRootNode);
+        void get_stats(Jzon::Object* rootNode, Jzon::Object *outRootNode);
+        void get_layout_size(Jzon::Object* rootNode, Jzon::Object* outRootNode);
 
 
 
@@ -240,6 +240,7 @@ class Mixer {
         uint32_t _in_port;
         uint8_t state;
         priority_queue<Event*> eventQueue;
+        pthread_mutex_t eventQueue_lock;
 
 		void* main_routine(void);
 		static void* execute_routine(void *context);

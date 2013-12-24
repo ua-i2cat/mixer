@@ -42,14 +42,15 @@ void* Mixer::main_routine(void) {
 	uint32_t compose_time;
 #endif
 
-	min_diff = ((float)1/(float)max_frame_rate)*1000000; // In ms
+	min_diff = 1000000/max_frame_rate; // In us
 
 	while (!should_stop){
-	    min_diff = ((float)1/(float)max_frame_rate)*1000000;
+	    min_diff = 1000000/max_frame_rate;
 
 	    gettimeofday(&curr_time, NULL);
         curr_ts = curr_time.tv_sec*1000000 + curr_time.tv_usec;
 
+        pthread_mutex_lock(&eventQueue_lock);
         if (!eventQueue.empty()){
             Event *tmp = eventQueue.top();
         	if (tmp->get_timestamp() <= curr_ts){ //TODO: this can be a while if we want to execute N orders in one iteration
@@ -58,6 +59,7 @@ void* Mixer::main_routine(void) {
             	eventQueue.pop();
             }
         }
+        pthread_mutex_unlock(&eventQueue_lock);
 
 		gettimeofday(&start, NULL);
 
@@ -102,12 +104,6 @@ void* Mixer::main_routine(void) {
 	stop_transmitter(transmitter);
 	destroy_stream_list(in_video_str);
 	destroy_stream_list(out_video_str);
-
-	delete layout;
-
-	#ifdef STATS
-		delete s_mng;
-	#endif
 
 }
 
@@ -234,6 +230,7 @@ Mixer::Mixer(int layout_width, int layout_height, int in_port)
 	transmitter = init_transmitter(out_video_str, out_audio_str, DEF_FPS);
 	_in_port = in_port;
 	max_frame_rate = DEF_FPS;
+    pthread_mutex_init(&eventQueue_lock, NULL);
 
 #ifdef STATS
 	s_mng = new statManager();
@@ -253,9 +250,18 @@ void Mixer::stop(){
 	pthread_join(thread, NULL);
 }
 
-void Mixer::add_source(Jzon::Object params, Jzon::Object* outRootNode)
+Mixer::~Mixer()
 {
-	uint32_t id = rand();
+    delete layout;
+
+    #ifdef STATS
+        delete s_mng;
+    #endif
+}
+
+void Mixer::add_source(Jzon::Object* params, Jzon::Object* outRootNode)
+{
+	int id = rand();
 	participant_data *participant = init_participant(id, INPUT, NULL, 0);
   	
     stream_data_t *stream = init_stream(VIDEO, INPUT, id, I_AWAIT, DEF_FPS, NULL);
@@ -268,106 +274,152 @@ void Mixer::add_source(Jzon::Object params, Jzon::Object* outRootNode)
 #endif
 
     layout->add_stream(id);
+
+    outRootNode->Add("id", id);
 }
 
-void Mixer::remove_source(Jzon::Object params, Jzon::Object* outRootNode)
+void Mixer::remove_source(Jzon::Object* params, Jzon::Object* outRootNode)
 {
-	int id = params.Get("id").ToInt();
+	int id = params->Get("id").ToInt();
 
 	if(!layout->remove_stream(id)){
+        outRootNode->Add("error", "Error removing stream from layout. Check introduced ID");
 		return;
 	}
 
 	if(!remove_stream(in_video_str, id)){
+        outRootNode->Add("error", "Error removing stream from list. Check introduced ID");
 		return;
 	}
 
 #ifdef STATS
 	s_mng->remove_input_stream(id);
 #endif
-
+    outRootNode->Add("error", Jzon::null);
 }
 		
-void Mixer::add_crop_to_source(Jzon::Object params, Jzon::Object* outRootNode)
+void Mixer::add_crop_to_source(Jzon::Object* params, Jzon::Object* outRootNode)
 {
-	int id = params.Get("id").ToInt();
-    int crop_width = params.Get("crop_width").ToInt();
-    int crop_height = params.Get("crop_height").ToInt();
-    int crop_x = params.Get("crop_x").ToInt();
-    int crop_y = params.Get("crop_y").ToInt();
-    int layer = params.Get("layer").ToInt();
-    int rsz_width = params.Get("rsz_width").ToInt();
-    int rsz_height = params.Get("rsz_height").ToInt();
-    int rsz_x = params.Get("rsz_x").ToInt();
-    int rsz_y = params.Get("rsz_y").ToInt();
+	int id = params->Get("id").ToInt();
+    int crop_width = params->Get("crop_width").ToInt();
+    int crop_height = params->Get("crop_height").ToInt();
+    int crop_x = params->Get("crop_x").ToInt();
+    int crop_y = params->Get("crop_y").ToInt();
+    int layer = params->Get("layer").ToInt();
+    int rsz_width = params->Get("rsz_width").ToInt();
+    int rsz_height = params->Get("rsz_height").ToInt();
+    int rsz_x = params->Get("rsz_x").ToInt();
+    int rsz_y = params->Get("rsz_y").ToInt();
 
 	int ret = layout->add_crop_to_stream(id, crop_width, crop_height, crop_x, crop_y, layer, rsz_width, rsz_height, rsz_x, rsz_y);
 
+    if (ret == FALSE){
+        outRootNode->Add("error", "Error adding new crop. Check introduced parameters");
+        return;
+    }
+
+    outRootNode->Add("error", Jzon::null);
 }
 
-void Mixer::modify_crop_from_source(Jzon::Object params, Jzon::Object* outRootNode)
+void Mixer::modify_crop_from_source(Jzon::Object* params, Jzon::Object* outRootNode)
 {
-	int stream_id = params.Get("stream_id").ToInt();
-    int crop_id = params.Get("crop_id").ToInt();
-    int new_crop_width = params.Get("width").ToInt();
-    int new_crop_height = params.Get("height").ToInt();
-    int new_crop_x = params.Get("x").ToInt();
-    int new_crop_y = params.Get("y").ToInt();
+	int stream_id = params->Get("stream_id").ToInt();
+    int crop_id = params->Get("crop_id").ToInt();
+    int new_crop_width = params->Get("width").ToInt();
+    int new_crop_height = params->Get("height").ToInt();
+    int new_crop_x = params->Get("x").ToInt();
+    int new_crop_y = params->Get("y").ToInt();
 
 	int ret = layout->modify_orig_crop_from_stream(stream_id, crop_id, new_crop_width, new_crop_height, new_crop_x, new_crop_y);
 
+    if (ret == FALSE){
+        outRootNode->Add("error", "Error modifying crop. Check introduced parameters");
+        return;
+    }
+
+    outRootNode->Add("error", Jzon::null);
+
 }
 
-void Mixer::modify_crop_resizing_from_source(Jzon::Object params, Jzon::Object* outRootNode)
+void Mixer::modify_crop_resizing_from_source(Jzon::Object* params, Jzon::Object* outRootNode)
 {
-	int stream_id = params.Get("stream_id").ToInt();
-    int crop_id = params.Get("crop_id").ToInt();
-    int new_rsz_width = params.Get("width").ToInt();
-    int new_rsz_height = params.Get("height").ToInt();
-    int new_rsz_x = params.Get("x").ToInt();
-    int new_rsz_y = params.Get("y").ToInt();
-    int new_layer = params.Get("layer").ToInt();
+	int stream_id = params->Get("stream_id").ToInt();
+    int crop_id = params->Get("crop_id").ToInt();
+    int new_rsz_width = params->Get("width").ToInt();
+    int new_rsz_height = params->Get("height").ToInt();
+    int new_rsz_x = params->Get("x").ToInt();
+    int new_rsz_y = params->Get("y").ToInt();
+    int new_layer = params->Get("layer").ToInt();
 
 	int ret = layout->modify_dst_crop_from_stream(stream_id, crop_id, new_rsz_width, new_rsz_height, new_rsz_x, new_rsz_y, new_layer);
 
+    if (ret == FALSE){
+        outRootNode->Add("error", "Error modifying crop. Check introduced parameters");
+        return;
+    }
+
+    outRootNode->Add("error", Jzon::null);
+
 }
 
-void Mixer::remove_crop_from_source(Jzon::Object params, Jzon::Object* outRootNode)
+void Mixer::remove_crop_from_source(Jzon::Object* params, Jzon::Object* outRootNode)
 {
-	int stream_id = params.Get("stream_id").ToInt();
-    int crop_id = params.Get("crop_id").ToInt();
+	int stream_id = params->Get("stream_id").ToInt();
+    int crop_id = params->Get("crop_id").ToInt();
 
 	int ret = layout->remove_crop_from_stream(stream_id, crop_id);
 
+    if (ret == FALSE){
+        outRootNode->Add("error", "Error removing crop. Check introduced parameters");
+        return;
+    }
+
+    outRootNode->Add("error", Jzon::null);
+
 }
 
-void Mixer::enable_crop_from_source(Jzon::Object params, Jzon::Object* outRootNode)
+void Mixer::enable_crop_from_source(Jzon::Object* params, Jzon::Object* outRootNode)
 {
-	int stream_id = params.Get("stream_id").ToInt();
-    int crop_id = params.Get("crop_id").ToInt();
+	int stream_id = params->Get("stream_id").ToInt();
+    int crop_id = params->Get("crop_id").ToInt();
 
 	int ret =  layout->enable_crop_from_stream(stream_id, crop_id);
+
+    if (ret == FALSE){
+        outRootNode->Add("error", "Error enabling crop. Wrong ID or maybe still enabled");
+        return;
+    }
+
+    outRootNode->Add("error", Jzon::null);
 }
 
-void Mixer::disable_crop_from_source(Jzon::Object params, Jzon::Object* outRootNode)
+void Mixer::disable_crop_from_source(Jzon::Object* params, Jzon::Object* outRootNode)
 {
-	int stream_id = params.Get("stream_id").ToInt();
-    int crop_id = params.Get("crop_id").ToInt();
+	int stream_id = params->Get("stream_id").ToInt();
+    int crop_id = params->Get("crop_id").ToInt();
 	
 	int ret = layout->disable_crop_from_stream(stream_id, crop_id);
+
+    if (ret == FALSE){
+        outRootNode->Add("error", "Error disabling crop. Wrong ID or maybe still disabled");
+        return;
+    }
+
+    outRootNode->Add("error", Jzon::null);
 }
 
-void Mixer::add_crop_to_layout(Jzon::Object params, Jzon::Object* outRootNode)
+void Mixer::add_crop_to_layout(Jzon::Object* params, Jzon::Object* outRootNode)
 {
-	int crop_width = params.Get("width").ToInt();
-    int crop_height = params.Get("height").ToInt();
-    int crop_x = params.Get("x").ToInt();
-    int crop_y = params.Get("y").ToInt();
-    int output_width = params.Get("output_width").ToInt();
-    int output_height = params.Get("output_height").ToInt();
+	int crop_width = params->Get("width").ToInt();
+    int crop_height = params->Get("height").ToInt();
+    int crop_x = params->Get("x").ToInt();
+    int crop_y = params->Get("y").ToInt();
+    int output_width = params->Get("output_width").ToInt();
+    int output_height = params->Get("output_height").ToInt();
 
 	uint32_t id = layout->add_crop_to_output_stream(crop_width, crop_height, crop_x, crop_y, output_width, output_height);
 	if (id == 0){
+        outRootNode->Add("error", "Error adding new crop to layout. Check introduced parameters");
 		return;
 	}
 
@@ -380,26 +432,37 @@ void Mixer::add_crop_to_layout(Jzon::Object params, Jzon::Object* outRootNode)
 #ifdef STATS
     s_mng->add_output_stream(id);
 #endif
+
+    outRootNode->Add("error", Jzon::null);
+
 }
 
-void Mixer::modify_crop_from_layout(Jzon::Object params, Jzon::Object* outRootNode)
+void Mixer::modify_crop_from_layout(Jzon::Object* params, Jzon::Object* outRootNode)
 {
-	int crop_id = params.Get("crop_id").ToInt();
-    int new_crop_width = params.Get("width").ToInt();
-    int new_crop_height = params.Get("height").ToInt();
-    int new_crop_x = params.Get("x").ToInt();
-    int new_crop_y = params.Get("y").ToInt();
+	int crop_id = params->Get("crop_id").ToInt();
+    int new_crop_width = params->Get("width").ToInt();
+    int new_crop_height = params->Get("height").ToInt();
+    int new_crop_x = params->Get("x").ToInt();
+    int new_crop_y = params->Get("y").ToInt();
 
 	int ret =  layout->modify_crop_from_output_stream(crop_id, new_crop_width, new_crop_height, new_crop_x, new_crop_y);
+
+    if (ret == FALSE){
+        outRootNode->Add("error", "Error modifying crop. Check introduced parameters");
+        return;
+    }
+
+    outRootNode->Add("error", Jzon::null);
 }
 
-void Mixer::modify_crop_resizing_from_layout(Jzon::Object params, Jzon::Object* outRootNode)
+void Mixer::modify_crop_resizing_from_layout(Jzon::Object* params, Jzon::Object* outRootNode)
 {
-	int id = params.Get("crop_id").ToInt();
-    int new_width = params.Get("width").ToInt();
-    int new_height = params.Get("height").ToInt();
+	int id = params->Get("crop_id").ToInt();
+    int new_width = params->Get("width").ToInt();
+    int new_height = params->Get("height").ToInt();
 
 	if(layout->modify_crop_resize_from_output_stream(id, new_width, new_height) == FALSE){
+        outRootNode->Add("error", "Error modifying crop. Check introduced parameters");
 		return;
 	}
 
@@ -414,43 +477,56 @@ void Mixer::modify_crop_resizing_from_layout(Jzon::Object params, Jzon::Object* 
 		usleep(500);	//TODO: GET RID OF MAGIC NUMBERS	
 	}
     set_video_frame_cq(stream->video->coded_frames, H264, new_width, new_height);
+
+    outRootNode->Add("error", Jzon::null);
 }
 
-void Mixer::remove_crop_from_layout(Jzon::Object params, Jzon::Object* outRootNode)
+void Mixer::remove_crop_from_layout(Jzon::Object* params, Jzon::Object* outRootNode)
 {
-    int crop_id = params.Get("crop_id").ToInt();
+    int crop_id = params->Get("crop_id").ToInt();
 
-	if(layout->remove_crop_from_output_stream(crop_id)){
-		remove_stream(out_video_str, crop_id);
+	if(layout->remove_crop_from_output_stream(crop_id) == FALSE){
+        outRootNode->Add("error", "Error removing stream from layout. Check introduced ID");
+        return;
+    } 
+
+	if(remove_stream(out_video_str, crop_id) == FALSE){
+        outRootNode->Add("error", "Error removing stream from list. Check introduced ID");
+        return;
+    }   
+
 #ifdef STATS
     	s_mng->remove_output_stream(crop_id);
 #endif
-		return;
-	} 
+        outRootNode->Add("error", Jzon::null);
 }
 
-void Mixer::add_destination(Jzon::Object params, Jzon::Object* outRootNode)
+void Mixer::add_destination(Jzon::Object* params, Jzon::Object* outRootNode)
 {
-	int stream_id = params.Get("stream_id").ToInt();
-    std::string ip_string = params.Get("ip").ToString();
-    uint32_t port = params.Get("port").ToInt();
+    cout << params->GetCount() << endl;
+    int stream_id = params->Get("stream_id").ToInt();
+    std::string ip_string = params->Get("ip").ToString();
+    uint32_t port = params->Get("port").ToInt();
     char *ip = new char[ip_string.length() + 1];
     strcpy(ip, ip_string.c_str());
 
 	stream_data_t *stream = get_stream_id(out_video_str, stream_id);
 
 	if (stream == NULL){
+        outRootNode->Add("error", "Introduced ID not valid");
 		return;
 	}
 	
 	uint32_t id = rand();	
 	participant_data_t *participant = init_participant(id, OUTPUT, ip, port);
 	add_participant_stream(stream, participant);
+
+    outRootNode->Add("error", Jzon::null);
 }
 
-void Mixer::remove_destination(Jzon::Object params, Jzon::Object* outRootNode)
+void Mixer::remove_destination(Jzon::Object* params, Jzon::Object* outRootNode)
 {
-	uint32_t id = params.Get("id").ToInt();
+	uint32_t id = params->Get("id").ToInt();
 
 	int i = 0;
 	stream_data_t* stream;
@@ -461,10 +537,12 @@ void Mixer::remove_destination(Jzon::Object params, Jzon::Object* outRootNode)
 	for (i=0; i<out_video_str->count; i++){
 		if (remove_participant_from_stream(stream, id)){
 			pthread_rwlock_unlock(&out_video_str->lock);
+            outRootNode->Add("error", Jzon::null);
 			return;
 		}
 	}
 	pthread_rwlock_unlock(&out_video_str->lock);
+    outRootNode->Add("error", "Introduced ID not valid");
 }
 
 vector<Mixer::Dst> Mixer::get_output_stream_destinations(uint32_t id)
@@ -502,10 +580,12 @@ void* Mixer::execute_routine(void *context){
 
 void Mixer::push_event(Event *e)
 {
-	eventQueue.push(e);
+    pthread_mutex_lock(&eventQueue_lock);
+    eventQueue.push(e);
+    pthread_mutex_unlock(&eventQueue_lock);
 }
 
-void Mixer::get_streams(Jzon::Object params, Jzon::Object* outRootNode){
+void Mixer::get_streams(Jzon::Object* params, Jzon::Object* outRootNode){
 
     Jzon::Array stream_list;
     if(layout->get_streams()->empty()){
@@ -548,7 +628,7 @@ void Mixer::get_streams(Jzon::Object params, Jzon::Object* outRootNode){
     outRootNode->Add("input_streams", stream_list);
 }
 
-void Mixer::get_layout(Jzon::Object params, Jzon::Object* outRootNode){
+void Mixer::get_layout(Jzon::Object* params, Jzon::Object* outRootNode){
 
     Jzon::Array crop_list;
     std::map<uint32_t, Crop*>::iterator crop_it;
@@ -586,7 +666,7 @@ void Mixer::get_layout(Jzon::Object params, Jzon::Object* outRootNode){
     outRootNode->Add("output_stream", stream);
 }
 
-void Mixer::get_layout_size(Jzon::Object params, Jzon::Object* outRootNode)
+void Mixer::get_layout_size(Jzon::Object* params, Jzon::Object* outRootNode)
 {
 
     int width = layout->get_out_stream()->get_width();
@@ -597,7 +677,7 @@ void Mixer::get_layout_size(Jzon::Object params, Jzon::Object* outRootNode)
 
 }
 
-void Mixer::get_stats(Jzon::Object params, Jzon::Object* outRootNode)
+void Mixer::get_stats(Jzon::Object* params, Jzon::Object* outRootNode)
 {
 #ifdef STATS
     map<uint32_t,streamStats*> input_stats; 

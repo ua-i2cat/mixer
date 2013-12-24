@@ -36,13 +36,14 @@ class Event {
         int delay;
         int socket;
         int timestamp;
-        Jzon::Object input_root_node, output_root_node;
-        void(Mixer::*function)(Jzon::Object, Jzon::Object*);
+        Jzon::Object output_root_node;
+        Jzon::Object* input_root_node;
+        void(Mixer::*function)(Jzon::Object*, Jzon::Object*);
 
     public:
         
         bool operator<(const Event& e) const;
-        Event(void(Mixer::*fun)(Jzon::Object, Jzon::Object*), Jzon::Object params, int ts, int s);
+        Event(void(Mixer::*fun)(Jzon::Object*, Jzon::Object*), Jzon::Object params, int ts, int s);
         void exec_func(Mixer *m);
         void send_and_close();
         Jzon::Object get_input_root_node();

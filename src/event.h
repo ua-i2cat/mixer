@@ -35,7 +35,7 @@ class Event {
 
         int delay;
         int socket;
-        int timestamp;
+        uint32_t timestamp;
         Jzon::Object output_root_node;
         Jzon::Object* input_root_node;
         void(Mixer::*function)(Jzon::Object*, Jzon::Object*);
@@ -48,7 +48,7 @@ class Event {
         void send_and_close();
         Jzon::Object get_input_root_node();
         Jzon::Object get_output_root_node();
-        int get_timestamp();
+        uint32_t get_timestamp();
 
 };
 

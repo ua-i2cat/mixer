@@ -221,7 +221,7 @@ class Mixer {
 
 
         void get_stats_maps(map<uint32_t,streamStats*> &input_stats, map<uint32_t,streamStats*> &output_stats);
-        void push_event(Event *e);
+        void push_event(Event e);
         Mixer(int width, int height, int in_port);
 		~Mixer();
 
@@ -239,7 +239,7 @@ class Mixer {
         int max_frame_rate;
         uint32_t _in_port;
         uint8_t state;
-        priority_queue<Event*> eventQueue;
+        priority_queue<Event> eventQueue;
         pthread_mutex_t eventQueue_lock;
 
 		void* main_routine(void);

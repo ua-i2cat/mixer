@@ -61,7 +61,7 @@ Jzon::Object Event::get_output_root_node()
     return output_root_node;
 }
 
-int Event::get_timestamp() 
+uint32_t Event::get_timestamp() 
 {
     return timestamp;
 }

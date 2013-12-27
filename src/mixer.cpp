@@ -36,7 +36,8 @@ using namespace std;
 void* Mixer::main_routine(void) {
 	should_stop = false;
 	struct timeval start, finish, curr_time;
-	long diff = 0, min_diff = 0, curr_ts;
+	long diff = 0, min_diff = 0;
+    uint32_t curr_ts;
 
 #ifdef STATS
 	uint32_t compose_time;
@@ -52,10 +53,10 @@ void* Mixer::main_routine(void) {
 
         pthread_mutex_lock(&eventQueue_lock);
         if (!eventQueue.empty()){
-            Event *tmp = eventQueue.top();
-        	if (tmp->get_timestamp() <= curr_ts){ //TODO: this can be a while if we want to execute N orders in one iteration
-            	tmp->exec_func(this);
-            	tmp->send_and_close();
+            Event tmp = eventQueue.top();
+            if (tmp.get_timestamp() <= curr_ts){ //TODO: this can be a while if we want to execute N orders in one iteration
+            	tmp.exec_func(this);
+            	tmp.send_and_close();
             	eventQueue.pop();
             }
         }
@@ -503,7 +504,6 @@ void Mixer::remove_crop_from_layout(Jzon::Object* params, Jzon::Object* outRootN
 
 void Mixer::add_destination(Jzon::Object* params, Jzon::Object* outRootNode)
 {
-    cout << params->GetCount() << endl;
     int stream_id = params->Get("stream_id").ToInt();
     std::string ip_string = params->Get("ip").ToString();
     uint32_t port = params->Get("port").ToInt();
@@ -578,7 +578,7 @@ void* Mixer::execute_routine(void *context){
 	return ((Mixer *)context)->main_routine();
 }
 
-void Mixer::push_event(Event *e)
+void Mixer::push_event(Event e)
 {
     pthread_mutex_lock(&eventQueue_lock);
     eventQueue.push(e);
@@ -674,7 +674,6 @@ void Mixer::get_layout_size(Jzon::Object* params, Jzon::Object* outRootNode)
 
     outRootNode->Add("width", width);
     outRootNode->Add("height", height);
-
 }
 
 void Mixer::get_stats(Jzon::Object* params, Jzon::Object* outRootNode)

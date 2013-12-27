@@ -73,7 +73,7 @@ int main(int argc, char *argv[]){
 
     portno = atoi(argv[1]);
     get_socket(portno, &sockfd);
-    int ts;
+    uint32_t ts;
     initialize_action_mapping();
 
     while(!should_stop) {
@@ -123,7 +123,7 @@ int main(int argc, char *argv[]){
 
                 gettimeofday(&in_time, NULL);
                 ts = in_time.tv_sec*1000000 + in_time.tv_usec + rootNode.Get("delay").ToInt()*1000000;
-                m->push_event(new Event(commands[action], rootNode.Get("params"), ts, newsockfd));
+                m->push_event(Event(commands[action], rootNode.Get("params"), ts, newsockfd));
 
             }
         }
@@ -155,6 +155,7 @@ void initialize_action_mapping()
     commands["get_streams"] = &Mixer::get_streams;
     commands["get_layout"] = &Mixer::get_layout;
     commands["get_stats"] = &Mixer::get_stats;
+    commands["get_layout_size"] = &Mixer::get_layout_size;
 
 }
 
@@ -230,3 +231,4 @@ void send_and_close(string result, int socket)
     int n = write(socket,res,result.size());
     close(socket);
 }
+

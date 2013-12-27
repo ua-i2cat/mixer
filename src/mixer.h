@@ -209,8 +209,8 @@ class Mixer {
         void get_layout(Jzon::Object* rootNode, Jzon::Object *outRootNode);
         void get_stats(Jzon::Object* rootNode, Jzon::Object *outRootNode);
         void get_layout_size(Jzon::Object* rootNode, Jzon::Object* outRootNode);
-
-
+        void get_stream(Jzon::Object* params, Jzon::Object* outRootNode);
+        void get_crop_from_stream(Jzon::Object* params, Jzon::Object* outRootNode);
 
         /**
         * Get the destinations associated to an output stream

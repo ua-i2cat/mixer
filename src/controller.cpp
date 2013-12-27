@@ -104,6 +104,9 @@ int main(int argc, char *argv[]){
                     continue;
 
                 } else if (action.compare("exit") == 0){
+                    stop_mixer(&output_root_node);
+                    writer.Write();
+                    send_and_close(writer.GetResult(), newsockfd);
                     continue;
                 }
 
@@ -122,7 +125,7 @@ int main(int argc, char *argv[]){
                 }
 
                 gettimeofday(&in_time, NULL);
-                ts = in_time.tv_sec*1000000 + in_time.tv_usec + rootNode.Get("delay").ToInt()*1000000;
+                ts = in_time.tv_sec*1000000 + in_time.tv_usec + rootNode.Get("delay").ToInt()*1000;
                 m->push_event(Event(commands[action], rootNode.Get("params"), ts, newsockfd));
 
             }
@@ -156,6 +159,8 @@ void initialize_action_mapping()
     commands["get_layout"] = &Mixer::get_layout;
     commands["get_stats"] = &Mixer::get_stats;
     commands["get_layout_size"] = &Mixer::get_layout_size;
+    commands["get_stream"] = &Mixer::get_stream;
+    commands["get_crop_from_stream"] = &Mixer::get_crop_from_stream;
 
 }
 
@@ -189,6 +194,15 @@ void stop_mixer(Jzon::Object *outputRootNode){
     
     m->stop();
     delete m;
+    outputRootNode->Add("error", Jzon::null);
+}
+
+void exit(Jzon::Object *outputRootNode){
+    if (m != NULL){
+        m->stop();
+        delete m;
+    }
+    should_stop = true;
     outputRootNode->Add("error", Jzon::null);
 }
 

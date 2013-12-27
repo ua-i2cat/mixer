@@ -628,6 +628,77 @@ void Mixer::get_streams(Jzon::Object* params, Jzon::Object* outRootNode){
     outRootNode->Add("input_streams", stream_list);
 }
 
+void Mixer::get_stream(Jzon::Object* params, Jzon::Object* outRootNode)
+{
+
+    uint32_t id = params->Get("id").ToInt();
+
+    Stream *str = layout->get_stream_by_id(id);
+
+    if (str == NULL){
+        outRootNode->Add("stream", Jzon::null);
+        return;
+    }
+
+    Jzon::Array crop_list;
+    std::map<uint32_t, Crop*>* crop_map;
+    std::map<uint32_t, Crop*>::iterator crop_it;
+
+    outRootNode->Add("id", (int)str->get_id());
+    outRootNode->Add("width", (int)str->get_width());
+    outRootNode->Add("height", (int)str->get_height());
+    crop_map = str->get_crops();
+    for (crop_it = crop_map->begin(); crop_it != crop_map->end(); crop_it++){
+        Jzon::Object crop;
+        crop.Add("id", (int)crop_it->second->get_id());
+        crop.Add("c_w", (int)crop_it->second->get_crop_width());
+        crop.Add("c_h", (int)crop_it->second->get_crop_height());
+        crop.Add("c_x", (int)crop_it->second->get_crop_x());
+        crop.Add("c_y", (int)crop_it->second->get_crop_y());
+        crop.Add("dst_w", (int)crop_it->second->get_dst_width());
+        crop.Add("dst_h", (int)crop_it->second->get_dst_height());
+        crop.Add("dst_x", (int)crop_it->second->get_dst_x());
+        crop.Add("dst_y", (int)crop_it->second->get_dst_y());
+        crop.Add("layer", (int)crop_it->second->get_layer());
+        crop.Add("state", (int)crop_it->second->is_active());
+        crop_list.Add(crop);
+    }
+    outRootNode->Add("crops", crop_list);
+}
+
+void Mixer::get_crop_from_stream(Jzon::Object* params, Jzon::Object* outRootNode)
+{
+
+    uint32_t stream_id = params->Get("stream_id").ToInt();
+    uint32_t crop_id = params->Get("crop_id").ToInt();
+
+    Stream *stream = layout->get_stream_by_id(stream_id);
+
+    if (stream == NULL){
+        outRootNode->Add("stream", Jzon::null);
+        return;
+    }
+
+    Crop* c = stream->get_crop_by_id(crop_id);
+
+    if (c == NULL){
+        outRootNode->Add("crop", Jzon::null);
+        return;
+    }
+
+    outRootNode->Add("id", (int)c->get_id());
+    outRootNode->Add("c_w", (int)c->get_crop_width());
+    outRootNode->Add("c_h", (int)c->get_crop_height());
+    outRootNode->Add("c_x", (int)c->get_crop_x());
+    outRootNode->Add("c_y", (int)c->get_crop_y());
+    outRootNode->Add("dst_w", (int)c->get_dst_width());
+    outRootNode->Add("dst_h", (int)c->get_dst_height());
+    outRootNode->Add("dst_x", (int)c->get_dst_x());
+    outRootNode->Add("dst_y", (int)c->get_dst_y());
+    outRootNode->Add("layer", (int)c->get_layer());
+    outRootNode->Add("state", (int)c->is_active());
+}
+
 void Mixer::get_layout(Jzon::Object* params, Jzon::Object* outRootNode){
 
     Jzon::Array crop_list;

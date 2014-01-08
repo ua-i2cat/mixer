@@ -47,6 +47,8 @@ int get_socket(int port, int *sock);
 int listen_socket(int sock, int *newsock);
 void start_mixer(Jzon::Object rootNode, Jzon::Object *outputRootNode);
 void stop_mixer(Jzon::Object *outputRootNode);
+void check_state(Jzon::Object *outputRootNode);
+void exit_mixer(Jzon::Object *outputRootNode);
 void send_and_close(string msg, int socket);
 
 map<string,void(Mixer::*)(Jzon::Object*, Jzon::Object*)> commands;
@@ -91,20 +93,25 @@ int main(int argc, char *argv[]){
             if (parser.Parse()) {
                 action = rootNode.Get("action").ToString();
 
-                if (action.compare("start") == 0){
+                if (action.compare("start") == 0) {
                     start_mixer(rootNode, &output_root_node);
                     writer.Write();
                     send_and_close(writer.GetResult(), newsockfd);
                     continue;
 
-                } else if (action.compare("stop") == 0){
+                } else if (action.compare("stop") == 0) {
                     stop_mixer(&output_root_node);
                     writer.Write();
                     send_and_close(writer.GetResult(), newsockfd);
                     continue;
 
-                } else if (action.compare("exit") == 0){
-                    stop_mixer(&output_root_node);
+                } else if (action.compare("exit") == 0) {
+                    exit_mixer(&output_root_node);
+                    writer.Write();
+                    send_and_close(writer.GetResult(), newsockfd);
+                    continue;
+                } else if (action.compare("get_state") == 0) {
+                    check_state(&output_root_node);
                     writer.Write();
                     send_and_close(writer.GetResult(), newsockfd);
                     continue;
@@ -186,7 +193,8 @@ void start_mixer(Jzon::Object rootNode, Jzon::Object *outputRootNode)
 
 }
 
-void stop_mixer(Jzon::Object *outputRootNode){
+void stop_mixer(Jzon::Object *outputRootNode)
+{
     if (m == NULL){
         outputRootNode->Add("error", "Mixer is not running");
         return;
@@ -197,7 +205,8 @@ void stop_mixer(Jzon::Object *outputRootNode){
     outputRootNode->Add("error", Jzon::null);
 }
 
-void exit(Jzon::Object *outputRootNode){
+void exit_mixer(Jzon::Object *outputRootNode)
+{
     if (m != NULL){
         m->stop();
         delete m;
@@ -205,6 +214,17 @@ void exit(Jzon::Object *outputRootNode){
     should_stop = true;
     outputRootNode->Add("error", Jzon::null);
 }
+
+void check_state(Jzon::Object *outputRootNode)
+{
+    if (m == NULL) {
+        outputRootNode->Add("state", 0);
+    } else {
+        outputRootNode->Add("state", 1);
+    } 
+}
+
+
 
 int get_socket(int port, int *sock){
     struct sockaddr_in serv_addr;

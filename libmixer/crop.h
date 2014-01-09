@@ -52,6 +52,7 @@ class Crop {
 		uint8_t run;
 		pthread_t thread;
 		uint8_t active;
+        double opacity;
 	    
         void *resize_routine(void);
   
@@ -101,7 +102,7 @@ class Crop {
         * @param new_layer new layout rectangle layer
         * @see Crop()
         */
-        void modify_dst(uint32_t new_dst_width, uint32_t new_dst_height, uint32_t new_dst_x, uint32_t new_dst_y, uint32_t new_layer);
+        void modify_dst(uint32_t new_dst_width, uint32_t new_dst_height, uint32_t new_dst_x, uint32_t new_dst_y, uint32_t new_layer, double op);
 
         void init_input_values(uint32_t width, uint32_t height, uint32_t x, uint32_t y, Mat& stream_img_ref);
 
@@ -123,6 +124,7 @@ class Crop {
         uint8_t is_active();
         void set_active(uint8_t act);
         uint8_t* get_buffer();
-	   uint32_t get_buffer_size();
+	    uint32_t get_buffer_size();
         void set_resized_buffer(uint8_t* buffer);
+        double get_opacity();
 };

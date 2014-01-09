@@ -351,8 +351,9 @@ void Mixer::modify_crop_resizing_from_source(Jzon::Object* params, Jzon::Object*
     int new_rsz_x = params->Get("x").ToInt();
     int new_rsz_y = params->Get("y").ToInt();
     int new_layer = params->Get("layer").ToInt();
+    double opacity = params->Get("opacity").ToDouble();
 
-	int ret = layout->modify_dst_crop_from_stream(stream_id, crop_id, new_rsz_width, new_rsz_height, new_rsz_x, new_rsz_y, new_layer);
+	int ret = layout->modify_dst_crop_from_stream(stream_id, crop_id, new_rsz_width, new_rsz_height, new_rsz_x, new_rsz_y, new_layer, opacity);
 
     if (ret == FALSE){
         outRootNode->Add("error", "Error modifying crop. Check introduced parameters");

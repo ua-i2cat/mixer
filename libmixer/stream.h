@@ -137,6 +137,7 @@ class Stream {
 		Mat get_img();
 		uint32_t get_width();
 		uint32_t get_height();
+              void set_img_colour(int b, int g, int r);
 
 };
 

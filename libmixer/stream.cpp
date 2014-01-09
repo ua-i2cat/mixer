@@ -168,6 +168,12 @@ void Stream::set_new_frame(uint8_t new_flag)
 	new_frame = new_flag;
 }
 
+void Stream::set_img_colour(int b, int g, int r)
+{
+	img = Scalar(b, g, r);
+}
+
+
 
 
 

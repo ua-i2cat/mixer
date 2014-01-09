@@ -38,6 +38,7 @@ Crop::Crop(uint32_t crop_id, uint32_t c_width, uint32_t c_height, uint32_t c_x, 
 	src_img = stream_img_ref;
 	rect_crop = Rect(c_x, c_y, c_width, c_height);
 	active = TRUE;
+	opacity = 1;
 }
 
 Crop::Crop(uint32_t crop_id, Mat& stream_img_ref):src_img(stream_img_ref)
@@ -52,6 +53,7 @@ Crop::Crop(uint32_t crop_id, Mat& stream_img_ref):src_img(stream_img_ref)
 	layer = 0;
 	dst_x = 0;
 	dst_y = 0;
+	opacity = 1;
 	active = FALSE;
 	src_img = stream_img_ref;
 }
@@ -75,7 +77,7 @@ void Crop::modify_crop(uint32_t new_crop_width, uint32_t new_crop_height, uint32
 	rect_crop = Rect(new_crop_x, new_crop_y, new_crop_width, new_crop_height);
 }
 
-void Crop::modify_dst(uint32_t new_dst_width, uint32_t new_dst_height, uint32_t new_dst_x, uint32_t new_dst_y, uint32_t new_layer)
+void Crop::modify_dst(uint32_t new_dst_width, uint32_t new_dst_height, uint32_t new_dst_x, uint32_t new_dst_y, uint32_t new_layer, double op)
 {
 	rsz_img_size.width = new_dst_width;
 	rsz_img_size.height = new_dst_height;
@@ -83,6 +85,7 @@ void Crop::modify_dst(uint32_t new_dst_width, uint32_t new_dst_height, uint32_t 
 	dst_y = new_dst_y;
 	layer = new_layer;
 	resized_img.create(new_dst_height, new_dst_width, CV_8UC3);
+	opacity = op;
 }
 
 void* Crop::execute_resize(void *context)
@@ -185,6 +188,11 @@ uint32_t Crop::get_crop_y()
 
 void Crop::set_resized_buffer(uint8_t* buffer){
 	resized_img.data = buffer;
+}
+
+double Crop::get_opacity()
+{
+	return opacity;
 }
 
 

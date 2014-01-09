@@ -34,7 +34,6 @@ using namespace std;
 Layout::Layout(uint32_t width, uint32_t height)
 {
 	out_stream = new Stream(rand(), width, height); 
-	//out_stream->add_crop(rand(), width, height, 0, 0, 0, width, height, 0, 0);
 	layers_it = crops_by_layers.begin();
 }
 
@@ -92,7 +91,7 @@ int Layout::init_stream(uint32_t stream_id, uint32_t width, uint32_t height)
 		if (!check_values(out_stream->get_width(), out_stream->get_height(), it->second->get_dst_width(), 
 							it->second->get_dst_height(), it->second->get_dst_x(), it->second->get_dst_y()))
 		{
-			it->second->modify_dst(out_stream->get_width(), out_stream->get_height(), 0, 0, 0);
+			it->second->modify_dst(out_stream->get_width(), out_stream->get_height(), 0, 0, 0, 1);
 		}
 		it->second->set_active(TRUE);
 		crops_by_layers.insert(pair<uint32_t, Crop*>(it->second->get_layer(), it->second));
@@ -215,7 +214,8 @@ int Layout::modify_orig_crop_from_stream(uint32_t stream_id, uint32_t crop_id, u
 }
 
 int Layout::modify_dst_crop_from_stream(uint32_t stream_id, uint32_t crop_id, uint32_t new_crop_width, uint32_t new_crop_height,
-                    uint32_t new_crop_x, uint32_t new_crop_y, uint32_t new_layer){
+                    uint32_t new_crop_x, uint32_t new_crop_y, uint32_t new_layer, double opacity)
+{
 
 	if (streams.count(stream_id) <= 0) {
 		return FALSE;
@@ -240,24 +240,42 @@ int Layout::modify_dst_crop_from_stream(uint32_t stream_id, uint32_t crop_id, ui
 	}
 
 	if (layers_it == crops_by_layers.end()){
-		crop->modify_dst(new_crop_width, new_crop_height, new_crop_x, new_crop_y, new_layer);
+		crop->modify_dst(new_crop_width, new_crop_height, new_crop_x, new_crop_y, new_layer, opacity);
 		return TRUE;  //Trick to modify crops if are not active
 	}
 
 	crops_by_layers.erase(layers_it);
 	out_stream->get_img()(Rect(crop->get_dst_x(), crop->get_dst_y(), crop->get_dst_width(), crop->get_dst_height())) = Mat::zeros(crop->get_dst_height(), crop->get_dst_width(), CV_8UC3);
-	crop->modify_dst(new_crop_width, new_crop_height, new_crop_x, new_crop_y, new_layer);
+	crop->modify_dst(new_crop_width, new_crop_height, new_crop_x, new_crop_y, new_layer, opacity);
 	crops_by_layers.insert(pair<uint32_t, Crop*>(crop->get_layer(), crop));
 
 	return TRUE;
 
 }
 
+
 void Layout::compose_layout()
 {
+	out_stream->set_img_colour(0, 0, 0);
+
 	for (layers_it = crops_by_layers.begin(); layers_it != crops_by_layers.end(); layers_it++){
 		Crop *crop = layers_it->second;
-		crop->get_crop_img().copyTo(out_stream->get_img()(Rect(crop->get_dst_x(), crop->get_dst_y(), crop->get_dst_width(), crop->get_dst_height())));
+		if (crop->get_opacity() == 1){
+			crop->get_crop_img().copyTo(out_stream->get_img()(Rect(crop->get_dst_x(), crop->get_dst_y(), crop->get_dst_width(), crop->get_dst_height())));
+			continue;
+		}
+
+		if (crop->get_opacity() > 0 && crop->get_opacity() < 1){
+        	addWeighted(
+        		crop->get_crop_img(), 
+        		crop->get_opacity(), 
+        		out_stream->get_img()(Rect(crop->get_dst_x(), crop->get_dst_y(), crop->get_dst_width(), crop->get_dst_height())),
+        		1 - crop->get_opacity(), 
+        		0.0, 
+        		out_stream->get_img()(Rect(crop->get_dst_x(), crop->get_dst_y(), crop->get_dst_width(), crop->get_dst_height()))
+        	);
+        	continue;
+        }
 	}
 }
 
@@ -394,7 +412,7 @@ int Layout::modify_crop_resize_from_output_stream(uint32_t crop_id, uint32_t new
 
 	//TODO;; check if width and height are bigger thant MAX SIZE;
 
-	crop->modify_dst(new_width, new_height, 0, 0, 0);
+	crop->modify_dst(new_width, new_height, 0, 0, 0, 1);
 
 	return TRUE;
 }

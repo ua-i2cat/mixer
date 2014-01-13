@@ -620,6 +620,7 @@ void Mixer::get_streams(Jzon::Object* params, Jzon::Object* outRootNode){
             crop.Add("dst_x", (int)crop_it->second->get_dst_x());
             crop.Add("dst_y", (int)crop_it->second->get_dst_y());
             crop.Add("layer", (int)crop_it->second->get_layer());
+            crop.Add("opacity", crop_it->second->get_opacity());
             crop.Add("state", (int)crop_it->second->is_active());
             crop_list.Add(crop);
         }
@@ -661,6 +662,7 @@ void Mixer::get_stream(Jzon::Object* params, Jzon::Object* outRootNode)
         crop.Add("dst_x", (int)crop_it->second->get_dst_x());
         crop.Add("dst_y", (int)crop_it->second->get_dst_y());
         crop.Add("layer", (int)crop_it->second->get_layer());
+        crop.Add("opacity", crop_it->second->get_opacity());
         crop.Add("state", (int)crop_it->second->is_active());
         crop_list.Add(crop);
     }
@@ -697,6 +699,7 @@ void Mixer::get_crop_from_stream(Jzon::Object* params, Jzon::Object* outRootNode
     outRootNode->Add("dst_x", (int)c->get_dst_x());
     outRootNode->Add("dst_y", (int)c->get_dst_y());
     outRootNode->Add("layer", (int)c->get_layer());
+    outRootNode->Add("opacity", c->get_opacity());
     outRootNode->Add("state", (int)c->is_active());
 }
 

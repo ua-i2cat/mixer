@@ -50,20 +50,6 @@ class Mixer {
 		};
 
 		/**
-        * Get an instance of Mixer classs
-        * @return An instance of Mixer
-        */
-
-		/**
-        * Get an instance of Mixer classs
-        * @param layout_width Layout width
-        * @param layout_height Layout height
-        * @param in_port Listening port for input streams
-        * @return An instance of Mixer
-        */
-
-
-		/**
         * Starts Mixer main routine and IO managers
         */
         void start();
@@ -74,20 +60,25 @@ class Mixer {
         void stop();
 
 		/**
-        * Add an input stream. Width and height are automatically detected
-        * @return 1 if succeeded and 0 if not
+        * Add an input stream. Width and height are automatically detected.
+        * Parameters can be found on JSON rootNode. Return values must be written
+        * in outRootNode. Parameter names match JSON keys.
+        * @return {"id":id} Assigned ID to the stream
         */
 		void add_source(Jzon::Object* rootNode, Jzon::Object *outRootNode);
 
 		/**
-        * Removes an input stream
+        * Removes an input stream. Parameters can be found on JSON rootNode. Return values must be written
+        * in outRootNode. Parameter names match JSON keys.
         * @param id Stream ID
-        * @return 1 if succeeded and 0 if not
+        * @return {"error":null} if succeded or {"error":msg_error} if not.
         */
 		void remove_source(Jzon::Object* rootNode, Jzon::Object *outRootNode);
 		
 		/**
-		* Add a new crop to an input stream
+		* Add a new crop to an input stream.
+        * Parameters can be found on JSON rootNode. Return values must be written
+        * in outRootNode. Parameter names match JSON keys.
 		* @param id  Input stream id 
        	* @param crop_width cropping rectangle width in pixels 
        	* @param crop_height cropping rectangle height in pixels 
@@ -98,118 +89,295 @@ class Mixer {
        	* @param rsz_x layout rectangle upper left corner x coordinate (dummy in case of output stream crops)
        	* @param rsz_y layout rectangle upper left corner y coordinate (dummy in case of output stream crops)
        	* @param layer layout rectangle layer (considering layer 1 image bottom)
+        * @return {"error":null} if succeded or {"error":msg_error} if not.
        	*/
 		void add_crop_to_source(Jzon::Object* rootNode, Jzon::Object *outRootNode);
 
 		/**
-        * Modify an input stream crop
+        * Modify an input stream crop.
+        * Parameters can be found on JSON rootNode. Return values must be written
+        * in outRootNode. Parameter names match JSON keys.
         * @param stream_id Id of the stream that contains the crop 
         * @param crop_id Id of the crop
-        * @param new_crop_width new cropping rectangle width in pixels 
-       	* @param new_crop_height new cropping rectangle height in pixels
-       	* @param new_crop_x new cropping rectangle upper left corner x coordinate
-       	* @param new_crop_y new cropping rectangle upper left corner y coordinate
-        * @return 1 if succeeded and 0 if not
+        * @param width new cropping rectangle width in pixels 
+       	* @param height new cropping rectangle height in pixels
+       	* @param x new cropping rectangle upper left corner x coordinate
+       	* @param y new cropping rectangle upper left corner y coordinate
+        * @return {"error":null} if succeded or {"error":msg_error} if not.
         */
         void modify_crop_from_source(Jzon::Object* rootNode, Jzon::Object *outRootNode);
 
         /**
-        * Modify the layout rectangle associated to an input stream crop
+        * Modify the layout rectangle associated to an input stream crop.
+        * Parameters can be found on JSON rootNode. Return values must be written
+        * in outRootNode. Parameter names match JSON keys.
         * @param stream_id Id of the stream that contains the crop 
         * @param crop_id Id of the crop
-        * @param new_crop_width new cropping rectangle width in pixels 
-       	* @param new_crop_height new cropping rectanble height in pixels
-       	* @param new_crop_x new cropping rectangle upper left corner x coordinate
-       	* @param new_crop_y new cropping rectangle upper left corner y coordinate
-       	* @param new_layer new layout rectangle layer
-        * @return 1 if succeeded and 0 if not
+        * @param width new cropping rectangle width in pixels 
+       	* @param height new cropping rectanble height in pixels
+       	* @param x new cropping rectangle upper left corner x coordinate
+       	* @param y new cropping rectangle upper left corner y coordinate
+        * @param layer new layout rectangle layer
+       	* @param opacity new rectangle opacity value
+        * @return {"error":null} if succeded or {"error":msg_error} if not.
         */
         void modify_crop_resizing_from_source(Jzon::Object* rootNode, Jzon::Object *outRootNode);
 
         /**
-        * Remove a crop from an input stream
+        * Remove a crop from an input stream.
+        * Parameters can be found on JSON rootNode. Return values must be written
+        * in outRootNode. Parameter names match JSON keys.
         * @param stream_id Id of the stream that contains the crop 
         * @param crop_id Id of the crop 
-        * @return 1 if succeeded and 0 if not
+        * @return {"error":null} if succeded or {"error":msg_error} if not.
         */
 		void remove_crop_from_source(Jzon::Object* rootNode, Jzon::Object *outRootNode);
 
 		/**
-        * Add a new crop to the layout, creating a new output stream associated to it
-        * @param crop_width cropping rectangle width in pixels 
-       	* @param crop_height cropping rectangle height in pixels 
-       	* @param crop_x cropping rectangle upper left corner x coordinate
-       	* @param crop_y cropping rectangle upper left corner y coordinate
+        * Add a new crop to the layout, creating a new output stream associated to it. 
+        * Parameters can be found on JSON rootNode. Return values must be written
+        * in outRootNode. Parameter names match JSON keys.
+        * @param width cropping rectangle width in pixels 
+       	* @param height cropping rectangle height in pixels 
+       	* @param x cropping rectangle upper left corner x coordinate
+       	* @param y cropping rectangle upper left corner y coordinate
        	* @param output_width resized crop width
        	* @param output_height resized crop height
-        * @return 1 if succeeded and 0 if not
+        * @return {"error":null} if succeded or {"error":msg_error} if not.
         */
         void add_crop_to_layout(Jzon::Object* rootNode, Jzon::Object *outRootNode);
 
         /**
-        * Modify a crop from the layout
+        * Modify a crop from the layout.
+        * Parameters can be found on JSON rootNode. Return values must be written
+        * in outRootNode. Parameter names match JSON keys.
         * @param crop_id Id of the crop to be modified 
-        * @param new_crop_width cropping rectangle width in pixels 
-       	* @param new_crop_height cropping rectangle height in pixels 
-       	* @param new_crop_x cropping rectangle upper left corner x coordinate
-       	* @param new_crop_y cropping rectangle upper left corner y coordinate
-        * @return 1 if succeeded and 0 if not
+        * @param width cropping rectangle width in pixels 
+       	* @param height cropping rectangle height in pixels 
+       	* @param x cropping rectangle upper left corner x coordinate
+       	* @param y cropping rectangle upper left corner y coordinate
+        * @return {"error":null} if succeded or {"error":msg_error} if not.
         */
         void modify_crop_from_layout(Jzon::Object* rootNode, Jzon::Object *outRootNode);
 
         /**
-        * Modify a crop from the layout
+        * Modify a crop from the layout.
+        * Parameters can be found on JSON rootNode. Return values must be written
+        * in outRootNode. Parameter names match JSON keys.
         * @param crop_id Id of the crop to be modified 
-        * @param new_width resized crop width
-       	* @param new_height resized crop height
-        * @return 1 if succeeded and 0 if not
+        * @param width resized crop width
+       	* @param height resized crop height
+        * @return {"error":null} if succeded or {"error":msg_error} if not.
         */
         void modify_crop_resizing_from_layout(Jzon::Object* rootNode, Jzon::Object *outRootNode);
 
         /**
-        * Remove a crop from the layout and the output stream associated to it
+        * Remove a crop from the layout and the output stream associated to it.
+        * Parameters can be found on JSON rootNode. Return values must be written
+        * in outRootNode. Parameter names match JSON keys.
         * @param crop_id Id of the crop to be removed 
-        * @return 1 if succeeded and 0 if not
+        * @return {"error":null} if succeded or {"error":msg_error} if not.
         */
         void remove_crop_from_layout(Jzon::Object* rootNode, Jzon::Object *outRootNode);
 
         /**
-        * Enable input stream crop displaying
+        * Enable input stream crop displaying.
+        * Parameters can be found on JSON rootNode. Return values must be written
+        * in outRootNode. Parameter names match JSON keys.
         * @param stream_id Id of the stream that contains the crop 
         * @param crop_id Id of the crop ss
-        * @return 1 if succeeded and 0 if not
+        * @return {"error":null} if succeded or {"error":msg_error} if not.
         */
         void enable_crop_from_source(Jzon::Object* rootNode, Jzon::Object *outRootNode);
 
         /**
-        * Disable input stream crop displaying
+        * Disable input stream crop displaying.
+        * Parameters can be found on JSON rootNode. Return values must be written
+        * in outRootNode. Parameter names match JSON keys.
         * @param stream_id Id of the stream that contains the crop 
         * @param crop_id Id of the crop ss
-        * @return 1 if succeeded and 0 if not
+        * @return {"error":null} if succeded or {"error":msg_error} if not.
         */
         void disable_crop_from_source(Jzon::Object* rootNode, Jzon::Object *outRootNode);
 
         /**
         * Add a new destination associated to an output stream. 
+        * Parameters can be found on JSON rootNode. Return values must be written
+        * in outRootNode. Parameter names match JSON keys.
         * @param ip Destination IP address 
         * @param port Destination port 
         * @param stream_id Output stream ID  
-        * @return 1 if succeeded and 0 if not
+        * @return {"error":null} if succeded or {"error":msg_error} if not.
         */
 		void add_destination(Jzon::Object* rootNode, Jzon::Object *outRootNode);
 
 		/**
-        * Remove a destination 
+        * Remove a destination.
+        * Parameters can be found on JSON rootNode. Return values must be written
+        * in outRootNode. Parameter names match JSON keys. 
         * @param id Destination ID 
-        * @return 1 if succeeded and 0 if not
+        * @return {"error":null} if succeded or {"error":msg_error} if not.
         */
 		void remove_destination(Jzon::Object* rootNode, Jzon::Object *outRootNode);
 
+        /**
+        * Returns input stream information.
+        * @return 
+        *   { "input_streams" : 
+              [
+                {
+                  "id":id,
+                  "width":width,
+                  "height":height,
+                  "crops":
+                  [
+                    {
+                      "id":id,
+                      "c_w":c_w,
+                      "c_h":c_h,
+                      "c_x":c_x,
+                      "c_y":c_y,
+                      "dst_w":dst_w,
+                      "dst_h":dst_h,
+                      "dst_x":dst_x,
+                      "dst_y",dst_y,
+                      "layer":layer,
+                      "opacity":opacity,
+                      "state":state
+                    }
+                  ] 
+                }
+              ] 
+            }
+        */
         void get_streams(Jzon::Object* rootNode, Jzon::Object *outRootNode);
+
+        /**
+        * Returns information about layout and output streams. 
+        * @return 
+        *  { 
+             "output_stream" : {
+                "id":id, 
+                "width":width, 
+                "height":height, 
+                "crops":[
+                  { "id":id, 
+                    "c_w":c_w, 
+                    "c_h":c_h, 
+                    "c_x":c_x, 
+                    "c_y":c_y, 
+                    "dst_w":dst_w, 
+                    "dst_h":dst_h, 
+                    "destinations": [
+                      { "id":id, 
+                        "ip":ip, 
+                        "port":port
+                      }
+                    ]
+                  }
+                ]
+             }
+        *  }
+        */
         void get_layout(Jzon::Object* rootNode, Jzon::Object *outRootNode);
-        void get_stats(Jzon::Object* rootNode, Jzon::Object *outRootNode);
-        void get_layout_size(Jzon::Object* rootNode, Jzon::Object* outRootNode);
+
+        /**
+        * Returns an input stream information identified by the ID.
+        * Parameters can be found on JSON rootNode. Return values must be written
+        * in outRootNode. Parameter names match JSON keys.
+        * @param id Crop ID
+        * @return 
+        *   { 
+              "id":id,
+              "width":width,
+              "height":height,
+              "crops":
+              [
+                {
+                  "id":id,
+                  "c_w":c_w,
+                  "c_h":c_h,
+                  "c_x":c_x,
+                  "c_y":c_y,
+                  "dst_w":dst_w,
+                  "dst_h":dst_h,
+                  "dst_x":dst_x,
+                  "dst_y",dst_y,
+                  "layer":layer,
+                  "opacity":opacity,
+                  "state":state
+                }
+              ] 
+            }
+        */
         void get_stream(Jzon::Object* params, Jzon::Object* outRootNode);
+        
+        /**
+        * Returns layout width and height. 
+        * @return 
+        *   { 
+              "input_streams":
+              [
+                {
+                  "id":id,
+                  "delay":delay,
+                  "fps":fps,
+                  "bitrate":bitrate,
+                  "lost_coded_frames":lost_coded_frames,
+                  "lost_frames":lost_frames,
+                  "total_frames":total_frames,
+                  "lost_frames_percent":lost_frames_percent
+                }
+              ],
+              "output_streams":
+              [
+                {
+                  "id":id,
+                  "delay":delay,
+                  "fps":fps,
+                  "bitrate":bitrate,
+                  "lost_coded_frames":lost_coded_frames,
+                  "lost_frames":lost_frames,
+                  "total_frames":total_frames,
+                  "lost_frames_percent":lost_frames_percent
+                }
+              ]
+            }
+        */
+        void get_stats(Jzon::Object* rootNode, Jzon::Object *outRootNode);
+        
+        /**
+        * Returns information about input and output statistics. 
+        * @return 
+        *   { 
+              "width":width,
+              "height":height
+            }
+        */
+        void get_layout_size(Jzon::Object* rootNode, Jzon::Object* outRootNode);
+
+        /**
+        * Returns information about a stream crop.
+        * Parameters can be found on JSON rootNode. Return values must be written
+        * in outRootNode. Parameter names match JSON keys.
+        * @param stream_id Stream ID
+        * @param crop_id Crop ID
+        * @return 
+        *   { 
+              "id":id,
+              "c_w":c_w,
+              "c_h":c_h,
+              "c_x":c_x,
+              "c_y":c_y,
+              "dst_w":dst_w,
+              "dst_h":dst_h,
+              "dst_x":dst_x,
+              "dst_y",dst_y,
+              "layer":layer,
+              "opacity":opacity,
+              "state":state
+            }
+        */
         void get_crop_from_stream(Jzon::Object* params, Jzon::Object* outRootNode);
 
         /**
@@ -219,11 +387,27 @@ class Mixer {
         */
         vector<Dst> get_output_stream_destinations(uint32_t id);
 
-
-        void get_stats_maps(map<uint32_t,streamStats*> &input_stats, map<uint32_t,streamStats*> &output_stats);
+        /**
+        * Pushes an Event object into the event queue
+        * @param e Event object to be introduced
+        */
         void push_event(Event e);
+
+        /**
+        * Class constructor
+        * @param width Layout width
+        * @param height Layout height
+        * @param in_port Listening port for input streams
+        */
         Mixer(int width, int height, int in_port);
+        
+        void get_stats_maps(map<uint32_t,streamStats*> &input_stats, map<uint32_t,streamStats*> &output_stats);
 		~Mixer();
+
+    protected:
+        priority_queue<Event> eventQueue;     //NOTE: Doxygen trick in order to show relationship between classes. There's 
+                                              //      no inheritance between classes in the project so we can consider this 
+                                              //      attribute as private.
 
     private:
         pthread_t thread;
@@ -239,7 +423,6 @@ class Mixer {
         int max_frame_rate;
         uint32_t _in_port;
         uint8_t state;
-        priority_queue<Event> eventQueue;
         pthread_mutex_t eventQueue_lock;
 
 		void* main_routine(void);

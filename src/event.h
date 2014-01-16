@@ -29,6 +29,8 @@
 
 using namespace std;
 
+/*! Event class defines a Mixer Event. It basically contains a reference to a Mixer class method and the action delay. */ 
+
 class Mixer;
 
 class Event {
@@ -42,10 +44,31 @@ class Event {
 
     public:
         
-        bool operator<(const Event& e) const;
+        /**
+        * Class constructor
+        * @param fun Mixer method reference associated to the event
+        * @param params JSON object containing Mixer function parameters
+        * @param ts Timestamp of the Event, which identifies when it can be executed
+        * @param s A reference to the socket structure in order to send the method response and close the connection
+        */
         Event(void(Mixer::*fun)(Jzon::Object*, Jzon::Object*), Jzon::Object params, int ts, int s);
+
+        /**
+        * Redefinition of < operator regarding event queue order
+        */
+        bool operator<(const Event& e) const;
+        
+        /**
+        * Execute the Mixer associated mehotd
+        * @param m Pointer to the Mixer object which will execute the method
+        */
         void exec_func(Mixer *m);
+
+        /**
+        * Format the response as JSON, sends it to the Event request origin and close the connection
+        */
         void send_and_close();
+        
         Jzon::Object get_input_root_node();
         Jzon::Object get_output_root_node();
         uint32_t get_timestamp();

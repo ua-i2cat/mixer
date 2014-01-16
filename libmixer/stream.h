@@ -130,14 +130,22 @@ class Stream {
               */
               void resize_crops();
 
+              /**
+              * Sets stream img to a rgb colour
+              * @param r 0-255 red valuee 
+              * @param g 0-255 green value
+              * @param b 0-255 blue value
+              * @see Layout::compose_layout()
+              */
+              void set_img_colour(int b, int g, int r);
+
               uint8_t has_new_frame();
               void set_new_frame(uint8_t new_flag);
-		uint32_t get_id();
-		map<uint32_t, Crop*>* get_crops();
-		Mat get_img();
-		uint32_t get_width();
-		uint32_t get_height();
-              void set_img_colour(int b, int g, int r);
+              uint32_t get_id();
+              map<uint32_t, Crop*>* get_crops();
+              Mat get_img();
+              uint32_t get_width();
+              uint32_t get_height();
 
 };
 

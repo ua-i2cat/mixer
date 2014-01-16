@@ -29,9 +29,9 @@ using namespace std;
 
 statManager::statManager()
 {
-    cout << " Delay  " << "In delay  " << "Mix delay  " << "Out delay  " 
-    << "In lost/total  " << "Out lost/total  " << "Out fps" << endl;
-    
+    cout << " Delay  " << "In_delay  " << "Mix_delay  " << "Out_delay  " 
+    << "%InDec_losses  " << "%InCod_losses  " << "%OutDec_losses  " 
+    << "%OutCod_losses  " << "Out_fps" << endl;
 }
 
 void statManager::update_mix_stat(uint32_t delay)
@@ -58,9 +58,9 @@ void statManager::update_input_stat(uint32_t id, float decode_delay, float resiz
     stats->set_fps(fps);
     stats->set_bitrate(bitrate);
     stats->set_lost_coded_frames(lost_coded_frames);
-    stats->set_lost_frames(stats->get_lost_frames() + seq_number - stats->get_total_frames() - 1);
+    stats->set_lost_decoded_frames(stats->get_lost_decoded_frames() + seq_number - stats->get_total_frames() - 1);
     stats->set_total_frames(seq_number);
-    stats->set_lost_frames_percent(((stats->get_lost_frames() + lost_coded_frames)*100)/(stats->get_total_frames() + lost_coded_frames)); 
+    stats->set_lost_frames_percent(((stats->get_lost_decoded_frames() + lost_coded_frames)*100)/(stats->get_total_frames() + lost_coded_frames)); 
 }
 
 void statManager::update_output_stat(uint32_t id, float resize_encoding_delay, float tx_delay, float fps,
@@ -77,7 +77,7 @@ void statManager::update_output_stat(uint32_t id, float resize_encoding_delay, f
     stats->set_bitrate(0);
     stats->set_lost_coded_frames(lost_coded_frames);
     stats->set_total_frames(seq_number);
-    stats->set_lost_frames_percent(((stats->get_lost_frames() + lost_coded_frames)*100)/(stats->get_total_frames())); 
+    stats->set_lost_frames_percent(((stats->get_lost_decoded_frames() + lost_coded_frames)*100)/(stats->get_total_frames())); 
 }
 
 void statManager::get_stats(map<uint32_t,streamStats*> &input_stats, map<uint32_t,streamStats*> &output_stats)
@@ -92,9 +92,11 @@ void statManager::update_stats()
     
     mix_delay = 0;
     counter = 0;
-    lost_input_frames = 0;
+    lost_coded_input_frames = 0;
+    lost_decoded_input_frames = 0;
     total_input_frames = 0;
-    lost_output_frames = 0;
+    lost_coded_output_frames = 0;
+    lost_decoded_output_frames = 0;
     total_output_frames = 0;
     input_max_delay = 0;
     output_max_delay = 0;
@@ -102,7 +104,8 @@ void statManager::update_stats()
 
     for (input_str_it = input_str_map.begin(); input_str_it != input_str_map.end(); input_str_it++){
         total_input_frames += input_str_it->second->get_total_frames() + input_str_it->second->get_lost_coded_frames();
-        lost_input_frames += input_str_it->second->get_lost_frames() + input_str_it->second->get_lost_coded_frames();
+        lost_coded_input_frames += input_str_it->second->get_lost_coded_frames();
+        lost_decoded_input_frames += input_str_it->second->get_lost_decoded_frames();
 
         if (input_str_it->second->get_delay() > input_max_delay){
             input_max_delay = input_str_it->second->get_delay();
@@ -111,7 +114,8 @@ void statManager::update_stats()
 
     for (output_str_it = output_str_map.begin(); output_str_it != output_str_map.end(); output_str_it++){
         total_output_frames += output_str_it->second->get_total_frames();
-        lost_output_frames += output_str_it->second->get_lost_frames() + output_str_it->second->get_lost_coded_frames();
+        lost_coded_output_frames += output_str_it->second->get_lost_coded_frames();
+        lost_decoded_output_frames += output_str_it->second->get_lost_decoded_frames();
 
         if (output_str_it->second->get_delay() > output_max_delay){
             output_max_delay = output_str_it->second->get_delay();
@@ -125,10 +129,12 @@ void statManager::update_stats()
     total_delay = input_max_delay + mixing_avg_delay + output_max_delay;
 
     cout << "\r" << setw(6) << total_delay << "  " << setw(8) << input_max_delay << "  " << 
-    setw(9) << mixing_avg_delay << "  " << setw(9) << output_max_delay << "  " << setw(5) 
-    << lost_input_frames << "/" << setw(7) <<  total_input_frames << "  " << setw(5) << lost_output_frames 
-    <<  "/" << setw(8) << total_output_frames << "  " << setw(7) << output_frame_rate << "           " << flush;
-
+    setw(9) << mixing_avg_delay << "  " << setw(9) << output_max_delay << "  " << setw(13) << 
+    (lost_decoded_input_frames*100)/total_input_frames << setw(14) << " " << 
+    (lost_coded_input_frames*100)/total_input_frames << "  " << setw(14) << 
+    (lost_coded_output_frames*100)/total_output_frames <<  " " << setw(15) << 
+    (lost_decoded_output_frames*100)/total_output_frames << "  " << setw(7) << 
+    output_frame_rate << "           " << flush;
 }
 
 void statManager::add_input_stream(uint32_t id)
@@ -179,7 +185,7 @@ void statManager::output_frame_lost(uint32_t id)
 
     streamStats *stats = output_str_map[id];
 
-    stats->set_lost_frames(stats->get_lost_frames() + 1);
+    stats->set_lost_decoded_frames(stats->get_lost_decoded_frames() + 1);
 }
 
 streamStats::streamStats(uint32_t str_id)
@@ -189,7 +195,7 @@ streamStats::streamStats(uint32_t str_id)
     fps = 0;
     bitrate = 0;
     lost_coded_frames = 0;
-    lost_frames = 0;
+    lost_decoded_frames = 0;
     total_frames = 0;
     lost_frames_percent = 0;
 }
@@ -214,9 +220,9 @@ int streamStats::get_lost_coded_frames()
     return lost_coded_frames;
 }
 
-int streamStats::get_lost_frames()
+int streamStats::get_lost_decoded_frames()
 {
-    return lost_frames;
+    return lost_decoded_frames;
 }
 
 int streamStats::get_total_frames()
@@ -249,9 +255,9 @@ void streamStats::set_lost_coded_frames(int _lost_coded_frames)
     lost_coded_frames = _lost_coded_frames;
 }
 
-void streamStats::set_lost_frames(int _lost_frames)
+void streamStats::set_lost_decoded_frames(int _lost_frames)
 {
-    lost_frames = _lost_frames;
+    lost_decoded_frames = _lost_frames;
 }
 
 void streamStats::set_total_frames(int _total_frames)

@@ -38,14 +38,14 @@ class streamStats {
         int get_fps();
         int get_bitrate();
         int get_lost_coded_frames();
-        int get_lost_frames();
+        int get_lost_decoded_frames();
         int get_total_frames();
         int get_lost_frames_percent();
         void set_delay(int _delay);
         void set_fps(int _fps);
         void set_bitrate(int _bitrate);
         void set_lost_coded_frames(int _lost_coded_frames);
-        void set_lost_frames(int _lost_frames);
+        void set_lost_decoded_frames(int _lost_frames);
         void set_total_frames(int _total_frames);
         void set_lost_frames_percent(int _lost_frames_percent);
 
@@ -56,7 +56,7 @@ class streamStats {
         int fps;
         int bitrate;
         int lost_coded_frames;
-        int lost_frames;
+        int lost_decoded_frames;
         int total_frames;
         int lost_frames_percent;
 };
@@ -69,9 +69,11 @@ class statManager {
         int output_max_delay;
         int total_delay;
         int output_frame_rate;
-        int lost_input_frames;
+        int lost_coded_input_frames;
+        int lost_decoded_input_frames;
         int total_input_frames;
-        int lost_output_frames;
+        int lost_coded_output_frames;
+        int lost_decoded_output_frames;
         int total_output_frames;
 
         int counter;

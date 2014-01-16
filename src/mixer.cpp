@@ -767,7 +767,7 @@ void Mixer::get_stats(Jzon::Object* params, Jzon::Object* outRootNode)
         str.Add("fps", (int)str_it->second->get_fps());
         str.Add("bitrate", (int)str_it->second->get_bitrate());
         str.Add("lost_coded_frames", (int)str_it->second->get_lost_coded_frames());
-        str.Add("lost_frames", (int)str_it->second->get_lost_frames());
+        str.Add("lost_frames", (int)str_it->second->get_lost_decoded_frames());
         str.Add("total_frames", (int)str_it->second->get_total_frames());
         str.Add("lost_frames_percent", (int)str_it->second->get_lost_frames_percent());
         input_list.Add(str);
@@ -782,7 +782,7 @@ void Mixer::get_stats(Jzon::Object* params, Jzon::Object* outRootNode)
         str.Add("fps", (int)str_it->second->get_fps());
         str.Add("bitrate", (int)str_it->second->get_bitrate());
         str.Add("lost_coded_frames", (int)str_it->second->get_lost_coded_frames());
-        str.Add("lost_frames", (int)str_it->second->get_lost_frames());
+        str.Add("lost_frames", (int)str_it->second->get_lost_decoded_frames());
         str.Add("total_frames", (int)str_it->second->get_total_frames());
         str.Add("lost_frames_percent", (int)str_it->second->get_lost_frames_percent());
         output_list.Add(str);

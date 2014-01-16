@@ -202,6 +202,7 @@ void stop_mixer(Jzon::Object *outputRootNode)
     
     m->stop();
     delete m;
+    m = NULL;
     outputRootNode->Add("error", Jzon::null);
 }
 

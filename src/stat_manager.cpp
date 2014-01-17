@@ -127,13 +127,28 @@ void statManager::update_stats()
     }
 
     total_delay = input_max_delay + mixing_avg_delay + output_max_delay;
+    if (total_input_frames != 0){
+        coded_input_losses = (lost_coded_input_frames*100)/total_input_frames;
+        decoded_input_losses = (lost_decoded_input_frames*100)/total_input_frames;
+    } else {
+        coded_input_losses = 0;
+        decoded_input_losses = 0;
+    }
+
+    if (total_output_frames != 0) {
+        coded_output_losses = (lost_coded_output_frames*100)/total_output_frames;
+        decoded_output_losses = (lost_decoded_output_frames*100)/total_output_frames;
+    } else {
+        coded_output_losses;
+        decoded_output_losses;
+    }
 
     cout << "\r" << setw(6) << total_delay << "  " << setw(8) << input_max_delay << "  " << 
     setw(9) << mixing_avg_delay << "  " << setw(9) << output_max_delay << "  " << setw(13) << 
-    (lost_decoded_input_frames*100)/total_input_frames << setw(14) << " " << 
-    (lost_coded_input_frames*100)/total_input_frames << "  " << setw(14) << 
-    (lost_decoded_output_frames*100)/total_output_frames <<  " " << setw(15) << 
-    (lost_coded_output_frames*100)/total_output_frames << "  " << setw(7) << 
+    decoded_input_losses << setw(14) << " " << 
+    coded_input_losses << "  " << setw(14) << 
+    decoded_output_losses <<  " " << setw(15) << 
+    coded_output_losses << "  " << setw(7) << 
     output_frame_rate << "           " << flush;
 }
 

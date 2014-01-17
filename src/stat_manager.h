@@ -71,9 +71,13 @@ class statManager {
         int output_frame_rate;
         int lost_coded_input_frames;
         int lost_decoded_input_frames;
+        int coded_input_losses;
+        int decoded_input_losses;
         int total_input_frames;
         int lost_coded_output_frames;
         int lost_decoded_output_frames;
+        int coded_output_losses;
+        int decoded_output_losses;
         int total_output_frames;
 
         int counter;

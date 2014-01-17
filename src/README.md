@@ -1,4 +1,3 @@
-  
 MIXER - A video mixing application <br>
 Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya <br>
  

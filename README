@@ -8,19 +8,19 @@ Dependencies
 FFMPEG 1.2 with libx264
 OpenCV 2.4.6.1
 Live555
-UG-Modules --> Link to the repo
+Media Streamer (https://github.com/ua-i2cat/media-streamer)
 
 Installation
 ============
 
-git clone Link to Mixer repo
+git clone https://github.com/ua-i2cat/mixer.git
 cd mixer
 ./autogen --prefix=installation_path --enable-stats
 make
 make install
 
 NOTE: default prefix is /usr/local
-NOTE: enanble-stats flag in order to enable statistics management and display. Disabled by default.
+NOTE: enable-stats flag in order to enable statistics management and display. Disabled by default.
 
 Usage
 =====

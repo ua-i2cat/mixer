@@ -132,8 +132,8 @@ void statManager::update_stats()
     setw(9) << mixing_avg_delay << "  " << setw(9) << output_max_delay << "  " << setw(13) << 
     (lost_decoded_input_frames*100)/total_input_frames << setw(14) << " " << 
     (lost_coded_input_frames*100)/total_input_frames << "  " << setw(14) << 
-    (lost_coded_output_frames*100)/total_output_frames <<  " " << setw(15) << 
-    (lost_decoded_output_frames*100)/total_output_frames << "  " << setw(7) << 
+    (lost_decoded_output_frames*100)/total_output_frames <<  " " << setw(15) << 
+    (lost_coded_output_frames*100)/total_output_frames << "  " << setw(7) << 
     output_frame_rate << "           " << flush;
 }
 

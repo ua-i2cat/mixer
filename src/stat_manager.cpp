@@ -139,8 +139,8 @@ void statManager::update_stats()
         coded_output_losses = (lost_coded_output_frames*100)/total_output_frames;
         decoded_output_losses = (lost_decoded_output_frames*100)/total_output_frames;
     } else {
-        coded_output_losses;
-        decoded_output_losses;
+        coded_output_losses = 0;
+        decoded_output_losses = 0;
     }
 
     cout << "\r" << setw(6) << total_delay << "  " << setw(8) << input_max_delay << "  " << 
